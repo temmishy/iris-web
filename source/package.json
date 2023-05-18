@@ -18,5 +18,8 @@
   "bugs": {
     "url": "https://github.com/dfir-iris/iris-web/issues"
   },
-  "homepage": "https://github.com/dfir-iris/iris-web#readme"
+  "homepage": "https://github.com/dfir-iris/iris-web#readme",
+  "dependencies": {
+    "jquery": "^3.7.0"
+  }
 }
