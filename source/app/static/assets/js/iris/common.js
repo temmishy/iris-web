@@ -1119,7 +1119,7 @@ export function get_custom_attributes_fields() {
     $("input[id^='inpstd_']").each(function (i, el) {
         let tab = $(el).attr('data-ref-tab');
         let field = $(el).attr('data-attr-for');
-        if (!(tab in values)) { values[tab] = {} };
+        if (!(tab in values)) { values[tab] = {} }
 
         values[tab][field] = $(el).val();
         if ($(el).prop('required') && !values[tab][field]) {
@@ -1132,7 +1132,7 @@ export function get_custom_attributes_fields() {
     $("textarea[id^='inpstd_']").each(function (i, el) {
         let tab = $(el).attr('data-ref-tab');
         let field = $(el).attr('data-attr-for');
-        if (!(tab in values)) { values[tab] = {} };
+        if (!(tab in values)) { values[tab] = {} }
         values[tab][field] = $(el).val();
         if ($(el).prop('required') && !values[tab][field]) {
             $(el).parent().addClass('has-error');
@@ -1144,13 +1144,13 @@ export function get_custom_attributes_fields() {
     $("input[id^='inpchk_']").each(function (i, el) {
         let tab = $(el).attr('data-ref-tab');
         let field = $(el).attr('data-attr-for');
-        if (!(tab in values)) { values[tab] = {} };
+        if (!(tab in values)) { values[tab] = {} }
         values[tab][field] = $(el).is(':checked');
     })
     $("select[id^='inpselect_']").each(function (i, el) {
         let tab = $(el).attr('data-ref-tab');
         let field = $(el).attr('data-attr-for');
-        if (!(tab in values)) { values[tab] = {} };
+        if (!(tab in values)) { values[tab] = {} }
         values[tab][field] = $(el).val();
         if ($(el).prop('required') && !values[tab][field]) {
             $(el).parent().addClass('has-error');
