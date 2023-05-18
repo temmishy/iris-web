@@ -211,7 +211,7 @@ function check_page_update(){
     update_utasks_list();
 }
 
-function task_status(id) {
+export function task_status(id) {
     let url = 'tasks/status/human/'+id + case_param();
     $('#info_task_modal_body').load(url, function (response, status, xhr) {
         if (status !== "success") {
@@ -291,7 +291,7 @@ function callBackEditUserTaskStatus(updatedCell, updatedRow) {
 /**** GTASKS ****/
 
 /* Fetch a modal that allows to add an event */
-function add_gtask() {
+export function add_gtask() {
     const url = '/global/tasks/add/modal' + case_param();
     $('#modal_add_gtask_content').load(url, function (response, status, xhr) {
         if (status !== "success") {
@@ -322,7 +322,7 @@ function add_gtask() {
     $('#modal_add_gtask').modal({ show: true });
 }
 
-function update_gtask(id) {
+export function update_gtask(id) {
     let data_sent = $('#form_new_gtask').serializeObject();
     data_sent['task_tags'] = $('#task_tags').val();
     data_sent['task_assignee_id'] = $('#task_assignee_id').val();
@@ -350,7 +350,7 @@ function delete_gtask(id) {
 }
 
 /* Edit and event from the timeline thanks to its ID */
-function edit_gtask(id) {
+export function edit_gtask(id) {
   const url = '/global/tasks/update/'+ id + "/modal" + case_param();
   $('#modal_add_gtask_content').load(url, function (response, status, xhr) {
         if (status !== "success") {
@@ -495,8 +495,16 @@ function update_gtasks_list() {
 }
 
 
-$(document).ready(function() {
-      update_gtasks_list();
+$(function() {
+      console.log('ready');
+      update_gtasks_list(); 
       update_utasks_list();
       setInterval(check_page_update,30000);
+
+      console.log($('#dashboardUpdateGlobalTasksButton'));
+
+      $('#dashboardUpdateGlobalTasksButton').on('click', update_gtasks_list);
+      $('#dashboardUpdateTasksButton').on('click', update_utasks_list);
+      $('#dashboardAddGlobalTaskButton').on('click', add_gtask);
+
 });

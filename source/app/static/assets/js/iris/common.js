@@ -9,6 +9,8 @@ import 'datatables-contextual-actions';
 
 import $ from 'jquery';
 
+$.fn.selectpicker.Constructor.BootstrapVersion = '4';
+
 $.fn.serializeObject = function() {
     var o = {};
     var a = this.serializeArray();

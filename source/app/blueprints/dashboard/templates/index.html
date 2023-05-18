@@ -99,8 +99,7 @@
                   <div class="card-title">Open tasks attributed to you
                     <div class="text-faded float-right">
                       <small id="utasks_last_updated"></small>
-                      <button type="button" class="btn btn-xs btn-icon btn-round btn-outline-default ml-2"
-                          onclick="update_utasks_list();">
+                      <button type="button" id="dashboardUpdateTasksButton" class="btn btn-xs btn-icon btn-round btn-outline-default ml-2">
                           <i class="fas fa-sync rotate"></i>
                         </button>
                     </div>
@@ -145,13 +144,12 @@
                         <div class="text-faded float-right">
                           <small id="tasks_last_updated"></small>
                             <button type="button" class="btn btn-xs btn-icon btn-round btn-outline-default ml-2"
-                              onclick="add_gtask();">
+                                id="dashboardAddGlobalTaskButton">
                               <i class="fas fa-plus"></i>
                             </button>
-                          <button type="button" class="btn btn-xs btn-icon btn-round btn-outline-default ml-2"
-                              onclick="update_gtasks_list();">
-                              <i class="fas fa-sync rotate"></i>
-                            </button>
+                          <button id="dashboardUpdateGlobalTasksButton" type="button" class="btn btn-xs btn-icon btn-round btn-outline-default ml-2">
+                           <i class="fas fa-sync rotate"></i>
+                          </button>
                         </div>
                       </div>
                     </div>
