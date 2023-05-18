@@ -1,0 +1,22 @@
+{
+  "name": "iris-web",
+  "version": "2.1.0",
+  "description": "IRIS Web Application",
+  "main": "index.js",
+  "directories": {
+    "test": "tests"
+  },
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/dfir-iris/iris-web.git"
+  },
+  "author": "DFIR-IRIS",
+  "license": "LGPL-3.0-or-later",
+  "bugs": {
+    "url": "https://github.com/dfir-iris/iris-web/issues"
+  },
+  "homepage": "https://github.com/dfir-iris/iris-web#readme"
+}
