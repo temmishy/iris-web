@@ -1,9 +1,12 @@
+import { addFilterFields } from "./datatablesUtils";
+import { get_request_api, notify_auto_api, show_loader } from "./common";
+import DataTable from "datatables.net-bs4";
+
 $.each($.find("table"), function(index, element){
     addFilterFields($(element).attr("id"));
 });
 
-
-Table = $("#activities_table").DataTable({
+let Table = $("#activities_table").DataTable({
     dom: 'Blfrtip',
     aaData: [],
     bSort: false,

@@ -2,6 +2,9 @@
  *  Case update section
  *************************/
 /* Dropzone creation for update */
+import Dropzone from "dropzone";
+import { post_request_api, notify_auto_api, notify_error, ajax_notify_error, case_param } from "./common.js";
+
 Dropzone.autoDiscover = false;
 
 Dropzone.prototype.getErroredFiles = function () {

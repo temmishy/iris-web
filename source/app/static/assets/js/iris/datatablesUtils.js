@@ -8,7 +8,7 @@ function removeFilter(clickedObject) {
 }
 
 /* add a text input to each column of a given datatable to allow filtering */
-function addFilterFields(tableId){
+export function addFilterFields(tableId){
     $('#' + tableId + ' thead tr')
         .clone(true)
         .addClass('filters')

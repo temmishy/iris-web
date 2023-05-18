@@ -1,3 +1,7 @@
+import  draggable from 'jquery-ui/ui/widgets/draggable';
+import showdown from 'showdown';
+import { Popover } from 'bootstrap';
+
 $.fn.serializeObject = function() {
     var o = {};
     var a = this.serializeArray();
@@ -17,11 +21,11 @@ $.fn.serializeObject = function() {
 
 var jdata_menu_options = [];
 
-function clear_api_error() {
+export function clear_api_error() {
    $(".invalid-feedback").hide();
 }
 
-function setCookie(name,value,days) {
+export function setCookie(name,value,days) {
     var expires = "";
     if (days) {
         var date = new Date();
@@ -31,7 +35,7 @@ function setCookie(name,value,days) {
     document.cookie = name + "=" + (value || "")  + expires + "; path=/";
 }
 
-function getCookie(name) {
+export function getCookie(name) {
     var nameEQ = name + "=";
     var ca = document.cookie.split(';');
     for(var i=0;i < ca.length;i++) {
@@ -41,11 +45,11 @@ function getCookie(name) {
     }
     return null;
 }
-function eraseCookie(name) {
+export function eraseCookie(name) {
     document.cookie = name +'=; Path=/; Expires=Thu, 01 Jan 1970 00:00:01 GMT;';
 }
 
-function ellipsis_field( data, cutoff, wordbreak ) {
+export function ellipsis_field( data, cutoff, wordbreak ) {
 
     data = data.toString();
 
@@ -65,7 +69,7 @@ function ellipsis_field( data, cutoff, wordbreak ) {
     return '<div class="ellipsis" title="'+filterXSS(data)+'">'+shortened+'&#8230;</div>';
 };
 
-function propagate_form_api_errors(data_error) {
+export function propagate_form_api_errors(data_error) {
 
     if (typeof (data_error) === typeof (' ')) {
         notify_error(data_error);
@@ -95,7 +99,7 @@ function propagate_form_api_errors(data_error) {
     }
 }
 
-function ajax_notify_error(jqXHR, url) {
+export function ajax_notify_error(jqXHR, url) {
     if (jqXHR.status == 403) {
         message = 'Permission denied';
     } else {
@@ -104,7 +108,7 @@ function ajax_notify_error(jqXHR, url) {
     notify_error(message);
 }
 
-function notify_error(message) {
+export function notify_error(message) {
 
     data = "";
     if (typeof (message) == typeof ([])) {
@@ -134,7 +138,7 @@ function notify_error(message) {
     });
 }
 
-function notify_success(message) {
+export function notify_success(message) {
     message = '<p>' + sanitizeHTML(message) + '</p>';
     $.notify({
         icon: 'fas fa-check',
@@ -154,7 +158,7 @@ function notify_success(message) {
     });
 }
 
-function notify_warning(message) {
+export function notify_warning(message) {
     message = '<p>' + sanitizeHTML(message) + '</p>';
     $.notify({
         icon: 'fas fa-exclamation',
@@ -174,7 +178,7 @@ function notify_warning(message) {
     });
 }
 
-function notify_auto_api(data, silent_success) {
+export function notify_auto_api(data, silent_success) {
     if (data.status === 'success') {
         if (silent_success === undefined || silent_success === false) {
             if (data.message.length === 0) {
@@ -192,7 +196,7 @@ function notify_auto_api(data, silent_success) {
     }
 }
 
-function get_request_api(uri, propagate_api_error, beforeSend_fn, cid) {
+export function get_request_api(uri, propagate_api_error, beforeSend_fn, cid) {
     if (cid === undefined ) {
      cid = case_param();
     } else {
@@ -203,7 +207,7 @@ function get_request_api(uri, propagate_api_error, beforeSend_fn, cid) {
     return get_raw_request_api(uri, propagate_api_error, beforeSend_fn)
 }
 
-function get_raw_request_api(uri, propagate_api_error, beforeSend_fn) {
+export function get_raw_request_api(uri, propagate_api_error, beforeSend_fn) {
     return $.ajax({
         url: uri,
         type: 'GET',
@@ -235,7 +239,7 @@ function set_page_warning(msg) {
     $('#page_warning').text(msg);
 }
 
-function get_request_data_api(uri, data, propagate_api_error, beforeSend_fn) {
+export function get_request_data_api(uri, data, propagate_api_error, beforeSend_fn) {
     return $.ajax({
         url: uri + case_param(),
         type: 'GET',
@@ -264,7 +268,7 @@ function get_request_data_api(uri, data, propagate_api_error, beforeSend_fn) {
     });
 }
 
-function post_request_api(uri, data, propagate_api_error, beforeSend_fn, cid, onError_fn) {
+export function post_request_api(uri, data, propagate_api_error, beforeSend_fn, cid, onError_fn) {
    if (cid === undefined ) {
      cid = case_param();
    } else {
@@ -306,7 +310,7 @@ function post_request_api(uri, data, propagate_api_error, beforeSend_fn, cid, on
     });
 }
 
-function post_request_data_api(uri, data, propagate_api_error, beforeSend_fn) {
+export function post_request_data_api(uri, data, propagate_api_error, beforeSend_fn) {
    return $.ajax({
         url: uri + case_param(),
         type: 'POST',
@@ -337,7 +341,7 @@ function post_request_data_api(uri, data, propagate_api_error, beforeSend_fn) {
     });
 }
 
-function updateURLParameter(url, param, paramVal) {
+export function updateURLParameter(url, param, paramVal) {
     var TheAnchor = null;
     var newAdditionalURL = "";
     var tempArray = url.split("?");
@@ -381,21 +385,21 @@ function updateURLParameter(url, param, paramVal) {
     return baseURL + "?" + newAdditionalURL + rows_txt;
 }
 
-function get_caseid() {
-    queryString = window.location.search;
-    urlParams = new URLSearchParams(queryString);
+export function get_caseid() {
+    const queryString = window.location.search;
+    const urlParams = new URLSearchParams(queryString);
 
     return urlParams.get('cid')
 }
 
-function is_redirect() {
-    queryString = window.location.search;
-    urlParams = new URLSearchParams(queryString);
+export function is_redirect() {
+    const queryString = window.location.search;
+    const urlParams = new URLSearchParams(queryString);
 
     return urlParams.get('redirect')
 }
 
-function notify_redirect() {
+export function notify_redirect() {
     if (is_redirect()) {
         swal("You've been redirected",
              "The case you attempted to reach wasn't found.\nYou have been redirected to a default case.",
@@ -409,7 +413,7 @@ function notify_redirect() {
     }
 }
 
-function case_param() {
+export function case_param() {
     var params = {
         cid: get_caseid
     }
@@ -418,12 +422,12 @@ function case_param() {
 
 var last_state = null;
 var need_check = true;
-function update_last_resfresh() {
+export function update_last_resfresh() {
     need_check = true;
     $('#last_resfresh').text("").removeClass("text-warning");
 }
 
-function check_update(url) {
+export function check_update(url) {
     if (need_check) {
         $.ajax({
             url: url + case_param(),
@@ -470,25 +474,25 @@ function check_update(url) {
     }
 }
 
-function set_last_state(state){
+export function set_last_state(state){
     if (state != null) {
         last_state = state.object_state;
     }
     update_last_resfresh();
 }
 
-function show_loader() {
+export function show_loader() {
     $('#loading_msg').show();
     $('#card_main_load').hide();
 }
 
-function hide_loader() {
+export function hide_loader() {
     $('#loading_msg').hide();
     $('#card_main_load').show();
     update_last_resfresh();
 }
 
-function list_to_badges(wordlist, style, limit, type) {
+export function list_to_badges(wordlist, style, limit, type) {
     badges = "";
     if (wordlist.length > limit) {
        badges = `<span class="badge badge-${style} ml-2">${wordlist.length} ${type}</span>`;
@@ -502,7 +506,7 @@ function list_to_badges(wordlist, style, limit, type) {
     return badges;
 }
 
-var sanitizeHTML = function (str, options) {
+export var sanitizeHTML = function (str, options) {
     if (options) {
         return filterXSS(str, options);
     } else {
@@ -510,11 +514,11 @@ var sanitizeHTML = function (str, options) {
     }
 };
 
-function isWhiteSpace(s) {
+export function isWhiteSpace(s) {
   return /^\s+$/.test(s);
 }
 
-function exportInnerPng() {
+export function exportInnerPng() {
     close_sid_var = document.querySelector(".close-quick-sidebar");
     close_sid_var.click();
     div = document.querySelector(".page-inner");
@@ -527,7 +531,7 @@ function exportInnerPng() {
     });
 }
 
-function downloadURI(uri, name) {
+export function downloadURI(uri, name) {
     var link = document.createElement("a");
 
     link.download = name;
@@ -537,7 +541,7 @@ function downloadURI(uri, name) {
     link.remove();
 }
 
-function copy_object_link(node_id) {
+export function copy_object_link(node_id) {
     link = buildShareLink(node_id);
     navigator.clipboard.writeText(link).then(function() {
           notify_success('Shared link copied');
@@ -546,11 +550,11 @@ function copy_object_link(node_id) {
         console.error('Shared link', err);
     });
 }
-function capitalizeFirstLetter(string) {
+export function capitalizeFirstLetter(string) {
   return string.charAt(0).toUpperCase() + string.slice(1);
 }
 
-function copy_object_link_md(data_type, node_id){
+export function copy_object_link_md(data_type, node_id){
     link = `[<i class="fa-solid fa-tag"></i> ${capitalizeFirstLetter(data_type)} #${node_id}](${buildShareLink(node_id)})`
     navigator.clipboard.writeText(link).then(function() {
         notify_success('MD link copied');
@@ -560,7 +564,7 @@ function copy_object_link_md(data_type, node_id){
     });
 }
 
-function load_case_activity(){
+export function load_case_activity(){
     get_request_api('/case/activities/list')
     .done((data) => {
         js_data = data.data;
@@ -584,7 +588,7 @@ function load_case_activity(){
     });
 }
 
-function load_dim_limited_tasks(){
+export function load_dim_limited_tasks(){
     get_request_api('/dim/tasks/list/100')
     .done((data) => {
         js_data = data.data;
@@ -608,7 +612,7 @@ function load_dim_limited_tasks(){
     });
 }
 
-function dim_task_status(id) {
+export function dim_task_status(id) {
     url = '/dim/tasks/status/'+id + case_param();
     $('#info_dim_task_modal_body').load(url, function (response, status, xhr) {
         if (status !== "success") {
@@ -619,7 +623,7 @@ function dim_task_status(id) {
     });
 }
 
-function init_module_processing_wrap(rows, data_type, out_hook_name) {
+export function init_module_processing_wrap(rows, data_type, out_hook_name) {
     console.log(out_hook_name);
     hook_name = null;
     for (opt in jdata_menu_options) {
@@ -638,7 +642,7 @@ function init_module_processing_wrap(rows, data_type, out_hook_name) {
     return init_module_processing(rows, hook_name, hook_ui_name, module_name, data_type);
 }
 
-function init_module_processing(rows, hook_name, hook_ui_name, module_name, data_type) {
+export function init_module_processing(rows, hook_name, hook_ui_name, module_name, data_type) {
     var data = Object();
     data['hook_name'] = hook_name;
     data['module_name'] = module_name;
@@ -669,7 +673,7 @@ function init_module_processing(rows, hook_name, hook_ui_name, module_name, data
     });
 }
 
-function load_menu_mod_options_modal(element_id, data_type, anchor) {
+export function load_menu_mod_options_modal(element_id, data_type, anchor) {
     get_request_api('/dim/hooks/options/'+ data_type +'/list')
     .done(function (data){
         if(notify_auto_api(data, true)) {
@@ -691,7 +695,7 @@ function load_menu_mod_options_modal(element_id, data_type, anchor) {
     })
 }
 
-function get_row_id(row) {
+export function get_row_id(row) {
     ids_map = ["ioc_id","asset_id","task_id","id"];
     for (id in ids_map) {
         if (row[ids_map[id]] !== undefined) {
@@ -704,7 +708,7 @@ function get_row_id(row) {
 var iClassWhiteList = ['fa-solid fa-tags','fa-solid fa-tag', 'fa-solid fa-bell', 'fa-solid fa-virus-covid text-danger mr-1',
 'fa-solid fa-file-shield text-success mr-1', 'fa-regular fa-file mr-1', 'fa-solid fa-lock text-success mr-1']
 
-function get_new_ace_editor(anchor_id, content_anchor, target_anchor, onchange_callback, do_save, readonly, live_preview) {
+export function get_new_ace_editor(anchor_id, content_anchor, target_anchor, onchange_callback, do_save, readonly, live_preview) {
     var editor = ace.edit(anchor_id);
     if ($("#"+anchor_id).attr("data-theme") != "dark") {
         editor.setTheme("ace/theme/tomorrow");
@@ -806,7 +810,7 @@ function get_new_ace_editor(anchor_id, content_anchor, target_anchor, onchange_c
     return editor;
 }
 
-function createSanitizeExtensionForImg() {
+export function createSanitizeExtensionForImg() {
   return [
     {
       type: 'lang',
@@ -822,7 +826,7 @@ function createSanitizeExtensionForImg() {
 }
 
 
-function get_showdown_convert() {
+export function get_showdown_convert() {
     return new showdown.Converter({
         tables: true,
         parseImgDimensions: true,
@@ -834,7 +838,7 @@ function get_showdown_convert() {
     });
 }
 
-function do_md_filter_xss(html) {
+export function do_md_filter_xss(html) {
     return filterXSS(html, {
         stripIgnoreTag: false,
         whiteList: {
@@ -865,7 +869,7 @@ function do_md_filter_xss(html) {
 
 const avatarCache = {};
 
-function get_avatar_initials(name, small, onClickFunction) {
+export function get_avatar_initials(name, small, onClickFunction) {
     const av_size = small ? 'avatar-sm' : 'avatar';
     const onClick = onClickFunction ? `onclick="${onClickFunction}"` : '';
 
@@ -900,7 +904,7 @@ function get_avatar_initials(name, small, onClickFunction) {
     return avatarHTMLout;
 }
 
-function get_avatar_color(snum) {
+export function get_avatar_color(snum) {
     const hue = snum * 137.508 % 360; // Use the golden angle for more distinct colors
     const saturation = 40 + (snum % 20); // Saturation range: 40-60
     const lightness = 55 + (snum % 10); // Lightness range: 70-80
@@ -909,7 +913,7 @@ function get_avatar_color(snum) {
 }
 
 
-function edit_inner_editor(btn_id, container_id, ctrd_id) {
+export function edit_inner_editor(btn_id, container_id, ctrd_id) {
     $('#'+container_id).toggle();
     if ($('#'+container_id).is(':visible')) {
         $('#'+btn_id).show(100);
@@ -921,7 +925,7 @@ function edit_inner_editor(btn_id, container_id, ctrd_id) {
     return false;
 }
 
-function get_editor_headers(editor_instance, save, edition_btn) {
+export function get_editor_headers(editor_instance, save, edition_btn) {
     var save_html = `<div class="btn btn-sm btn-light mr-1 " title="CTRL-S" id="last_saved" onclick="${save}( this );"><i class="fa-solid fa-file-circle-check"></i></div>`;
     if (save === undefined || save === null) {
         save_html = '';
@@ -943,7 +947,7 @@ function get_editor_headers(editor_instance, save, edition_btn) {
     return header;
 }
 
-function goto_case_number() {
+export function goto_case_number() {
     case_id = $('#goto_case_number_input').val();
     if (case_id !== '' && isNaN(case_id) === false) {
 
@@ -960,7 +964,7 @@ function goto_case_number() {
 }
 
 
-function load_menu_mod_options(data_type, table, deletion_fn) {
+export function load_menu_mod_options(data_type, table, deletion_fn) {
     var actionOptions = {
         classes: [],
         contextMenu: {
@@ -984,7 +988,7 @@ function load_menu_mod_options(data_type, table, deletion_fn) {
         items: [],
     };
 
-    datatype_map = {
+    const datatype_map = {
         'task': 'tasks',
         'ioc': 'ioc',
         'evidence': 'evidences',
@@ -1081,7 +1085,7 @@ function load_menu_mod_options(data_type, table, deletion_fn) {
 }
 
 
-function get_custom_attributes_fields() {
+export function get_custom_attributes_fields() {
     values = Object();
     has_error = [];
     $("input[id^='inpstd_']").each(function (i, el) {
@@ -1139,11 +1143,11 @@ function get_custom_attributes_fields() {
     return [has_error, values];
 }
 
-function update_time() {
+export function update_time() {
     $('#current_date').text((new Date()).toLocaleString().slice(0, 17));
 }
 
-function download_file(filename, contentType, data) {
+export function download_file(filename, contentType, data) {
     var element = document.createElement('a');
     element.setAttribute('href', 'data:' + contentType + ';charset=utf-8,' + encodeURIComponent(data));
     element.setAttribute('download', filename);
@@ -1153,7 +1157,7 @@ function download_file(filename, contentType, data) {
     document.body.removeChild(element);
 }
 
-function toggle_focus_mode() {
+export function toggle_focus_mode() {
     class_a = "bg-focus-gradient"
     $(".modal-case-focus").each(function (i, el)  {
         if ($(el).hasClass( class_a )) {
@@ -1164,26 +1168,26 @@ function toggle_focus_mode() {
     });
 }
 
-function modal_maximize() {
+export function modal_maximize() {
     id = $('#minimized_modal_box').data('target-id');
     $("#" + id).modal("show");
     $("#minimized_modal_box").hide();
 }
 
-function modal_minimized(id, title) {
+export function modal_minimized(id, title) {
     $("#" + id).modal("hide");
     $("#minimized_modal_title").text(title);
     $('#minimized_modal_box').data('target-id',id);
     $("#minimized_modal_box").show();
 }
 
-function hide_minimized_modal_box() {
+export function hide_minimized_modal_box() {
     $("#minimized_modal_box").hide();
     $("#minimized_modal_title").text('');
     $('#minimized_modal_box').data('target-id','');
 }
 
-function hide_table_search_input(columns) {
+export function hide_table_search_input(columns) {
     for (i=0; i<columns.length; i++) {
       if (columns[i]) {
         $('.filters th:eq(' + i + ')' ).show();
@@ -1193,7 +1197,7 @@ function hide_table_search_input(columns) {
     }
   }
 
-function load_context_switcher() {
+export function load_context_switcher() {
 
     var options = {
             ajax: {
@@ -1219,7 +1223,7 @@ function load_context_switcher() {
     });
 }
 
-function context_data_parser(data) {
+export function context_data_parser(data) {
     if(notify_auto_api(data, true)) {
         $('#user_context').empty();
 
@@ -1249,7 +1253,7 @@ function context_data_parser(data) {
     }
 }
 
-function focus_on_input_chg_case(){
+export function focus_on_input_chg_case(){
     $('#goto_case_number_input').focus();
     $('#goto_case_number_input').keydown(function(event) {
         if (event.keyCode == 13) {
@@ -1259,7 +1263,7 @@ function focus_on_input_chg_case(){
   });
 }
 
-function split_bool(split_str) {
+export function split_bool(split_str) {
     and_split = split_str.split(' AND ');
 
     if (and_split[0]) {
@@ -1269,7 +1273,7 @@ function split_bool(split_str) {
     return null;
 }
 
-function random_filename(length) {
+export function random_filename(length) {
     var filename           = '';
     var characters       = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
     var char_length = characters.length;
@@ -1279,7 +1283,7 @@ function random_filename(length) {
    return filename;
 }
 
-function createPagination(currentPage, totalPages, per_page, callback, paginationContainersNodes) {
+export function createPagination(currentPage, totalPages, per_page, callback, paginationContainersNodes) {
   const maxPagesToShow = 5;
   const paginationContainers = $(paginationContainersNodes);
 
@@ -1356,7 +1360,7 @@ function createPagination(currentPage, totalPages, per_page, callback, paginatio
 
 let userWhoami = JSON.parse(sessionStorage.getItem('userWhoami'));
 
-function userWhoamiRequest(force = false) {
+export function userWhoamiRequest(force = false) {
   if (!userWhoami || force) {
     get_request_api('/user/whoami')
       .done((data) => {
@@ -1384,7 +1388,7 @@ $('.toggle-sidebar').on('click', function() {
     }
 });
 
-function do_deletion_prompt(message, force_prompt=false) {
+export function do_deletion_prompt(message, force_prompt=false) {
     if (userWhoami.has_deletion_confirmation || force_prompt) {
             return new Promise((resolve, reject) => {
                 swal({
@@ -1426,7 +1430,7 @@ $(document).ready(function(){
 
     $(function () {
         var current = location.pathname;
-        btt = current.split('/')[1];
+        let btt = current.split('/')[1];
 
         if (btt !== 'manage') {
             btt = btt.split('?')[0];
@@ -1439,7 +1443,8 @@ $(document).ready(function(){
         }
 
         $('#l_nav_tab .nav-item').each(function (k, al) {
-            href = $(al).children().attr('href');
+            let href = $(al).children().attr('href');
+            let att = "";
             try {
                 if (href == "#advanced-nav") {
                     $('#advanced-nav .nav-subitem').each(function (i, el) {
@@ -1456,7 +1461,6 @@ $(document).ready(function(){
                     $(this).addClass('active');
                     return false;
                 }else{
-                    att = "";
                     att = href.split('/')[1].split('?')[0];
                 }
             } catch {att=""}
@@ -1496,12 +1500,13 @@ $(document).ready(function(){
     });
 
     $(function () {
-        $('[data-toggle="popover"]').popover({
-            trigger: 'focus',
-            placement: 'auto',
-            container: 'body',
-            html: true
-        });
+        // new Popover({selector: '[data-toggle="popover"]', trigger: 'focus', placement: 'auto', container: 'body', html: true});
+        // $('[data-toggle="popover"]').popover({
+        //     trigger: 'focus',
+        //     placement: 'auto',
+        //     container: 'body',
+        //     html: true
+        // });
     });
 
     $('.modal-dialog').draggable({
