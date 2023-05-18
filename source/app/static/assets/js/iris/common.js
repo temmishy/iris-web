@@ -5,6 +5,7 @@ import { filterXSS } from 'xss';
 import swal from 'sweetalert';
 import html2canvas from 'html2canvas';
 import ace from 'ace-builds';
+import 'datatables-contextual-actions';
 
 import $ from 'jquery';
 

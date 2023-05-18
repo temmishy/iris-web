@@ -1,16 +1,18 @@
-import {  get_request_api, 
-          post_request_api, 
-          notify_auto_api, 
-          ajax_notify_error, 
-          case_param, 
-          load_menu_mod_options, 
-          isWhiteSpace, 
-          sanitizeHTML, 
-          notify_error 
-        } from './common.js';
-        
-import Chart from 'chartjs';
 import $ from 'jquery';
+
+import { 
+  get_request_api, 
+  post_request_api, 
+  notify_auto_api, 
+  ajax_notify_error, 
+  notify_error, 
+  case_param, 
+  load_menu_mod_options, 
+  isWhiteSpace, 
+  sanitizeHTML 
+} from './common.js';
+
+import Chart from 'chartjs';
 
 let UserTaskTable = $("#utasks_table").DataTable({
   dom: 'Blfrtip',
@@ -377,7 +379,7 @@ $.ajax({
             var gradientFill = htmlLegendsChart.createLinearGradient(500, 0, 100, 0);
             gradientFill.addColorStop(0, "rgba(23, 125, 255, 0.7)");
             gradientFill.addColorStop(1, "rgba(128, 182, 244, 0.3)");
-
+            
            new Chart(htmlLegendsChart, {
                 type: 'line',
                 data: {

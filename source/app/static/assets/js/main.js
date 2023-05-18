@@ -1,4 +1,3 @@
-import $ from 'jquery';
 import 'popper.js';
 import 'bootstrap';
 import 'bootstrap-notify';
@@ -19,3 +18,4 @@ import 'showdown';
 import 'xss';
 import 'chartjs';
 import 'dropzone';
+import 'ace-builds';
