@@ -1,6 +1,12 @@
 import  draggable from 'jquery-ui/ui/widgets/draggable';
 import showdown from 'showdown';
 import { Popover } from 'bootstrap';
+import { filterXSS } from 'xss';
+import swal from 'sweetalert';
+import html2canvas from 'html2canvas';
+import ace from 'ace-builds';
+
+import $ from 'jquery';
 
 $.fn.serializeObject = function() {
     var o = {};
@@ -67,7 +73,7 @@ export function ellipsis_field( data, cutoff, wordbreak ) {
     shortened = filterXSS( shortened );
 
     return '<div class="ellipsis" title="'+filterXSS(data)+'">'+shortened+'&#8230;</div>';
-};
+}
 
 export function propagate_form_api_errors(data_error) {
 
@@ -79,8 +85,8 @@ export function propagate_form_api_errors(data_error) {
     for (let e in data_error) {
         if($("#" + e).length !== 0) {
             $("#" + e).addClass('is-invalid');
-            errors = ""
-            for (n in data_error[e]) {
+            let errors = ""
+            for (let n in data_error[e]) {
                     errors += data_error[e][n];
                 }
             if($("#" + e + "-invalid-msg").length !== 0) {
@@ -90,8 +96,8 @@ export function propagate_form_api_errors(data_error) {
             $("#" + e + "-invalid-msg").show();
         }
         else {
-            msg = e + " - ";
-            for (n in data_error[e]) {
+            let msg = e + " - ";
+            for (let n in data_error[e]) {
                     msg += data_error[e][n];
             }
             notify_error(msg);
@@ -100,6 +106,7 @@ export function propagate_form_api_errors(data_error) {
 }
 
 export function ajax_notify_error(jqXHR, url) {
+    let message = '';
     if (jqXHR.status == 403) {
         message = 'Permission denied';
     } else {
@@ -110,9 +117,9 @@ export function ajax_notify_error(jqXHR, url) {
 
 export function notify_error(message) {
 
-    data = "";
+    let data = "";
     if (typeof (message) == typeof ([])) {
-        for (element in message) {
+        for (let element in message) {
             data += element
         }
     } else {
@@ -235,7 +242,7 @@ export function get_raw_request_api(uri, propagate_api_error, beforeSend_fn) {
     });
 }
 
-function set_page_warning(msg) {
+export function set_page_warning(msg) {
     $('#page_warning').text(msg);
 }
 
@@ -268,7 +275,7 @@ export function get_request_data_api(uri, data, propagate_api_error, beforeSend_
     });
 }
 
-export function post_request_api(uri, data, propagate_api_error, beforeSend_fn, cid, onError_fn) {
+export function post_request_api(uri, data, propagate_api_error, beforeSend_fn, cid) {
    if (cid === undefined ) {
      cid = case_param();
    } else {
@@ -348,11 +355,13 @@ export function updateURLParameter(url, param, paramVal) {
     var baseURL = tempArray[0];
     var additionalURL = tempArray[1];
     var temp = "";
+    var tmpAnchor = null;
+    var TheParams = null;
 
     if (additionalURL)
     {
-        var tmpAnchor = additionalURL.split("#");
-        var TheParams = tmpAnchor[0];
+        tmpAnchor = additionalURL.split("#");
+        TheParams = tmpAnchor[0];
             TheAnchor = tmpAnchor[1];
         if(TheAnchor)
             additionalURL = TheParams;
@@ -370,8 +379,8 @@ export function updateURLParameter(url, param, paramVal) {
     }
     else
     {
-        var tmpAnchor = baseURL.split("#");
-        var TheParams = tmpAnchor[0];
+        tmpAnchor = baseURL.split("#");
+        TheParams = tmpAnchor[0];
             TheAnchor  = tmpAnchor[1];
 
         if(TheParams)
@@ -404,9 +413,9 @@ export function notify_redirect() {
         swal("You've been redirected",
              "The case you attempted to reach wasn't found.\nYou have been redirected to a default case.",
              "info", {button: "OK"}
-             ).then((value) => {
-                    queryString = window.location.search;
-                    urlParams = new URLSearchParams(queryString);
+             ).then(() => {
+                    let queryString = window.location.search;
+                    let urlParams = new URLSearchParams(queryString);
                     urlParams.delete('redirect');
                     history.replaceState(null, null, window.location.pathname + '?' + urlParams.toString());
                 });
@@ -465,7 +474,7 @@ export function check_update(url) {
                 } else if (data.status == 403) {
                     window.location.replace("/case" + case_param());
                 } else if (data.status == 400) {
-
+                    console.log('Bad request logged - standard error message');
                 } else {
                     notify_error('Connection with server lost');
                 }
@@ -493,12 +502,12 @@ export function hide_loader() {
 }
 
 export function list_to_badges(wordlist, style, limit, type) {
-    badges = "";
+    let badges = "";
     if (wordlist.length > limit) {
        badges = `<span class="badge badge-${style} ml-2">${wordlist.length} ${type}</span>`;
     }
     else {
-        wordlist.forEach(function (item, index) {
+        wordlist.forEach(function (item) {
             badges += `<span class="badge badge-${style} ml-2">${sanitizeHTML(item)}</span>`;
         });
     }
@@ -519,9 +528,9 @@ export function isWhiteSpace(s) {
 }
 
 export function exportInnerPng() {
-    close_sid_var = document.querySelector(".close-quick-sidebar");
+    let close_sid_var = document.querySelector(".close-quick-sidebar");
     close_sid_var.click();
-    div = document.querySelector(".page-inner");
+    let div = document.querySelector(".page-inner");
     html2canvas(div, {
         useCORS: true,
         scale: 3,
@@ -541,8 +550,15 @@ export function downloadURI(uri, name) {
     link.remove();
 }
 
+export function buildShareLink(lookup_id) {
+    let current_path = location.protocol + '//' + location.host + location.pathname;
+    current_path = current_path + case_param() + '&shared=' + lookup_id;
+
+    return current_path;
+}
+
 export function copy_object_link(node_id) {
-    link = buildShareLink(node_id);
+    let link = buildShareLink(node_id);
     navigator.clipboard.writeText(link).then(function() {
           notify_success('Shared link copied');
     }, function(err) {
@@ -555,7 +571,7 @@ export function capitalizeFirstLetter(string) {
 }
 
 export function copy_object_link_md(data_type, node_id){
-    link = `[<i class="fa-solid fa-tag"></i> ${capitalizeFirstLetter(data_type)} #${node_id}](${buildShareLink(node_id)})`
+    let link = `[<i class="fa-solid fa-tag"></i> ${capitalizeFirstLetter(data_type)} #${node_id}](${buildShareLink(node_id)})`
     navigator.clipboard.writeText(link).then(function() {
         notify_success('MD link copied');
     }, function(err) {
@@ -567,9 +583,12 @@ export function copy_object_link_md(data_type, node_id){
 export function load_case_activity(){
     get_request_api('/case/activities/list')
     .done((data) => {
-        js_data = data.data;
+        let js_data = data.data;
+        let api_flag = '';
+        let title = '';
+
         $('#case_activities').empty();
-        for (index in js_data) {
+        for (let index in js_data) {
 
             if (js_data[index].is_from_api) {
                 api_flag = 'feed-item-primary';
@@ -579,7 +598,7 @@ export function load_case_activity(){
                 title = 'Activity issued from GUI';
             }
 
-            entry =	`<li class="feed-item ${api_flag}" title='${sanitizeHTML(title)}'>
+            let entry =	`<li class="feed-item ${api_flag}" title='${sanitizeHTML(title)}'>
                     <time class="date" datetime="${js_data[index].activity_date}">${js_data[index].activity_date}</time>
                     <span class="text">${sanitizeHTML(js_data[index].name)} - ${sanitizeHTML(js_data[index].activity_desc)}</span>
                     </li>`
@@ -591,9 +610,12 @@ export function load_case_activity(){
 export function load_dim_limited_tasks(){
     get_request_api('/dim/tasks/list/100')
     .done((data) => {
-        js_data = data.data;
+        let js_data = data.data;
+        let api_flag = '';
+        let title = '';
+
         $('#dim_tasks_feed').empty();
-        for (index in js_data) {
+        for (let index in js_data) {
 
             if (js_data[index].state == 'success') {
                 api_flag = 'feed-item-success';
@@ -603,7 +625,7 @@ export function load_dim_limited_tasks(){
                 title = 'Task pending or failed';
             }
 
-            entry =	`<li class="feed-item ${api_flag}" title='${title}'>
+            let entry =	`<li class="feed-item ${api_flag}" title='${title}'>
                     <time class="date" datetime="${js_data[index].activity_date}">${js_data[index].date_done}</time>
                     <span class="text" title="${js_data[index].task_id}"><a href="#" onclick='dim_task_status("${js_data[index].task_id}");return false;'>${js_data[index].module}</a> - ${js_data[index].user}</span>
                     </li>`
@@ -613,7 +635,7 @@ export function load_dim_limited_tasks(){
 }
 
 export function dim_task_status(id) {
-    url = '/dim/tasks/status/'+id + case_param();
+    const url = '/dim/tasks/status/'+id + case_param();
     $('#info_dim_task_modal_body').load(url, function (response, status, xhr) {
         if (status !== "success") {
              ajax_notify_error(xhr, url);
@@ -625,8 +647,11 @@ export function dim_task_status(id) {
 
 export function init_module_processing_wrap(rows, data_type, out_hook_name) {
     console.log(out_hook_name);
-    hook_name = null;
-    for (opt in jdata_menu_options) {
+    let hook_name = null;
+    let hook_ui_name = null;
+    let module_name = null;
+
+    for (let opt in jdata_menu_options) {
         console.log(jdata_menu_options[opt]);
         if (jdata_menu_options[opt].manual_hook_ui_name == out_hook_name) {
             hook_name = jdata_menu_options[opt].hook_name;
@@ -651,7 +676,7 @@ export function init_module_processing(rows, hook_name, hook_ui_name, module_nam
     data['type'] = data_type;
     data['targets'] = [];
 
-    type_map = {
+    let type_map = {
         "ioc": "ioc_id",
         "asset": "asset_id",
         "task": "task_id",
@@ -659,7 +684,7 @@ export function init_module_processing(rows, hook_name, hook_ui_name, module_nam
         "evidence": "id"
     }
 
-    for (index in rows) {
+    for (let index in rows) {
         if (typeof rows[index] === 'object') {
             data['targets'].push(rows[index][type_map[data_type]]);
         } else {
@@ -678,12 +703,14 @@ export function load_menu_mod_options_modal(element_id, data_type, anchor) {
     .done(function (data){
         if(notify_auto_api(data, true)) {
             if (data.data != null) {
-                jsdata = data.data;
+                let jsdata = data.data;
                 if (jsdata.length != 0) {
                     anchor.append('<div class="dropdown-divider"></div>');
                 }
+                let opt = null;
+                let menu_opt = null;
 
-                for (option in jsdata) {
+                for (let option in jsdata) {
                     opt = jsdata[option];
                     menu_opt = `<a class="dropdown-item" href="#" onclick='init_module_processing(["${element_id}"], "${opt.hook_name}",`+
                                 `"${opt.manual_hook_ui_name}","${opt.module_name}","${data_type}");return false;'><i class="fa fa-arrow-alt-circle-right mr-2"></i> ${opt.manual_hook_ui_name}</a>`
@@ -696,8 +723,8 @@ export function load_menu_mod_options_modal(element_id, data_type, anchor) {
 }
 
 export function get_row_id(row) {
-    ids_map = ["ioc_id","asset_id","task_id","id"];
-    for (id in ids_map) {
+    const ids_map = ["ioc_id","asset_id","task_id","id"];
+    for (let id in ids_map) {
         if (row[ids_map[id]] !== undefined) {
             return row[ids_map[id]];
         }
@@ -735,7 +762,7 @@ export function get_new_ace_editor(anchor_id, content_anchor, target_anchor, onc
         editor.commands.addCommand({
             name: 'save',
             bindKey: {win: "Ctrl-S", "mac": "Cmd-S"},
-            exec: function(editor) {
+            exec: function() {
                 do_save()
             }
         });
@@ -855,7 +882,7 @@ export function do_md_filter_xss(html) {
                 input: ['type', 'checked', 'disabled', 'class'],
                 table: ['class'], thead: [], tbody: [], tr: [], th: [], td: []
             },
-        onTagAttr: function (tag, name, value, isWhiteAttr) {
+        onTagAttr: function (tag, name, value) {
             if (tag === "i" && name === "class") {
                 if (iClassWhiteList.indexOf(value) === -1) {
                     return false;
@@ -925,12 +952,12 @@ export function edit_inner_editor(btn_id, container_id, ctrd_id) {
     return false;
 }
 
-export function get_editor_headers(editor_instance, save, edition_btn) {
+export function get_editor_headers(editor_instance, save) {
     var save_html = `<div class="btn btn-sm btn-light mr-1 " title="CTRL-S" id="last_saved" onclick="${save}( this );"><i class="fa-solid fa-file-circle-check"></i></div>`;
     if (save === undefined || save === null) {
         save_html = '';
     }
-    header = `
+    let header = `
                 ${save_html}
                 <div class="btn btn-sm btn-light mr-1 " title="CTRL-B" onclick="${editor_instance}.insertSnippet`+"('**${1:$SELECTION}**');"+`${editor_instance}.focus();"><i class="fa-solid fa-bold"></i></div>
                 <div class="btn btn-sm btn-light mr-1" title="CTRL-I" onclick="${editor_instance}.insertSnippet`+"('*${1:$SELECTION}*');"+`${editor_instance}.focus();"><i class="fa-solid fa-italic"></i></div>
@@ -948,7 +975,7 @@ export function get_editor_headers(editor_instance, save, edition_btn) {
 }
 
 export function goto_case_number() {
-    case_id = $('#goto_case_number_input').val();
+    const case_id = $('#goto_case_number_input').val();
     if (case_id !== '' && isNaN(case_id) === false) {
 
         get_request_api('/case/exists', true, null, case_id)
@@ -963,6 +990,7 @@ export function goto_case_number() {
     }
 }
 
+let comment_element = function(){};
 
 export function load_menu_mod_options(data_type, table, deletion_fn) {
     var actionOptions = {
@@ -976,7 +1004,7 @@ export function load_menu_mod_options(data_type, table, deletion_fn) {
                 if (rows.length > 1) {
                     return rows.length + ' items selected';
                 } else {
-                    let row = rows[0];
+                    // let row = rows[0];
                     return 'Quick action';
                 }
             },
@@ -1001,7 +1029,7 @@ export function load_menu_mod_options(data_type, table, deletion_fn) {
     .done((data) => {
         if(notify_auto_api(data, true)) {
             if (data.data != null) {
-                jsdata = data.data;
+                let jsdata = data.data;
 
                 actionOptions.items.push({
                     type: 'option',
@@ -1009,7 +1037,7 @@ export function load_menu_mod_options(data_type, table, deletion_fn) {
                     multi: false,
                     iconClass: 'fas fa-share',
                     action: function(rows){
-                        row = rows[0];
+                        let row = rows[0];
                         copy_object_link(get_row_id(row));
                     }
                 });
@@ -1020,7 +1048,7 @@ export function load_menu_mod_options(data_type, table, deletion_fn) {
                     multi: false,
                     iconClass: 'fas fa-comments',
                     action: function(rows){
-                        row = rows[0];
+                        let row = rows[0];
                         if (data_type in datatype_map) {
                             comment_element(get_row_id(row), datatype_map[data_type]);
                         }
@@ -1033,7 +1061,7 @@ export function load_menu_mod_options(data_type, table, deletion_fn) {
                     multi: false,
                     iconClass: 'fa-brands fa-markdown',
                     action: function(rows){
-                        row = rows[0];
+                        let row = rows[0];
                         copy_object_link_md(data_type, get_row_id(row));
                     }
                 });
@@ -1043,8 +1071,8 @@ export function load_menu_mod_options(data_type, table, deletion_fn) {
                 });
                 jdata_menu_options = jsdata;
 
-                for (option in jsdata) {
-                    opt = jsdata[option];
+                for (let option in jsdata) {
+                    let opt = jsdata[option];
 
                     actionOptions.items.push({
                         type: 'option',
@@ -1053,7 +1081,7 @@ export function load_menu_mod_options(data_type, table, deletion_fn) {
                         multiTitle: opt.manual_hook_ui_name,
                         iconClass: 'fas fa-rocket',
                         contextMenuClasses: ['text-dark'],
-                        action: function (rows, de, ke) {
+                        action: function (rows, de) {
                             init_module_processing_wrap(rows, data_type, de[0].outerText);
                         },
                     })
@@ -1071,13 +1099,13 @@ export function load_menu_mod_options(data_type, table, deletion_fn) {
                         iconClass: 'fas fa-trash',
                         contextMenuClasses: ['text-danger'],
                         action: function(rows){
-                            row = rows[0];
+                            let row = rows[0];
                             deletion_fn(get_row_id(row));
                         }
                     });
                 }
 
-                tableActions = table.contextualActions(actionOptions);
+                let tableActions = table.contextualActions(actionOptions);
                 tableActions.update();
             }
         }
@@ -1086,11 +1114,11 @@ export function load_menu_mod_options(data_type, table, deletion_fn) {
 
 
 export function get_custom_attributes_fields() {
-    values = Object();
-    has_error = [];
+    let values = Object();
+    let has_error = [];
     $("input[id^='inpstd_']").each(function (i, el) {
-        tab = $(el).attr('data-ref-tab');
-        field = $(el).attr('data-attr-for');
+        let tab = $(el).attr('data-ref-tab');
+        let field = $(el).attr('data-attr-for');
         if (!(tab in values)) { values[tab] = {} };
 
         values[tab][field] = $(el).val();
@@ -1102,8 +1130,8 @@ export function get_custom_attributes_fields() {
         }
     })
     $("textarea[id^='inpstd_']").each(function (i, el) {
-        tab = $(el).attr('data-ref-tab');
-        field = $(el).attr('data-attr-for');
+        let tab = $(el).attr('data-ref-tab');
+        let field = $(el).attr('data-attr-for');
         if (!(tab in values)) { values[tab] = {} };
         values[tab][field] = $(el).val();
         if ($(el).prop('required') && !values[tab][field]) {
@@ -1114,14 +1142,14 @@ export function get_custom_attributes_fields() {
         }
     })
     $("input[id^='inpchk_']").each(function (i, el) {
-        tab = $(el).attr('data-ref-tab');
-        field = $(el).attr('data-attr-for');
+        let tab = $(el).attr('data-ref-tab');
+        let field = $(el).attr('data-attr-for');
         if (!(tab in values)) { values[tab] = {} };
         values[tab][field] = $(el).is(':checked');
     })
     $("select[id^='inpselect_']").each(function (i, el) {
-        tab = $(el).attr('data-ref-tab');
-        field = $(el).attr('data-attr-for');
+        let tab = $(el).attr('data-ref-tab');
+        let field = $(el).attr('data-attr-for');
         if (!(tab in values)) { values[tab] = {} };
         values[tab][field] = $(el).val();
         if ($(el).prop('required') && !values[tab][field]) {
@@ -1133,8 +1161,8 @@ export function get_custom_attributes_fields() {
     })
 
     if (has_error.length > 0) {
-        msg = 'Missing required fields: <br/>';
-        for (field in has_error) {
+        let msg = 'Missing required fields: <br/>';
+        for (let field in has_error) {
             msg += '  - ' + has_error[field] + '<br/>';
         }
         notify_error(msg);
@@ -1158,7 +1186,7 @@ export function download_file(filename, contentType, data) {
 }
 
 export function toggle_focus_mode() {
-    class_a = "bg-focus-gradient"
+    let class_a = "bg-focus-gradient"
     $(".modal-case-focus").each(function (i, el)  {
         if ($(el).hasClass( class_a )) {
             $(el).removeClass(class_a, 1000);
@@ -1169,7 +1197,7 @@ export function toggle_focus_mode() {
 }
 
 export function modal_maximize() {
-    id = $('#minimized_modal_box').data('target-id');
+    let id = $('#minimized_modal_box').data('target-id');
     $("#" + id).modal("show");
     $("#minimized_modal_box").hide();
 }
@@ -1188,7 +1216,7 @@ export function hide_minimized_modal_box() {
 }
 
 export function hide_table_search_input(columns) {
-    for (i=0; i<columns.length; i++) {
+    for (let i=0; i<columns.length; i++) {
       if (columns[i]) {
         $('.filters th:eq(' + i + ')' ).show();
       } else {
@@ -1229,11 +1257,11 @@ export function context_data_parser(data) {
 
         $('#user_context').append('<optgroup label="Opened" id="switch_case_opened_opt"></optgroup>');
         $('#user_context').append('<optgroup label="Closed" id="switch_case_closed_opt"></optgroup>');
-        ocs = data.data;
-        ret_data = [];
-        for (index in ocs) {
-            case_name = sanitizeHTML(ocs[index].name);
-            cs_name = sanitizeHTML(ocs[index].customer_name);
+        let ocs = data.data;
+        let ret_data = [];
+        for (let index in ocs) {
+            let case_name = sanitizeHTML(ocs[index].name);
+            let cs_name = sanitizeHTML(ocs[index].customer_name);
             ret_data.push({
                         'value': ocs[index].case_id,
                         'text': `${case_name} (${cs_name}) ${ocs[index].access}`
@@ -1264,7 +1292,7 @@ export function focus_on_input_chg_case(){
 }
 
 export function split_bool(split_str) {
-    and_split = split_str.split(' AND ');
+    let and_split = split_str.split(' AND ');
 
     if (and_split[0]) {
       return and_split[0];
@@ -1417,7 +1445,7 @@ export function do_deletion_prompt(message, force_prompt=false) {
                 });
             });
     } else {
-        return new Promise((resolve, reject) => {
+        return new Promise((resolve) => {
             resolve(true);
         });
     }
@@ -1435,7 +1463,7 @@ $(document).ready(function(){
         if (btt !== 'manage') {
             btt = btt.split('?')[0];
         } else {
-            csp = current.split('?')[0].split('/')
+            let csp = current.split('?')[0].split('/')
             if (csp.length >= 3) {
                 csp = csp.splice(0, 3);
             }
@@ -1448,7 +1476,7 @@ $(document).ready(function(){
             try {
                 if (href == "#advanced-nav") {
                     $('#advanced-nav .nav-subitem').each(function (i, el) {
-                        ktt = $(el).children().attr('href').split('?')[0];
+                        let ktt = $(el).children().attr('href').split('?')[0];
                         if (ktt === btt) {
                             $(el).addClass('active');
                             $(al).addClass('active');
@@ -1528,10 +1556,10 @@ $(document).ready(function(){
         return false;
     });
 
-    var sh_ext = showdown.extension('bootstrap-tables', function () {
+    showdown.extension('bootstrap-tables', function () {
       return [{
         type: "output",
-        filter: function (html, converter, options) {
+        filter: function (html) {
           // parse the html string
           var liveHtml = $('<div></div>').html(html);
           $('table', liveHtml).each(function(){
