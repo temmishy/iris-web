@@ -291,15 +291,17 @@ def edit_gtask_modal(cur_id, caseid):
     task = GlobalTasks.query.filter(GlobalTasks.id == cur_id).first()
     form.task_assignee_id.choices = [(user.id, user.name) for user in
                                      User.query.filter(User.active == True).order_by(User.name).all()]
-    #form.task_assignee_id.default = task.task_assignee_id
+    form.task_assignee_id.default = task.task_assignee_id
 
     form.task_status_id.choices = [(a.id, a.status_name) for a in get_tasks_status()]
-    #form.task_status_id.default = task.task_status_id
+    form.task_status_id.default = task.task_status_id
 
     # Render the task
     form.task_title.render_kw = {'value': task.task_title}
     form.task_description.data = task.task_description
     user_name, = User.query.with_entities(User.name).filter(User.id == task.task_userid_update).first()
+
+    form.process()
 
     return render_template("modal_add_global_task.html", form=form, task=task,
                            uid=task.task_assignee_id, user_name=user_name)
@@ -312,6 +314,7 @@ def edit_gtask(cur_id, caseid):
     form = CaseGlobalTaskForm()
     task = GlobalTasks.query.filter(GlobalTasks.id == cur_id).first()
     form.task_assignee_id.choices = [(user.id, user.name) for user in User.query.filter(User.active == True).order_by(User.name).all()]
+
     form.task_status_id.choices = [(a.id, a.status_name) for a in get_tasks_status()]
 
     if not task:
