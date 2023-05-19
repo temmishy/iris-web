@@ -41,6 +41,7 @@
     "showdown": "^2.1.0",
     "suggestags": "^1.27.0",
     "sweetalert": "^2.1.2",
+    "webfontloader": "^1.6.28",
     "xss": "^1.0.14"
   },
   "devDependencies": {
