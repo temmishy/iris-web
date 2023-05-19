@@ -337,7 +337,6 @@ function add_gtask() {
 
     });
 
-
 }
 
 function update_gtask(id) {

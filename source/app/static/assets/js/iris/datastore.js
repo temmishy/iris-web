@@ -1,6 +1,24 @@
+import $ from 'jquery';
+import { get_request_api, 
+    post_request_api, 
+    notify_auto_api, 
+    sanitizeHTML, 
+    case_param, 
+    ajax_notify_error,
+    post_request_data_api, 
+    notify_success, 
+    notify_error, 
+    downloadURI, 
+    split_bool, 
+    get_request_data_api
+} from './common';
+
+import ace from 'ace-builds/src-noconflict/ace';
+import { swal } from 'sweetalert';
+
 var ds_filter;
 
-function load_datastore() {
+export function load_datastore() {
 
     ds_filter = ace.edit("ds_file_search",
     {
@@ -21,7 +39,7 @@ function load_datastore() {
     ds_filter.commands.addCommand({
             name: "Do filter",
             bindKey: { win: "Enter", mac: "Enter" },
-            exec: function (editor) {
+            exec: function () {
                       filter_ds_files();
             }
     });
@@ -53,7 +71,7 @@ function build_ds_tree(data, tree_node) {
                 {value: 'AND ', score: 10, meta: 'AND operator'}
               ]
 
-    for (node in data) {
+    for (let node in data) {
 
         if (data[node] === null) {
             break;
@@ -61,11 +79,11 @@ function build_ds_tree(data, tree_node) {
 
         if (data[node].type == 'directory') {
             data[node].name = sanitizeHTML(data[node].name);
-            can_delete = '';
+            let can_delete = '';
             if (!data[node].is_root) {
                 can_delete = `<div class="dropdown-divider"></div><a href="#" class="dropdown-item text-danger" onclick="delete_ds_folder('${node}');"><small class="fa fa-trash mr-2"></small>Delete</a>`;
             }
-            jnode = `<li>
+            let jnode = `<li>
                     <span id='${node}' title='Folder ID ${node}' data-node-id="${node}"><i class="fa-regular fa-folder"></i> ${data[node].name}</span> <i class="fas fa-plus ds-folder-menu" role="menu" style="cursor:pointer;" data-toggle="dropdown" aria-expanded="false"></i>
                         <div class="dropdown-menu" role="menu">
                                 <a href="#" class="dropdown-item" onclick="add_ds_folder('${node}');return false;"><small class="fa-solid fa-folder mr-2"></small>Add subfolder</a>
@@ -88,7 +106,7 @@ function build_ds_tree(data, tree_node) {
                 score: 1,
                 meta: data[node].file_description
             });
-            icon = '';
+            let icon = '';
             if (data[node].file_is_ioc) {
                 icon += '<i class="fa-solid fa-virus-covid text-danger mr-1" title="File is an IOC"></i>';
             }
@@ -98,13 +116,13 @@ function build_ds_tree(data, tree_node) {
             if (icon.length === 0) {
                 icon = '<i class="fa-regular fa-file mr-1" title="Regular file"></i>';
             }
-            icon_lock = '';
-            has_password = data[node].file_password !== null && data[node].file_password.length > 0;
+            let icon_lock = '';
+            let has_password = data[node].file_password !== null && data[node].file_password.length > 0;
             if (has_password) {
                 icon_lock = '<i title="Password protected" class="fa-solid fa-lock text-success mr-1"></i>'
             }
-            icn_content = btoa(icon + icon_lock);
-            jnode = `<li>
+            let icn_content = btoa(icon + icon_lock);
+            let jnode = `<li>
                 <span id='${node}' data-file-id="${node}" title="ID : ${data[node].file_id}\nUUID : ${data[node].file_uuid}" class='tree-leaf'>
                       <span role="menu" style="cursor:pointer;" data-toggle="dropdown" aria-expanded="false">${icon}${icon_lock} ${data[node].file_original_name}</span>
                       <i class="fa-regular fa-circle ds-file-selector" style="cursor:pointer;display:none;" onclick="ds_file_select('${node}');"></i>
@@ -210,10 +228,10 @@ function save_ds_mod_folder() {
     data['folder_name'] =  $('#ds_mod_folder_name').val();
     data['csrf_token'] = $('#csrf_token').val();
 
+    let uri = '/datastore/folder/add';
+
     if ($('#ds_mod_folder_name').data('node-update')) {
         uri = '/datastore/folder/rename/' + data['parent_node'];
-    } else {
-        uri = '/datastore/folder/add';
     }
 
     post_request_api(uri, JSON.stringify(data))
@@ -227,7 +245,7 @@ function save_ds_mod_folder() {
 
 function add_ds_file(node) {
     node = node.replace('d-', '');
-    url = '/datastore/file/add/'+ node +'/modal' + case_param();
+    const url = '/datastore/file/add/'+ node +'/modal' + case_param();
     $('#modal_ds_file_content').load(url, function (response, status, xhr) {
         if (status !== "success") {
              ajax_notify_error(xhr, url);
@@ -240,7 +258,7 @@ function add_ds_file(node) {
 
 function edit_ds_file(node) {
     node = node.replace('f-', '');
-    url = '/datastore/file/update/'+ node +'/modal' + case_param();
+    const url = '/datastore/file/update/'+ node +'/modal' + case_param();
     $('#modal_ds_file_content').load(url, function (response, status, xhr) {
         if (status !== "success") {
              ajax_notify_error(xhr, url);
@@ -253,7 +271,7 @@ function edit_ds_file(node) {
 
 function info_ds_file(node) {
     node = node.replace('f-', '');
-    url = '/datastore/file/info/'+ node +'/modal' + case_param();
+    const url = '/datastore/file/info/'+ node +'/modal' + case_param();
     $('#modal_ds_file_content').load(url, function (response, status, xhr) {
         if (status !== "success") {
              ajax_notify_error(xhr, url);
@@ -268,11 +286,10 @@ function save_ds_file(node, file_id) {
     var formData = new FormData($('#form_new_ds_file')[0]);
     formData.append('file_content', $('#input_upload_ds_file').prop('files')[0]);
 
+    var uri = '/datastore/file/update/' + file_id;
     if (file_id === undefined) {
         uri = '/datastore/file/add/' + node;
-    } else {
-        uri = '/datastore/file/update/' + file_id;
-    }
+    } 
 
     post_request_data_api(uri, formData, true, function() {
         window.swal({
@@ -290,7 +307,7 @@ function save_ds_file(node, file_id) {
             load_datastore();
         }
     })
-    .always((data) => {
+    .always(() => {
         window.swal.close();
     });
 }
@@ -378,10 +395,10 @@ function validate_ds_file_move() {
 
     data_sent['destination-node'] = $(".node-selected").data('node-id').replace('d-', '');
     data_sent['csrf_token'] = $('#csrf_token').val();
-    index = 0;
-    selected_files = $(".file-selected");
+
+    let selected_files = $(".file-selected");
     selected_files.each((index) => {
-        file_id = $(selected_files[index]).data('file-id').replace('f-', '');
+        let file_id = $(selected_files[index]).data('file-id').replace('f-', '');
         post_request_api('/datastore/file/move/' + file_id, JSON.stringify(data_sent))
         .done((data) => {
             if (notify_auto_api(data)) {
@@ -420,7 +437,7 @@ function validate_ds_folder_move() {
     data_sent['destination-node'] = $(".node-selected").data('node-id').replace('d-', '');
     data_sent['csrf_token'] = $('#csrf_token').val();
 
-    node_id = $(".node-source-selected").data('node-id').replace('d-', '');
+    const node_id = $(".node-source-selected").data('node-id').replace('d-', '');
     post_request_api('/datastore/folder/move/' + node_id, JSON.stringify(data_sent))
     .done((data) => {
         if (notify_auto_api(data)) {
@@ -462,7 +479,7 @@ function delete_ds_file(file_id) {
 
 function delete_bulk_ds_file() {
 
-    selected_files = $(".file-selected");
+    let selected_files = $(".file-selected");
     swal({
         title: "Are you sure?",
         text: `Yu are about to delete ${selected_files.length} files\nThis will delete the files on the server and any manual reference will become invalid`,
@@ -476,7 +493,7 @@ function delete_bulk_ds_file() {
     .then((willDelete) => {
         if (willDelete) {
             selected_files.each((index) => {
-                file_id = $(selected_files[index]).data('file-id').replace('f-', '');
+                const file_id = $(selected_files[index]).data('file-id').replace('f-', '');
                 var data_sent = {
                     "csrf_token": $('#csrf_token').val()
                 }
@@ -501,7 +518,7 @@ function get_link_ds_file(file_id) {
 
    file_id = file_id.replace('f-', '');
 
-   link = location.protocol + '//' + location.host + '/datastore/file/view/' + file_id;
+   let link = location.protocol + '//' + location.host + '/datastore/file/view/' + file_id;
    link = link + case_param();
 
    navigator.clipboard.writeText(link).then(function() {
@@ -516,7 +533,7 @@ function get_link_ds_file(file_id) {
 function build_dsfile_view_link(file_id) {
    file_id = file_id.replace('f-', '');
 
-   link = '/datastore/file/view/' + file_id;
+   let link = '/datastore/file/view/' + file_id;
    link = link + case_param();
 
    return link;
@@ -524,27 +541,27 @@ function build_dsfile_view_link(file_id) {
 
 function get_mk_link_ds_file(file_id, filename, file_icon, has_password) {
 
-   link = build_dsfile_view_link(file_id);
+   let link = build_dsfile_view_link(file_id);
+
+   file_icon = atob(file_icon);
+   let mk_link = `[${file_icon} [DS] ${filename}](${link})`;
 
    if (has_password == 'false' && ['png', 'svg', 'jpeg', 'jpg', 'webp', 'bmp', 'gif'].includes(filename.split('.').pop())) {
         mk_link = `![${filename}](${link} =40%x40%)`;
-    } else {
-        file_icon = atob(file_icon);
-        mk_link = `[${file_icon} [DS] ${filename}](${link})`;
     }
 
    navigator.clipboard.writeText(mk_link).then(function() {
           notify_success('Markdown file link copied')
     }, function(err) {
         notify_error('Unable to copy link. Error ' + err);
-        console.error(`Markdown file link ${md_link}`, err);
+        console.error(`Markdown file link ${mk_link}`, err);
     });
 
 }
 
 function download_ds_file(file_id, filename) {
-    link = build_dsfile_view_link(file_id);
-    downloadURI(link, name);
+    const link = build_dsfile_view_link(file_id);
+    downloadURI(link, filename);
 }
 
 function reparse_activate_tree_selection() {
@@ -567,16 +584,16 @@ var ds_keywords = ['storage_name', 'name', 'tag', 'description', 'is_ioc', 'is_e
 
 function parse_filter(str_filter, keywords) {
   for (var k = 0; k < keywords.length; k++) {
-  	keyword = keywords[k];
-    items = str_filter.split(keyword + ':');
+    let keyword = keywords[k];
+    let items = str_filter.split(keyword + ':');
 
-    ita = items[1];
+    let ita = items[1];
 
     if (ita === undefined) {
-    	continue;
+        continue;
     }
 
-    item = split_bool(ita);
+    let item = split_bool(ita);
 
     if (item != null) {
       if (!(keyword in parsed_filter_ds)) {
@@ -589,7 +606,7 @@ function parse_filter(str_filter, keywords) {
       if (items[1] != undefined) {
         str_filter = str_filter.replace(keyword + ':' + item, '');
         if (parse_filter(str_filter, keywords)) {
-        	keywords.shift();
+            keywords.shift();
         }
       }
     }
@@ -599,10 +616,12 @@ function parse_filter(str_filter, keywords) {
 
 function filter_ds_files() {
 
-    ds_keywords = ['storage_name', 'name', 'tag', 'description', 'is_ioc', 'is_evidence', 'has_password', 'uuid', 'id', 'sha256'];
-    parsed_filter_ds = {};
+    const ds_keywords = ['storage_name', 'name', 'tag', 'description', 'is_ioc', 'is_evidence', 'has_password', 'uuid', 'id', 'sha256'];
+    let parsed_filter_ds = {};
+    
     parse_filter(ds_filter.getValue(), ds_keywords);
-    filter_query = encodeURIComponent(JSON.stringify(parsed_filter_ds));
+
+    let filter_query = encodeURIComponent(JSON.stringify(parsed_filter_ds));
 
     $('#btn_filter_ds_files').text('Searching..');
     get_request_data_api("/datastore/list/filter",{ 'q': filter_query })
@@ -634,3 +653,8 @@ function show_ds_filter_help() {
     });
 }
 
+$(function() {
+    $('.ds-sidebar-toggler').on('click', function() {
+        load_datastore();
+    });
+});

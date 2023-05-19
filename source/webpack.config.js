@@ -9,7 +9,7 @@ module.exports = {
     main: './app/static/assets/js/main.js',
     dashboard: './app/static/assets/js/dashboard.main.js',
     datatables: './app/static/assets/js/datatables.main.js',
-    "dark-theme": './app/static/assets/css/dark-theme.css',
+    "dark-theme": './app/static/assets/css/dark-theme.css'
   },
   optimization: {
     minimizer: [

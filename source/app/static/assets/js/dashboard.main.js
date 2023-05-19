@@ -7,3 +7,4 @@ import 'ajax-bootstrap-select'
 
 import './iris/common.js';
 import './iris/dashboard.js';
+import './iris/datastore.js';
