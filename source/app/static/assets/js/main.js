@@ -1,21 +1,18 @@
-import 'popper.js';
+import 'jquery';
 import 'bootstrap';
 import 'bootstrap-notify';
 import 'jquery-ui';
+import  draggable from 'jquery-ui/ui/widgets/draggable';
 import 'jquery.scrollbar';
-import 'datatables.net-bs4';
-import 'datatables.net-buttons-bs4';
-import 'datatables.net-responsive-bs4';
-import 'datatables.net-select-bs4';
-import 'datatables.net-buttons/js/buttons.html5';
 import 'bootstrap-notify';
 import 'bootstrap-select';
 import 'html2canvas';
 import 'suggestags';
-import 'jquery.scrollbar';
 import 'sweetalert';
 import 'showdown';
 import 'xss';
 import 'chartjs';
 import 'dropzone';
 import 'ace-builds';
+
+import './main.css.js';

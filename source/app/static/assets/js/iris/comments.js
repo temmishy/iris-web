@@ -1,5 +1,5 @@
 var g_comment_desc_editor = null;
-export function comment_element(element_id, element_type, is_alert=false) {
+comment_element = function(element_id, element_type, is_alert=false) {
 
     const prefix = is_alert ? '/alerts' : `/case/${element_type}`;
     const url = `${prefix}/${element_id}/comments/modal`;

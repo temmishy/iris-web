@@ -1,15 +1,14 @@
-import  draggable from 'jquery-ui/ui/widgets/draggable';
+import $ from 'jquery';
+
+import 'jquery-ui';
 import showdown from 'showdown';
 import { Popover } from 'bootstrap';
 import { filterXSS } from 'xss';
 import swal from 'sweetalert';
 import html2canvas from 'html2canvas';
 import ace from 'ace-builds';
-import 'datatables-contextual-actions';
 
-import $ from 'jquery';
 
-$.fn.selectpicker.Constructor.BootstrapVersion = '4';
 
 $.fn.serializeObject = function() {
     var o = {};

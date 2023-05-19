@@ -1,3 +1,6 @@
+import '../../datatables.main';
+import { ajax_notify_error, task_status } from '../dashboard';
+
 describe('task_status', () => {
   it('should load task status information into modal', () => {
     // Mock the jQuery load function

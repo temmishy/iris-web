@@ -14,6 +14,10 @@ import {
 
 import Chart from 'chartjs';
 
+
+$.fn.selectpicker.Constructor.BootstrapVersion = '4';
+
+
 let UserTaskTable = $("#utasks_table").DataTable({
   dom: 'Blfrtip',
   aaData: [],
