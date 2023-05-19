@@ -15,4 +15,4 @@ import 'chartjs';
 import 'dropzone';
 import 'ace-builds';
 
-import './main.css.js';
+import '../css/main.css.js';
