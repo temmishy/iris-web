@@ -14,7 +14,7 @@ import { get_request_api,
 } from './common';
 
 import ace from 'ace-builds/src-noconflict/ace';
-import { swal } from 'sweetalert';
+import swal from 'sweetalert';
 
 var ds_filter;
 
@@ -623,7 +623,7 @@ function filter_ds_files() {
 
     let filter_query = encodeURIComponent(JSON.stringify(parsed_filter_ds));
 
-    $('#btn_filter_ds_files').text('Searching..');
+    $('#dsFilterDSFile').text('Searching..');
     get_request_data_api("/datastore/list/filter",{ 'q': filter_query })
     .done(function (data){
         if(notify_auto_api(data, true)){
@@ -634,7 +634,7 @@ function filter_ds_files() {
         }
     })
     .always(() => {
-        $('#btn_filter_ds_files').text('Search');
+        $('#dsFilterDSFile').text('Search');
     });
 }
 
@@ -657,4 +657,46 @@ $(function() {
     $('.ds-sidebar-toggler').on('click', function() {
         load_datastore();
     });
+
+    $('.close-ds-sidebar').on('click', function() {
+        hide_datastore();
+    });
+
+    $('#dsRefreshDatastore').on('click', function() {
+        refresh_ds();
+    });
+
+    $('#dsToggleSelectFiles').on('click', function() {
+        toggle_select_file();
+    });
+
+    $('#dsDeleteBulkFiles').on('click', function() {
+        delete_bulk_ds_file();
+    });
+
+    $('#dsMoveFiles').on('click', function() {
+        move_ds_file();
+    });
+
+    $('.ds-reset-file-view').on('click', function() {
+        reset_ds_file_view();
+        load_datastore();
+    });
+
+    $('#dsValidateDsFileMove').on('click', function() {
+        validate_ds_file_move();
+    });
+
+    $('#dsValidateDSFolderMove').on('click', function() {
+        validate_ds_folder_move();
+    });
+
+    $('#dsFilterDSFile').on('click', function() {
+        filter_ds_files();
+    });
+
+    $('#dsResetSearchFilter').on('click', function() {
+        reset_ds_files_filter();
+    });
+
 });

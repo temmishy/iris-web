@@ -3,7 +3,7 @@ global.$ = global.jQuery = $;
 
 import 'jquery-ui';
 import showdown from 'showdown';
-import { Popover } from 'bootstrap';
+import Popover from 'bootstrap';
 import { filterXSS } from 'xss';
 import swal from 'sweetalert';
 import html2canvas from 'html2canvas';
