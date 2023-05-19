@@ -10,12 +10,8 @@
 		<script defer data-domain="{{demo_domain}}" src="https://analytics.dfir-iris.org/js/plausible.js"></script>
 	{% endif %}
 
-	<!-- CSS Files -->
 	<link rel="stylesheet" href="/static/assets/dist/main.iris.css">
-	<!-- <link rel="stylesheet" href="/static/assets/css/bootstrap-select.min.css">
-	<link rel="stylesheet" href="/static/assets/css/suggestags.css"> -->
 
-    <!-- Specific CSS goes HERE -->
     {% block stylesheets %}{% endblock stylesheets %}
 	{% if current_user.in_dark_mode %}
 		<link rel="stylesheet" href="/static/assets/dist/dark-theme.iris.css">
@@ -52,11 +48,6 @@
 		{% include 'includes/datastore-sidebar.html' %}
 	</div>
 
-
-	<!--   Core JS Files   -->
-	<script src="/static/assets/dist/main.iris.js"></script>
-
-	<!-- Specific JS goes HERE -->
     {% block javascripts %}{% endblock javascripts %}
 	
 </body>

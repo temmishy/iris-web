@@ -51,47 +51,16 @@
                 </div>
             </div>
             {% if task.id %}
-                <button type="button" class="btn btn-outline-danger mt-5"
-                onclick="delete_gtask({{ task.id }});">Delete</button>
+                <button type="button" class="btn btn-outline-danger mt-5" data-id="{{task.id}}" id="dashboardDeleteGTask">Delete</button>
 
-                <button type="button" class="btn btn-outline-success ml-4 mt-5 float-right"
-                onclick="update_gtask({{ task.id }});">Update</button>
+                <button type="button" class="btn btn-outline-success ml-4 mt-5 float-right" data-id="{{task.id}}" id="dashboardUpdateGTask">Update</button>
 
             {% else %}
-
                 <button type="button" class="btn btn-outline-success ml-4 mt-5 float-right"
                 id="submit_new_gtask">Save</button>
-
             {% endif %}
         </form>
     </div>
 
 </div>
-
-<script>
-    $('#task_tags').amsifySuggestags({
-        printValues: false,
-        suggestions: [ {% for tag in tags %} '{{ tag }}', {% endfor %} ]
-    });
-    $('#task_assignee_id').selectpicker({
-        liveSearch: true,
-        title: "None",
-        style: "Bootstrap 4: 'btn-outline-primary'",
-    });
-    $('#task_status_id').selectpicker({
-        liveSearch: true,
-        title: "None",
-        style: "Bootstrap 4: 'btn-outline-primary'",
-    });
-    {% if uid %}
-        $('#task_assignee_id').selectpicker('val', '{{uid}}');
-    {% endif %}
-
-    {% if task.task_status_id %}
-        $('#task_status_id').selectpicker('val', '{{task.task_status_id}}');
-     {% else %}
-        $('#task_status_id').selectpicker('val', '1');
-    {% endif %}
-    $('[data-toggle="popover"]').popover();
-</script>
 

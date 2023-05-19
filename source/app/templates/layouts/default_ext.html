@@ -9,29 +9,12 @@
 	{% if demo_domain %}
 		<script defer data-domain="{{demo_domain}}" src="https://analytics.dfir-iris.org/js/plausible.js"></script>
 	{% endif %}
-	<!-- Fonts and icons -->
-	<script src="/static/assets/js/plugin/webfont/webfont.min.js"></script>
-	<script>
-		WebFont.load({
-			custom: {"families":["Lato:300,400,700,900", "Flaticon", "Font Awesome 5 Solid", "Font Awesome 5 Regular", "Font Awesome 5 Brands", "simple-line-icons"],
-			urls: ['/static/assets/css/fonts.css']},
-			active: function() {
-				sessionStorage.fonts = true;
-			}
-		});
-	</script>
 
-	<!-- CSS Files -->
-	<link rel="stylesheet" href="/static/assets/dist/main.css">
-	<link rel="stylesheet" href="/static/assets/css/bootstrap.min.css">
-	<link rel="stylesheet" href="/static/assets/css/atlantis.css">
-	<link rel="stylesheet" href="/static/assets/css/suggestags.css">
-	<link rel="stylesheet" href="/static/assets/css/bootstrap-select.min.css">
+	<link rel="stylesheet" href="/static/assets/dist/main.iris.css">
 
-    <!-- Specific CSS goes HERE -->
     {% block stylesheets %}{% endblock stylesheets %}
 	{% if current_user.in_dark_mode %}
-		<link rel="stylesheet" href="/static/assets/css/dark-theme.css">
+		<link rel="stylesheet" href="/static/assets/dist/dark-theme.iris.css">
 	{% endif %}
 </head>
 <body>
@@ -54,10 +37,8 @@
 		</div>
 	</div>
 
-	<!--   Core JS Files   -->
 	<script src="/static/assets/dist/main.iris.js"></script>
 
-	<!-- Specific JS goes HERE -->
     {% block javascripts %}{% endblock javascripts %}
 	
 </body>

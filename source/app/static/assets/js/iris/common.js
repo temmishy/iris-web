@@ -1,4 +1,5 @@
 import $ from 'jquery';
+global.$ = global.jQuery = $;
 
 import 'jquery-ui';
 import showdown from 'showdown';
@@ -1227,7 +1228,7 @@ export function hide_table_search_input(columns) {
     }
   }
 
-export function load_context_switcher() {
+function load_context_switcher() {
 
     var options = {
             ajax: {
@@ -1253,7 +1254,7 @@ export function load_context_switcher() {
     });
 }
 
-export function context_data_parser(data) {
+function context_data_parser(data) {
     if(notify_auto_api(data, true)) {
         $('#user_context').empty();
 
@@ -1501,7 +1502,7 @@ $(document).ready(function(){
         })
     })
 
-    $('#submit_set_context').click(function () {
+    $('#submit_set_context').on("click", function () {
     var data_sent = new Object();
     data_sent.ctx = $('#user_context').val();
     data_sent.ctx_h = $("#user_context option:selected").text();
@@ -1513,7 +1514,7 @@ $(document).ready(function(){
                     title: 'Context changed successfully',
                     text: 'Reloading...',
                     icon: 'success',
-                    timer: 500,
+                    timer: 300,
                     buttons: false,
                 })
                 .then(() => {
@@ -1541,6 +1542,10 @@ $(document).ready(function(){
 
     $('.modal-dialog').draggable({
         handle: ".modal-header"
+    });
+
+    $('.switch-context-loader').on("click", function () {
+        load_context_switcher();
     });
 
     $('#form_add_tasklog').submit(function () {

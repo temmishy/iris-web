@@ -751,6 +751,10 @@ class GlobalTasksSchema(ma.SQLAlchemyAutoSchema):
 
     @pre_load
     def verify_data(self, data, **kwargs):
+        if data.get('task_assignee_id') == "" or data.get('task_assignee_id') is None:
+            raise marshmallow.exceptions.ValidationError("Invalid user id for assignee",
+                                                         field_name="task_assignees_id")
+
         user = User.query.filter(User.id == data.get('task_assignee_id')).count()
         if not user:
             raise marshmallow.exceptions.ValidationError("Invalid user id for assignee",

@@ -15,7 +15,7 @@ import {
 import Chart from 'chartjs';
 
 
-$.fn.selectpicker.Constructor.BootstrapVersion = '4';
+// $.fn.selectpicker.Constructor.BootstrapVersion = '4';
 
 
 let UserTaskTable = $("#utasks_table").DataTable({
@@ -129,7 +129,7 @@ let GTaskTable = $("#gtasks_table").DataTable({
               } else {
                   data = sanitizeHTML(data);
               }
-              data = '<a href="#" onclick="edit_gtask(\'' + row['task_id'] + '\');">' + data +'</a>';
+              data = `<a href="#" class="edit-dashboard-gtask" data-id="${row['task_id']}">${data}</a>`;
             }
             return data;
           }
@@ -295,7 +295,7 @@ function callBackEditUserTaskStatus(updatedCell, updatedRow) {
 /**** GTASKS ****/
 
 /* Fetch a modal that allows to add an event */
-export function add_gtask() {
+function add_gtask() {
     const url = '/global/tasks/add/modal' + case_param();
     $('#modal_add_gtask_content').load(url, function (response, status, xhr) {
         if (status !== "success") {
@@ -321,12 +321,26 @@ export function add_gtask() {
             return false;
         })
 
+        $('#task_tags').amsifySuggestags({printValues: false });
+        
+        $('#task_assignee_id').selectpicker({
+          liveSearch: true,
+          style: "btn-light",
+        });
+
+        $('#task_status_id').selectpicker({
+          liveSearch: true,
+          style: "btn-light",
+        });
+        
+        $('#modal_add_gtask').modal({ show: true });
+
     });
 
-    $('#modal_add_gtask').modal({ show: true });
+
 }
 
-export function update_gtask(id) {
+function update_gtask(id) {
     let data_sent = $('#form_new_gtask').serializeObject();
     data_sent['task_tags'] = $('#task_tags').val();
     data_sent['task_assignee_id'] = $('#task_assignee_id').val();
@@ -361,6 +375,29 @@ export function edit_gtask(id) {
              ajax_notify_error(xhr, url);
              return false;
         }
+
+        $('#task_tags').amsifySuggestags({printValues: false });
+        
+        $('#task_assignee_id').selectpicker({
+          liveSearch: true,
+          style: "btn-light",
+        });
+
+        $('#task_status_id').selectpicker({
+          liveSearch: true,
+          style: "btn-light",
+        });
+
+        $('#dashboardDeleteGTask').on("click", function () {
+            delete_gtask($(this).data('id'));
+            return false;
+        });
+
+        $('#dashboardUpdateGTask').on("click", function () {
+            update_gtask($(this).data('id'));
+            return false;
+        });
+
         $('#modal_add_gtask').modal({show:true});
   });
 }
@@ -492,6 +529,11 @@ function update_gtasks_list() {
             GTaskTable.columns.adjust().draw();
             GTaskTable.buttons().container().appendTo($('#gtasks_table_info'));
 
+            $('.edit-dashboard-gtask').on('click', function() {
+                edit_gtask($(this).attr('data-id'));
+                return false;
+            });
+
             load_menu_mod_options('global_task', GTaskTable, delete_gtask);
             $('#tasks_last_updated').text("Last updated: " + new Date().toLocaleTimeString());
         }
@@ -500,12 +542,10 @@ function update_gtasks_list() {
 
 
 $(function() {
-      console.log('ready');
+
       update_gtasks_list(); 
       update_utasks_list();
       setInterval(check_page_update,30000);
-
-      console.log($('#dashboardUpdateGlobalTasksButton'));
 
       $('#dashboardUpdateGlobalTasksButton').on('click', update_gtasks_list);
       $('#dashboardUpdateTasksButton').on('click', update_utasks_list);

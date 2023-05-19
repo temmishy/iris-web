@@ -43,9 +43,9 @@
 											</div>
 										</li>
 									</ul>
-									<a class="text-light" title="Switch case" onclick="load_context_switcher();return false;" href="#">{{ session['current_case'].case_name }}</a> {{ session['current_case'].access|safe }}</div>
+									<a class="text-light switch-context-loader" title="Switch case" href="#">{{ session['current_case'].case_name }}</a> {{ session['current_case'].access|safe }}</div>
 								{% else %}
-								<div class="text-warning" style="cursor:pointer;" title="Switch case" onclick="load_context_switcher();return false;">No context</div>
+								<div class="text-warning switch-context-loader" style="cursor:pointer;" title="Switch case">No context</div>
 								{% endif %}
 							</div>
 					</div>
@@ -56,7 +56,7 @@
 							</a>
 						</li>
 						<li class="nav-item hidden-caret">
-							<a class="nav-link" title="Switch case" onclick="load_context_switcher();return false;" href="#" role="button">
+							<a class="nav-link switch-context-loader" title="Switch case" href="#" role="button">
 								<i class="flaticon-repeat"></i>
 							</a>
 						</li>

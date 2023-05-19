@@ -291,7 +291,10 @@ def edit_gtask_modal(cur_id, caseid):
     task = GlobalTasks.query.filter(GlobalTasks.id == cur_id).first()
     form.task_assignee_id.choices = [(user.id, user.name) for user in
                                      User.query.filter(User.active == True).order_by(User.name).all()]
+    #form.task_assignee_id.default = task.task_assignee_id
+
     form.task_status_id.choices = [(a.id, a.status_name) for a in get_tasks_status()]
+    #form.task_status_id.default = task.task_status_id
 
     # Render the task
     form.task_title.render_kw = {'value': task.task_title}
