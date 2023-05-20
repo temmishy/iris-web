@@ -10,7 +10,9 @@ import { get_request_api,
     notify_error, 
     downloadURI, 
     split_bool, 
-    get_request_data_api
+    get_request_data_api, 
+    setOnClickEventFromMap, 
+    unsetOnClickEventFromMap
 } from './common';
 
 import ace from 'ace-builds/src-noconflict/ace';
@@ -21,10 +23,22 @@ import "ace-builds/src-noconflict/theme-tomorrow";
 
 import swal from 'sweetalert';
 
-var ds_filter;
+let ds_filter;
 
-export function load_datastore() {
+const dsStoreEventsMap = {
+    "#dsRefreshDatastore": () => {refresh_ds();},
+    "#dsToggleSelectFiles": () => {toggle_select_file();},
+    "#dsDeleteBulkFiles": () => {delete_bulk_ds_file();},
+    "#dsMoveFiles": () => {move_ds_file();},
+    ".ds-reset-file-view": () => {reset_ds_file_view(); load_datastore();},
+    "#dsValidateDsFileMove": () => {validate_ds_file_move();},
+    "#dsValidateDSFolderMove": () => {validate_ds_folder_move();},
+    "#dsFilterDSFile": () => {filter_ds_files();},
+    "#reset_ds_files_filter": () => {reset_ds_files_filter();},
+    "#dsFilterHelpWindow": () => {show_ds_filter_help();}
+}
 
+function load_datastore(do_set_events = false) {
     ds_filter = ace.edit("ds_file_search",
     {
         autoScrollEditorIntoView: true,
@@ -55,7 +69,7 @@ export function load_datastore() {
             $('#ds-tree-root').empty();
             build_ds_tree(data.data, 'ds-tree-root');
             reparse_activate_tree();
-            show_datastore();
+            show_datastore(do_set_events);
         }
     });
 }
@@ -158,12 +172,20 @@ function build_ds_tree(data, tree_node) {
     });
 }
 
-function show_datastore() {
+function show_datastore(do_set_events = false) {
+
+    if (do_set_events) {
+        setOnClickEventFromMap(dsStoreEventsMap, 'dsStore');
+    }
+
     $('html').addClass('ds_sidebar_open');
     $('.ds-sidebar-toggler').addClass('toggled');
 }
 
 function hide_datastore() {
+
+    unsetOnClickEventFromMap(dsStoreEventsMap, 'dsStore');
+
     $('html').removeClass('ds_sidebar_open');
     $('.ds-sidebar-toggler').removeClass('toggled');
 }
@@ -659,53 +681,13 @@ function show_ds_filter_help() {
 }
 
 $(function() {
+
     $('.ds-sidebar-toggler').on('click', function() {
-        load_datastore();
+        load_datastore(true);
     });
 
     $('.close-ds-sidebar').on('click', function() {
         hide_datastore();
-    });
-
-    $('#dsRefreshDatastore').on('click', function() {
-        refresh_ds();
-    });
-
-    $('#dsToggleSelectFiles').on('click', function() {
-        toggle_select_file();
-    });
-
-    $('#dsDeleteBulkFiles').on('click', function() {
-        delete_bulk_ds_file();
-    });
-
-    $('#dsMoveFiles').on('click', function() {
-        move_ds_file();
-    });
-
-    $('.ds-reset-file-view').on('click', function() {
-        reset_ds_file_view();
-        load_datastore();
-    });
-
-    $('#dsValidateDsFileMove').on('click', function() {
-        validate_ds_file_move();
-    });
-
-    $('#dsValidateDSFolderMove').on('click', function() {
-        validate_ds_folder_move();
-    });
-
-    $('#dsFilterDSFile').on('click', function() {
-        filter_ds_files();
-    });
-
-    $('#dsResetSearchFilter').on('click', function() {
-        reset_ds_files_filter();
-    });
-
-    $('#dsFilterHelpWindow').on('click', function() {
-        show_ds_filter_help();
     });
 
 });

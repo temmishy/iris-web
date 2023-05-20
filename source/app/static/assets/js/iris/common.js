@@ -58,6 +58,20 @@ export function eraseCookie(name) {
     document.cookie = name +'=; Path=/; Expires=Thu, 01 Jan 1970 00:00:01 GMT;';
 }
 
+export function setOnClickEventFromMap(map, namespace) {
+    for (let element in map) {
+        console.log(element);
+        console.log(map[element]);
+        $(element).on(`click.${namespace}`, map[element]);
+    }
+}
+
+export function unsetOnClickEventFromMap(map, namespace) {
+    for (let element in map) {
+        $(element).off(`click.${namespace}`);
+    }
+}
+
 export function ellipsis_field( data, cutoff, wordbreak ) {
 
     data = data.toString();
