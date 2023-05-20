@@ -50,16 +50,15 @@ const dsStoreEventsMap = {
     ".ds-edit-file-btn": function() {edit_ds_file(getParentDataNode($(this), 'file-id'));},
     ".ds-move-file-btn": function() {move_ds_file(getParentDataNode($(this), 'file-id'));},
     ".ds-delete-file-btn": function() {delete_ds_file(getParentDataNode($(this), 'file-id'));},
+    ".ds-file-selector": function() {ds_file_select($(this).parent().data('file-id'));},
+    ".ds-download-file-btn": function() {download_ds_file(getParentDataNode($(this), 'file-id'));}
 }
 
-
 function getParentDataNode(node, data_name) {
-    console.log(node);
     return node.parent().parent().data(data_name);
 }
 
 function load_datastore(do_set_events = false) {
-    console.log('Loading datastore');
     ds_filter = ace.edit("ds_file_search",
     {
         autoScrollEditorIntoView: true,
@@ -167,7 +166,7 @@ function build_ds_tree(data, tree_node) {
             let jnode = `<li data-file-id="${node}">
                 <span id='${node}' data-file-id="${node}" title="ID : ${data[node].file_id}\nUUID : ${data[node].file_uuid}" class='tree-leaf'>
                       <span role="menu" style="cursor:pointer;" data-toggle="dropdown" aria-expanded="false">${icon}${icon_lock} ${data[node].file_original_name}</span>
-                      <i class="fa-regular fa-circle ds-file-selector" style="cursor:pointer;display:none;" onclick="ds_file_select('${node}');"></i>
+                      <i class="fa-regular fa-circle ds-file-selector" style="cursor:pointer;display:none;"></i>
                         <div class="dropdown-menu" role="menu">
                                 <a href="#" class="dropdown-item ds-get-link-file-btn"><small class="fa fa-link mr-2"></small>Link</a>
                                 <a href="#" class="dropdown-item ds-get-md-link-file-btn" data-file-name'${data[node].file_original_name}' data-file-icon='${icn_content}' data-has-password='${has_password}'><small class="fa-brands fa-markdown mr-2"></small>Markdown link</a>
@@ -184,12 +183,6 @@ function build_ds_tree(data, tree_node) {
             $('#'+ tree_node).append(jnode);
         } 
     }
-
-
-    // $('.ds-file-selector').on(dsClickEventNamespace, function() {
-    //     let node = $(this).parent().data('file-id');
-    //     ds_file_select(node);
-    // });
 
     ds_filter.setOptions({
           enableBasicAutocompletion: [{
@@ -270,10 +263,7 @@ function delete_ds_folder(node) {
         text: "This will delete all files included and sub-folders",
         icon: "warning",
         buttons: true,
-        dangerMode: true,
-        confirmButtonColor: '#3085d6',
-        cancelButtonColor: '#d33',
-        confirmButtonText: 'Yes, delete it!'
+        dangerMode: true
     })
     .then((willDelete) => {
         if (willDelete) {
@@ -283,8 +273,7 @@ function delete_ds_folder(node) {
             post_request_api('/datastore/folder/delete/' + node, JSON.stringify(data_sent))
             .done((data) => {
                 if (notify_auto_api(data)) {
-                    reset_ds_file_view();
-                    load_datastore();
+                    refresh_ds(true);
                 }
             });
         } else {
@@ -422,8 +411,7 @@ function save_ds_file(node, file_id) {
     .done(function (data){
         if(notify_auto_api(data)){
             $('#modal_ds_file').modal("hide");
-            reset_ds_file_view();
-            load_datastore();
+            refresh_ds(true);
         }
     })
     .always(() => {
@@ -431,13 +419,19 @@ function save_ds_file(node, file_id) {
     });
 }
 
-function refresh_ds(){
+function refresh_ds(silent = false){
+    unsetOnClickEventFromMap(dsStoreEventsMap, dsClickEventNamespace);
+    
     reset_ds_file_view();
-    load_datastore();
-    notify_success('Datastore refreshed');
+    load_datastore(true);
+
+    if (!silent){
+        notify_success('Datastore refreshed');
+    }
+
 }
 
-function upload_interactive_data(data_blob, filename, completion_callback) {
+export function upload_interactive_data(data_blob, filename, completion_callback) {
 
     var data_sent = Object()
     data_sent["csrf_token"] = $('#csrf_token').val();
@@ -456,8 +450,7 @@ function upload_interactive_data(data_blob, filename, completion_callback) {
 
 function toggle_select_file() {
     if ($('.btn-ds-bulk-selector').hasClass('active')) {
-        reset_ds_file_view();
-        load_datastore();
+        refresh_ds(true);
     } else {
         $('.ds-file-selector').show(250);
         $('.btn-ds-bulk').show(250);
@@ -522,8 +515,7 @@ function validate_ds_file_move() {
         .done((data) => {
             if (notify_auto_api(data)) {
                 if (index == $(".file-selected").length - 1) {
-                    reset_ds_file_view();
-                    load_datastore();
+                    refresh_ds(true);
                 }
                 index +=1;
             }
@@ -560,8 +552,7 @@ function validate_ds_folder_move() {
     post_request_api('/datastore/folder/move/' + node_id, JSON.stringify(data_sent))
     .done((data) => {
         if (notify_auto_api(data)) {
-            reset_ds_file_view();
-            load_datastore();
+            refresh_ds(true);
         }
     });
 }
@@ -586,8 +577,7 @@ function delete_ds_file(file_id) {
             post_request_api('/datastore/file/delete/' + file_id, JSON.stringify(data_sent))
             .done((data) => {
                 if (notify_auto_api(data)) {
-                    reset_ds_file_view();
-                    load_datastore();
+                    refresh_ds(true);
                 }
             });
         } else {
@@ -620,8 +610,7 @@ function delete_bulk_ds_file() {
                 .done((data) => {
                     if (notify_auto_api(data)) {
                         if (index == $(".file-selected").length - 1) {
-                            reset_ds_file_view();
-                            load_datastore();
+                            refresh_ds(true);
                         }
                         index +=1;
                     }
