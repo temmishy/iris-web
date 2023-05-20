@@ -60,8 +60,6 @@ export function eraseCookie(name) {
 
 export function setOnClickEventFromMap(map, namespace) {
     for (let element in map) {
-        console.log(element);
-        console.log(map[element]);
         $(element).on(`click.${namespace}`, map[element]);
     }
 }

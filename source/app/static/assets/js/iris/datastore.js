@@ -23,6 +23,9 @@ import "ace-builds/src-noconflict/theme-tomorrow";
 
 import swal from 'sweetalert';
 
+const dsEventNamespace = 'dsEventNamespace';
+const dsClickEventNamespace = `click.${dsEventNamespace}`;
+
 let ds_filter;
 
 const dsStoreEventsMap = {
@@ -100,21 +103,23 @@ function build_ds_tree(data, tree_node) {
             data[node].name = sanitizeHTML(data[node].name);
             let can_delete = '';
             if (!data[node].is_root) {
-                can_delete = `<div class="dropdown-divider"></div><a href="#" class="dropdown-item text-danger" onclick="delete_ds_folder('${node}');"><small class="fa fa-trash mr-2"></small>Delete</a>`;
+                can_delete = `<div class="dropdown-divider"></div><a href="javascript:void(0);" class="dropdown-item text-danger ds-delete-folder"><small class="fa fa-trash mr-2"></small>Delete</a>`;
             }
-            let jnode = `<li>
-                    <span id='${node}' title='Folder ID ${node}' data-node-id="${node}"><i class="fa-regular fa-folder"></i> ${data[node].name}</span> <i class="fas fa-plus ds-folder-menu" role="menu" style="cursor:pointer;" data-toggle="dropdown" aria-expanded="false"></i>
-                        <div class="dropdown-menu" role="menu">
-                                <a href="#" class="dropdown-item" onclick="add_ds_folder('${node}');return false;"><small class="fa-solid fa-folder mr-2"></small>Add subfolder</a>
-                                <a href="#" class="dropdown-item" onclick="add_ds_file('${node}');return false;"><small class="fa-solid fa-file mr-2"></small>Add file</a>
-                                <div class="dropdown-divider"></div>
-                                <a href="#" class="dropdown-item" onclick="move_ds_folder('${node}');return false;"><small class="fa fa-arrow-right-arrow-left mr-2"></small>Move</a>
-                                <a href="#" class="dropdown-item" onclick="rename_ds_folder('${node}', '${data[node].name}');return false;"><small class="fa-solid fa-pencil mr-2"></small>Rename</a>
-                                ${can_delete}
-                        </div>
+            let jnode = `<li  data-node-id="${node}">
+                    <span id='${node}' title='Folder ID ${node}' data-node-id="${node}"><i class="fa-regular fa-folder"></i> ${data[node].name}</span> 
+                    <i class="fas fa-plus ds-folder-menu" role="menu" style="cursor:pointer;" data-toggle="dropdown" aria-expanded="false"></i>
+                    <div class="dropdown-menu" role="menu">
+                            <a href="javascript:void(0);" class="dropdown-item ds-add-subfolder"><small class="fa-solid fa-folder mr-2"></small>Add subfolder</a>
+                            <a href="javascript:void(0);" class="dropdown-item ds-add-file"><small class="fa-solid fa-file mr-2"></small>Add file</a>
+                            <div class="dropdown-divider"></div>
+                            <a href="javascript:void(0);" class="dropdown-item ds-move-folder"><small class="fa fa-arrow-right-arrow-left mr-2"></small>Move</a>
+                            <a href="javascript:void(0);" class="dropdown-item ds-rename-folder" data-folder-name="${data[node].name}"><small class="fa-solid fa-pencil mr-2"></small>Rename</a>
+                            ${can_delete}
+                    </div>
                     <ul id='tree-${node}'></ul>
                 </li>`;
             $('#'+ tree_node).append(jnode);
+            
             build_ds_tree(data[node].children, 'tree-' + node);
         } else {
             data[node].file_original_name = sanitizeHTML(data[node].file_original_name);
@@ -159,8 +164,35 @@ function build_ds_tree(data, tree_node) {
                     </span>
                 </li>`;
             $('#'+ tree_node).append(jnode);
-        }
+        } 
     }
+
+    $('.ds-add-subfolder').on(dsClickEventNamespace, function() {
+        let parentNode = $(this).parent().parent().data('node-id');
+        add_ds_folder(parentNode);
+    });
+
+    $('.ds-add-file').on(dsClickEventNamespace, function() {
+        let node = $(this).parent().parent().data('node-id');
+        add_ds_file(node);
+    }); 
+
+    $('.ds-move-folder').on(dsClickEventNamespace, function() {
+        let node = $(this).parent().parent().data('node-id');
+        move_ds_folder(node);
+    });
+
+    $('.ds-rename-folder').on(dsClickEventNamespace, function() {
+        let node = $(this).parent().parent().data('node-id');
+        let folder_name = $(this).data('folder-name');
+        rename_ds_folder(node, folder_name);
+    });
+
+    $('.ds-delete-folder').on(dsClickEventNamespace, function() {
+        let node = $(this).parent().parent().data('node-id');
+        delete_ds_folder(node);
+    });
+
 
     ds_filter.setOptions({
           enableBasicAutocompletion: [{
@@ -175,7 +207,7 @@ function build_ds_tree(data, tree_node) {
 function show_datastore(do_set_events = false) {
 
     if (do_set_events) {
-        setOnClickEventFromMap(dsStoreEventsMap, 'dsStore');
+        setOnClickEventFromMap(dsStoreEventsMap, dsClickEventNamespace);
     }
 
     $('html').addClass('ds_sidebar_open');
@@ -184,7 +216,7 @@ function show_datastore(do_set_events = false) {
 
 function hide_datastore() {
 
-    unsetOnClickEventFromMap(dsStoreEventsMap, 'dsStore');
+    unsetOnClickEventFromMap(dsStoreEventsMap, dsClickEventNamespace);
 
     $('html').removeClass('ds_sidebar_open');
     $('.ds-sidebar-toggler').removeClass('toggled');
@@ -205,10 +237,18 @@ function reparse_activate_tree() {
     });
 }
 
+
 function add_ds_folder(parent_node) {
     $('#ds_mod_folder_name').data('parent-node', parent_node);
     $('#ds_mod_folder_name').data('node-update', false);
     $('#ds_mod_folder_name').val('');
+
+    $('#saveDsModFolder').off(dsClickEventNamespace).on(dsClickEventNamespace, function(e) {
+        e.preventDefault();
+        save_ds_mod_folder();
+        return false;
+    });
+     
     $('#modal_ds_folder').modal("show");
 }
 
@@ -216,6 +256,13 @@ function rename_ds_folder(parent_node, name) {
     $('#ds_mod_folder_name').data('parent-node', parent_node);
     $('#ds_mod_folder_name').data('node-update', true);
     $('#ds_mod_folder_name').val(name);
+
+    $('#saveDsModFolder').off(dsClickEventNamespace).on(dsClickEventNamespace, function(e) {
+        e.preventDefault();
+        save_ds_mod_folder();
+        return false;
+    });
+
     $('#modal_ds_folder').modal("show");
 }
 
@@ -271,6 +318,28 @@ function save_ds_mod_folder() {
     });
 }
 
+function showDSModalDSFile() {
+    $('#toggle_file_password').on('click', function () {
+        const type = $('#file_password').attr('type') === 'password' ? 'text' : 'password';
+        $('#file_password').attr('type', type);
+
+        $('#toggle_file_password > i').attr('class', type === 'password' ? 'fa-solid fa-eye' : 'fa-solid fa-eye-slash');
+    });
+
+    $('#file_tags').amsifySuggestags({
+        printValues: true,
+        whiteList: false,
+        selectOnHover: false
+    });
+
+    $("#input_upload_ds_file").on("change", function(e) {
+        var file = e.target.files[0].name;
+        $('#file_original_name').val(file);
+    });
+
+    $('#modal_ds_file').modal("show");
+}
+
 function add_ds_file(node) {
     node = node.replace('d-', '');
     const url = '/datastore/file/add/'+ node +'/modal' + case_param();
@@ -280,20 +349,45 @@ function add_ds_file(node) {
              return false;
         }
 
-        $('#modal_ds_file').modal("show");
+        $('#dsModalSaveFileBtn')
+        .off(dsClickEventNamespace)
+        .on(dsClickEventNamespace, function(e) {
+            e.preventDefault();
+            save_ds_file(node, undefined);
+            return false;
+        });
+
+        showDSModalDSFile();
     });
 }
 
 function edit_ds_file(node) {
-    node = node.replace('f-', '');
-    const url = '/datastore/file/update/'+ node +'/modal' + case_param();
+    let file_id = node.replace('f-', '');
+    const url = '/datastore/file/update/'+ file_id +'/modal' + case_param();
     $('#modal_ds_file_content').load(url, function (response, status, xhr) {
         if (status !== "success") {
              ajax_notify_error(xhr, url);
              return false;
         }
 
-        $('#modal_ds_file').modal("show");
+        $('#dsModalDeleteFileBtn')
+        .off(dsClickEventNamespace)
+        .on(dsClickEventNamespace, function(e) {
+            e.preventDefault();
+            delete_ds_file(file_id);
+            return false;
+        });
+
+        $('#dsModalSaveFileBtn')
+        .off(dsClickEventNamespace)
+        .on(dsClickEventNamespace, function(e) {
+            e.preventDefault();
+            let node_id = $(this).data('node-id');
+            save_ds_file(node_id, file_id);
+            return false;
+        });
+
+        showDSModalDSFile();
     });
 }
 
