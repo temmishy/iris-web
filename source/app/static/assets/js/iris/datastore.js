@@ -29,19 +29,37 @@ const dsClickEventNamespace = `click.${dsEventNamespace}`;
 let ds_filter;
 
 const dsStoreEventsMap = {
-    "#dsRefreshDatastore": () => {refresh_ds();},
-    "#dsToggleSelectFiles": () => {toggle_select_file();},
-    "#dsDeleteBulkFiles": () => {delete_bulk_ds_file();},
-    "#dsMoveFiles": () => {move_ds_file();},
-    ".ds-reset-file-view": () => {reset_ds_file_view(); load_datastore();},
-    "#dsValidateDsFileMove": () => {validate_ds_file_move();},
-    "#dsValidateDSFolderMove": () => {validate_ds_folder_move();},
-    "#dsFilterDSFile": () => {filter_ds_files();},
-    "#reset_ds_files_filter": () => {reset_ds_files_filter();},
-    "#dsFilterHelpWindow": () => {show_ds_filter_help();}
+    "#dsRefreshDatastore": function() {refresh_ds();},
+    "#dsToggleSelectFiles": function() {toggle_select_file();},
+    "#dsDeleteBulkFiles": function() {delete_bulk_ds_file();},
+    "#dsMoveFiles": function() {move_ds_file();},
+    ".ds-reset-file-view": function() {reset_ds_file_view(); load_datastore();},
+    "#dsValidateDsFileMove": function() {validate_ds_file_move();},
+    "#dsValidateDSFolderMove": function() {validate_ds_folder_move();},
+    "#dsFilterDSFile": function() {filter_ds_files();},
+    "#reset_ds_files_filter": function() {reset_ds_files_filter();},
+    "#dsFilterHelpWindow": function() {show_ds_filter_help();},
+    ".ds-add-subfolder": function() {add_ds_folder(getParentDataNode($(this), 'node-id'));},
+    ".ds-add-file": function() {add_ds_file(getParentDataNode($(this), 'node-id'));},
+    ".ds-move-folder": function() {move_ds_folder(getParentDataNode($(this), 'node-id'));},
+    ".ds-rename-folder": function() {rename_ds_folder(getParentDataNode($(this), 'node-id'), $(this).data('folder-name'));},
+    ".ds-delete-folder": function() {delete_ds_folder(getParentDataNode($(this), 'node-id'));},
+    ".ds-get-link-file-btn": function() {get_link_ds_file(getParentDataNode($(this), 'file-id'));},
+    ".ds-get-md-link-file-btn": function() {get_mk_link_ds_file(getParentDataNode($(this), 'file-id'), $(this).data('file-name'), $(this).data('file-icon'), $(this).data('file-has-password'));},
+    ".ds-info-file-btn": function() {info_ds_file(getParentDataNode($(this), 'file-id'));},
+    ".ds-edit-file-btn": function() {edit_ds_file(getParentDataNode($(this), 'file-id'));},
+    ".ds-move-file-btn": function() {move_ds_file(getParentDataNode($(this), 'file-id'));},
+    ".ds-delete-file-btn": function() {delete_ds_file(getParentDataNode($(this), 'file-id'));},
+}
+
+
+function getParentDataNode(node, data_name) {
+    console.log(node);
+    return node.parent().parent().data(data_name);
 }
 
 function load_datastore(do_set_events = false) {
+    console.log('Loading datastore');
     ds_filter = ace.edit("ds_file_search",
     {
         autoScrollEditorIntoView: true,
@@ -146,20 +164,20 @@ function build_ds_tree(data, tree_node) {
                 icon_lock = '<i title="Password protected" class="fa-solid fa-lock text-success mr-1"></i>'
             }
             let icn_content = btoa(icon + icon_lock);
-            let jnode = `<li>
+            let jnode = `<li data-file-id="${node}">
                 <span id='${node}' data-file-id="${node}" title="ID : ${data[node].file_id}\nUUID : ${data[node].file_uuid}" class='tree-leaf'>
                       <span role="menu" style="cursor:pointer;" data-toggle="dropdown" aria-expanded="false">${icon}${icon_lock} ${data[node].file_original_name}</span>
                       <i class="fa-regular fa-circle ds-file-selector" style="cursor:pointer;display:none;" onclick="ds_file_select('${node}');"></i>
                         <div class="dropdown-menu" role="menu">
-                                <a href="#" class="dropdown-item" onclick="get_link_ds_file('${node}');return false;"><small class="fa fa-link mr-2"></small>Link</a>
-                                <a href="#" class="dropdown-item" onclick="get_mk_link_ds_file('${node}', '${data[node].file_original_name}', '${icn_content}', '${has_password}');return false;"><small class="fa-brands fa-markdown mr-2"></small>Markdown link</a>
-                                <a href="#" class="dropdown-item" onclick="download_ds_file('${node}', '${data[node].file_original_name}');return false;"><small class="fa-solid fa-download mr-2"></small>Download</a>
+                                <a href="#" class="dropdown-item ds-get-link-file-btn"><small class="fa fa-link mr-2"></small>Link</a>
+                                <a href="#" class="dropdown-item ds-get-md-link-file-btn" data-file-name'${data[node].file_original_name}' data-file-icon='${icn_content}' data-has-password='${has_password}'><small class="fa-brands fa-markdown mr-2"></small>Markdown link</a>
+                                <a href="#" class="dropdown-item ds-download-file-btn" data-file-name="${data[node].file_original_name}"><small class="fa-solid fa-download mr-2"></small>Download</a>
                                 <div class="dropdown-divider"></div>
-                                <a href="#" class="dropdown-item" onclick="info_ds_file('${node}');return false;"><small class="fa fa-eye mr-2"></small>Info</a>
-                                <a href="#" class="dropdown-item" onclick="edit_ds_file('${node}');return false;"><small class="fa fa-pencil mr-2"></small>Edit</a>
-                                <a href="#" class="dropdown-item" onclick="move_ds_file('${node}');return false;"><small class="fa fa-arrow-right-arrow-left mr-2"></small>Move</a>
+                                <a href="#" class="dropdown-item ds-info-file-btn"><small class="fa fa-eye mr-2"></small>Info</a>
+                                <a href="#" class="dropdown-item ds-edit-file-btn"><small class="fa fa-pencil mr-2"></small>Edit</a>
+                                <a href="#" class="dropdown-item ds-move-file-btn"><small class="fa fa-arrow-right-arrow-left mr-2"></small>Move</a>
                                 <div class="dropdown-divider"></div>
-                                <a href="#" class="dropdown-item text-danger" onclick="delete_ds_file('${node}');"><small class="fa fa-trash mr-2"></small>Delete</a>
+                                <a href="#" class="dropdown-item text-danger ds-delete-file-btn"><small class="fa fa-trash mr-2"></small>Delete</a>
                         </div>
                     </span>
                 </li>`;
@@ -167,32 +185,11 @@ function build_ds_tree(data, tree_node) {
         } 
     }
 
-    $('.ds-add-subfolder').on(dsClickEventNamespace, function() {
-        let parentNode = $(this).parent().parent().data('node-id');
-        add_ds_folder(parentNode);
-    });
 
-    $('.ds-add-file').on(dsClickEventNamespace, function() {
-        let node = $(this).parent().parent().data('node-id');
-        add_ds_file(node);
-    }); 
-
-    $('.ds-move-folder').on(dsClickEventNamespace, function() {
-        let node = $(this).parent().parent().data('node-id');
-        move_ds_folder(node);
-    });
-
-    $('.ds-rename-folder').on(dsClickEventNamespace, function() {
-        let node = $(this).parent().parent().data('node-id');
-        let folder_name = $(this).data('folder-name');
-        rename_ds_folder(node, folder_name);
-    });
-
-    $('.ds-delete-folder').on(dsClickEventNamespace, function() {
-        let node = $(this).parent().parent().data('node-id');
-        delete_ds_folder(node);
-    });
-
+    // $('.ds-file-selector').on(dsClickEventNamespace, function() {
+    //     let node = $(this).parent().data('file-id');
+    //     ds_file_select(node);
+    // });
 
     ds_filter.setOptions({
           enableBasicAutocompletion: [{
