@@ -14,6 +14,11 @@ import { get_request_api,
 } from './common';
 
 import ace from 'ace-builds/src-noconflict/ace';
+import "ace-builds/webpack-resolver"
+import "ace-builds/src-noconflict/ext-language_tools";
+import "ace-builds/src-noconflict/mode-json";
+import "ace-builds/src-noconflict/theme-tomorrow";
+
 import swal from 'sweetalert';
 
 var ds_filter;
@@ -142,6 +147,7 @@ function build_ds_tree(data, tree_node) {
             $('#'+ tree_node).append(jnode);
         }
     }
+
     ds_filter.setOptions({
           enableBasicAutocompletion: [{
             getCompletions: (editor, session, pos, prefix, callback) => {
@@ -580,7 +586,6 @@ function reparse_activate_tree_selection() {
 }
 
 var parsed_filter_ds = {};
-var ds_keywords = ['storage_name', 'name', 'tag', 'description', 'is_ioc', 'is_evidence', 'has_password', 'uuid', 'id', 'sha256'];
 
 function parse_filter(str_filter, keywords) {
   for (var k = 0; k < keywords.length; k++) {
@@ -697,6 +702,10 @@ $(function() {
 
     $('#dsResetSearchFilter').on('click', function() {
         reset_ds_files_filter();
+    });
+
+    $('#dsFilterHelpWindow').on('click', function() {
+        show_ds_filter_help();
     });
 
 });

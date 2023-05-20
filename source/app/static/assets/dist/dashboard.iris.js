@@ -19,6 +19,46 @@ eval("/* module decorator */ module = __webpack_require__.nmd(module);\n/* *****
 
 /***/ }),
 
+/***/ "./node_modules/ace-builds/src-noconflict/ext-language_tools.js":
+/*!**********************************************************************!*\
+  !*** ./node_modules/ace-builds/src-noconflict/ext-language_tools.js ***!
+  \**********************************************************************/
+/***/ ((module, __unused_webpack_exports, __webpack_require__) => {
+
+eval("/* module decorator */ module = __webpack_require__.nmd(module);\nace.define(\"ace/snippets\",[\"require\",\"exports\",\"module\",\"ace/lib/dom\",\"ace/lib/oop\",\"ace/lib/event_emitter\",\"ace/lib/lang\",\"ace/range\",\"ace/range_list\",\"ace/keyboard/hash_handler\",\"ace/tokenizer\",\"ace/clipboard\",\"ace/editor\"], function(require, exports, module){\"use strict\";\nvar dom = require(\"./lib/dom\");\nvar oop = require(\"./lib/oop\");\nvar EventEmitter = require(\"./lib/event_emitter\").EventEmitter;\nvar lang = require(\"./lib/lang\");\nvar Range = require(\"./range\").Range;\nvar RangeList = require(\"./range_list\").RangeList;\nvar HashHandler = require(\"./keyboard/hash_handler\").HashHandler;\nvar Tokenizer = require(\"./tokenizer\").Tokenizer;\nvar clipboard = require(\"./clipboard\");\nvar VARIABLES = {\n    CURRENT_WORD: function (editor) {\n        return editor.session.getTextRange(editor.session.getWordRange());\n    },\n    SELECTION: function (editor, name, indentation) {\n        var text = editor.session.getTextRange();\n        if (indentation)\n            return text.replace(/\\n\\r?([ \\t]*\\S)/g, \"\\n\" + indentation + \"$1\");\n        return text;\n    },\n    CURRENT_LINE: function (editor) {\n        return editor.session.getLine(editor.getCursorPosition().row);\n    },\n    PREV_LINE: function (editor) {\n        return editor.session.getLine(editor.getCursorPosition().row - 1);\n    },\n    LINE_INDEX: function (editor) {\n        return editor.getCursorPosition().row;\n    },\n    LINE_NUMBER: function (editor) {\n        return editor.getCursorPosition().row + 1;\n    },\n    SOFT_TABS: function (editor) {\n        return editor.session.getUseSoftTabs() ? \"YES\" : \"NO\";\n    },\n    TAB_SIZE: function (editor) {\n        return editor.session.getTabSize();\n    },\n    CLIPBOARD: function (editor) {\n        return clipboard.getText && clipboard.getText();\n    },\n    FILENAME: function (editor) {\n        return /[^/\\\\]*$/.exec(this.FILEPATH(editor))[0];\n    },\n    FILENAME_BASE: function (editor) {\n        return /[^/\\\\]*$/.exec(this.FILEPATH(editor))[0].replace(/\\.[^.]*$/, \"\");\n    },\n    DIRECTORY: function (editor) {\n        return this.FILEPATH(editor).replace(/[^/\\\\]*$/, \"\");\n    },\n    FILEPATH: function (editor) { return \"/not implemented.txt\"; },\n    WORKSPACE_NAME: function () { return \"Unknown\"; },\n    FULLNAME: function () { return \"Unknown\"; },\n    BLOCK_COMMENT_START: function (editor) {\n        var mode = editor.session.$mode || {};\n        return mode.blockComment && mode.blockComment.start || \"\";\n    },\n    BLOCK_COMMENT_END: function (editor) {\n        var mode = editor.session.$mode || {};\n        return mode.blockComment && mode.blockComment.end || \"\";\n    },\n    LINE_COMMENT: function (editor) {\n        var mode = editor.session.$mode || {};\n        return mode.lineCommentStart || \"\";\n    },\n    CURRENT_YEAR: date.bind(null, { year: \"numeric\" }),\n    CURRENT_YEAR_SHORT: date.bind(null, { year: \"2-digit\" }),\n    CURRENT_MONTH: date.bind(null, { month: \"numeric\" }),\n    CURRENT_MONTH_NAME: date.bind(null, { month: \"long\" }),\n    CURRENT_MONTH_NAME_SHORT: date.bind(null, { month: \"short\" }),\n    CURRENT_DATE: date.bind(null, { day: \"2-digit\" }),\n    CURRENT_DAY_NAME: date.bind(null, { weekday: \"long\" }),\n    CURRENT_DAY_NAME_SHORT: date.bind(null, { weekday: \"short\" }),\n    CURRENT_HOUR: date.bind(null, { hour: \"2-digit\", hour12: false }),\n    CURRENT_MINUTE: date.bind(null, { minute: \"2-digit\" }),\n    CURRENT_SECOND: date.bind(null, { second: \"2-digit\" })\n};\nVARIABLES.SELECTED_TEXT = VARIABLES.SELECTION;\nfunction date(dateFormat) {\n    var str = new Date().toLocaleString(\"en-us\", dateFormat);\n    return str.length == 1 ? \"0\" + str : str;\n}\nvar SnippetManager = function () {\n    this.snippetMap = {};\n    this.snippetNameMap = {};\n};\n(function () {\n    oop.implement(this, EventEmitter);\n    this.getTokenizer = function () {\n        return SnippetManager.$tokenizer || this.createTokenizer();\n    };\n    this.createTokenizer = function () {\n        function TabstopToken(str) {\n            str = str.substr(1);\n            if (/^\\d+$/.test(str))\n                return [{ tabstopId: parseInt(str, 10) }];\n            return [{ text: str }];\n        }\n        function escape(ch) {\n            return \"(?:[^\\\\\\\\\" + ch + \"]|\\\\\\\\.)\";\n        }\n        var formatMatcher = {\n            regex: \"/(\" + escape(\"/\") + \"+)/\",\n            onMatch: function (val, state, stack) {\n                var ts = stack[0];\n                ts.fmtString = true;\n                ts.guard = val.slice(1, -1);\n                ts.flag = \"\";\n                return \"\";\n            },\n            next: \"formatString\"\n        };\n        SnippetManager.$tokenizer = new Tokenizer({\n            start: [\n                { regex: /\\\\./, onMatch: function (val, state, stack) {\n                        var ch = val[1];\n                        if (ch == \"}\" && stack.length) {\n                            val = ch;\n                        }\n                        else if (\"`$\\\\\".indexOf(ch) != -1) {\n                            val = ch;\n                        }\n                        return [val];\n                    } },\n                { regex: /}/, onMatch: function (val, state, stack) {\n                        return [stack.length ? stack.shift() : val];\n                    } },\n                { regex: /\\$(?:\\d+|\\w+)/, onMatch: TabstopToken },\n                { regex: /\\$\\{[\\dA-Z_a-z]+/, onMatch: function (str, state, stack) {\n                        var t = TabstopToken(str.substr(1));\n                        stack.unshift(t[0]);\n                        return t;\n                    }, next: \"snippetVar\" },\n                { regex: /\\n/, token: \"newline\", merge: false }\n            ],\n            snippetVar: [\n                { regex: \"\\\\|\" + escape(\"\\\\|\") + \"*\\\\|\", onMatch: function (val, state, stack) {\n                        var choices = val.slice(1, -1).replace(/\\\\[,|\\\\]|,/g, function (operator) {\n                            return operator.length == 2 ? operator[1] : \"\\x00\";\n                        }).split(\"\\x00\").map(function (value) {\n                            return { value: value };\n                        });\n                        stack[0].choices = choices;\n                        return [choices[0]];\n                    }, next: \"start\" },\n                formatMatcher,\n                { regex: \"([^:}\\\\\\\\]|\\\\\\\\.)*:?\", token: \"\", next: \"start\" }\n            ],\n            formatString: [\n                { regex: /:/, onMatch: function (val, state, stack) {\n                        if (stack.length && stack[0].expectElse) {\n                            stack[0].expectElse = false;\n                            stack[0].ifEnd = { elseEnd: stack[0] };\n                            return [stack[0].ifEnd];\n                        }\n                        return \":\";\n                    } },\n                { regex: /\\\\./, onMatch: function (val, state, stack) {\n                        var ch = val[1];\n                        if (ch == \"}\" && stack.length)\n                            val = ch;\n                        else if (\"`$\\\\\".indexOf(ch) != -1)\n                            val = ch;\n                        else if (ch == \"n\")\n                            val = \"\\n\";\n                        else if (ch == \"t\")\n                            val = \"\\t\";\n                        else if (\"ulULE\".indexOf(ch) != -1)\n                            val = { changeCase: ch, local: ch > \"a\" };\n                        return [val];\n                    } },\n                { regex: \"/\\\\w*}\", onMatch: function (val, state, stack) {\n                        var next = stack.shift();\n                        if (next)\n                            next.flag = val.slice(1, -1);\n                        this.next = next && next.tabstopId ? \"start\" : \"\";\n                        return [next || val];\n                    }, next: \"start\" },\n                { regex: /\\$(?:\\d+|\\w+)/, onMatch: function (val, state, stack) {\n                        return [{ text: val.slice(1) }];\n                    } },\n                { regex: /\\${\\w+/, onMatch: function (val, state, stack) {\n                        var token = { text: val.slice(2) };\n                        stack.unshift(token);\n                        return [token];\n                    }, next: \"formatStringVar\" },\n                { regex: /\\n/, token: \"newline\", merge: false },\n                { regex: /}/, onMatch: function (val, state, stack) {\n                        var next = stack.shift();\n                        this.next = next && next.tabstopId ? \"start\" : \"\";\n                        return [next || val];\n                    }, next: \"start\" }\n            ],\n            formatStringVar: [\n                { regex: /:\\/\\w+}/, onMatch: function (val, state, stack) {\n                        var ts = stack[0];\n                        ts.formatFunction = val.slice(2, -1);\n                        return [stack.shift()];\n                    }, next: \"formatString\" },\n                formatMatcher,\n                { regex: /:[\\?\\-+]?/, onMatch: function (val, state, stack) {\n                        if (val[1] == \"+\")\n                            stack[0].ifEnd = stack[0];\n                        if (val[1] == \"?\")\n                            stack[0].expectElse = true;\n                    }, next: \"formatString\" },\n                { regex: \"([^:}\\\\\\\\]|\\\\\\\\.)*:?\", token: \"\", next: \"formatString\" }\n            ]\n        });\n        return SnippetManager.$tokenizer;\n    };\n    this.tokenizeTmSnippet = function (str, startState) {\n        return this.getTokenizer().getLineTokens(str, startState).tokens.map(function (x) {\n            return x.value || x;\n        });\n    };\n    this.getVariableValue = function (editor, name, indentation) {\n        if (/^\\d+$/.test(name))\n            return (this.variables.__ || {})[name] || \"\";\n        if (/^[A-Z]\\d+$/.test(name))\n            return (this.variables[name[0] + \"__\"] || {})[name.substr(1)] || \"\";\n        name = name.replace(/^TM_/, \"\");\n        if (!this.variables.hasOwnProperty(name))\n            return \"\";\n        var value = this.variables[name];\n        if (typeof value == \"function\")\n            value = this.variables[name](editor, name, indentation);\n        return value == null ? \"\" : value;\n    };\n    this.variables = VARIABLES;\n    this.tmStrFormat = function (str, ch, editor) {\n        if (!ch.fmt)\n            return str;\n        var flag = ch.flag || \"\";\n        var re = ch.guard;\n        re = new RegExp(re, flag.replace(/[^gim]/g, \"\"));\n        var fmtTokens = typeof ch.fmt == \"string\" ? this.tokenizeTmSnippet(ch.fmt, \"formatString\") : ch.fmt;\n        var _self = this;\n        var formatted = str.replace(re, function () {\n            var oldArgs = _self.variables.__;\n            _self.variables.__ = [].slice.call(arguments);\n            var fmtParts = _self.resolveVariables(fmtTokens, editor);\n            var gChangeCase = \"E\";\n            for (var i = 0; i < fmtParts.length; i++) {\n                var ch = fmtParts[i];\n                if (typeof ch == \"object\") {\n                    fmtParts[i] = \"\";\n                    if (ch.changeCase && ch.local) {\n                        var next = fmtParts[i + 1];\n                        if (next && typeof next == \"string\") {\n                            if (ch.changeCase == \"u\")\n                                fmtParts[i] = next[0].toUpperCase();\n                            else\n                                fmtParts[i] = next[0].toLowerCase();\n                            fmtParts[i + 1] = next.substr(1);\n                        }\n                    }\n                    else if (ch.changeCase) {\n                        gChangeCase = ch.changeCase;\n                    }\n                }\n                else if (gChangeCase == \"U\") {\n                    fmtParts[i] = ch.toUpperCase();\n                }\n                else if (gChangeCase == \"L\") {\n                    fmtParts[i] = ch.toLowerCase();\n                }\n            }\n            _self.variables.__ = oldArgs;\n            return fmtParts.join(\"\");\n        });\n        return formatted;\n    };\n    this.tmFormatFunction = function (str, ch, editor) {\n        if (ch.formatFunction == \"upcase\")\n            return str.toUpperCase();\n        if (ch.formatFunction == \"downcase\")\n            return str.toLowerCase();\n        return str;\n    };\n    this.resolveVariables = function (snippet, editor) {\n        var result = [];\n        var indentation = \"\";\n        var afterNewLine = true;\n        for (var i = 0; i < snippet.length; i++) {\n            var ch = snippet[i];\n            if (typeof ch == \"string\") {\n                result.push(ch);\n                if (ch == \"\\n\") {\n                    afterNewLine = true;\n                    indentation = \"\";\n                }\n                else if (afterNewLine) {\n                    indentation = /^\\t*/.exec(ch)[0];\n                    afterNewLine = /\\S/.test(ch);\n                }\n                continue;\n            }\n            if (!ch)\n                continue;\n            afterNewLine = false;\n            if (ch.fmtString) {\n                var j = snippet.indexOf(ch, i + 1);\n                if (j == -1)\n                    j = snippet.length;\n                ch.fmt = snippet.slice(i + 1, j);\n                i = j;\n            }\n            if (ch.text) {\n                var value = this.getVariableValue(editor, ch.text, indentation) + \"\";\n                if (ch.fmtString)\n                    value = this.tmStrFormat(value, ch, editor);\n                if (ch.formatFunction)\n                    value = this.tmFormatFunction(value, ch, editor);\n                if (value && !ch.ifEnd) {\n                    result.push(value);\n                    gotoNext(ch);\n                }\n                else if (!value && ch.ifEnd) {\n                    gotoNext(ch.ifEnd);\n                }\n            }\n            else if (ch.elseEnd) {\n                gotoNext(ch.elseEnd);\n            }\n            else if (ch.tabstopId != null) {\n                result.push(ch);\n            }\n            else if (ch.changeCase != null) {\n                result.push(ch);\n            }\n        }\n        function gotoNext(ch) {\n            var i1 = snippet.indexOf(ch, i + 1);\n            if (i1 != -1)\n                i = i1;\n        }\n        return result;\n    };\n    var processSnippetText = function (editor, snippetText, options) {\n        if (options === void 0) { options = {}; }\n        var cursor = editor.getCursorPosition();\n        var line = editor.session.getLine(cursor.row);\n        var tabString = editor.session.getTabString();\n        var indentString = line.match(/^\\s*/)[0];\n        if (cursor.column < indentString.length)\n            indentString = indentString.slice(0, cursor.column);\n        snippetText = snippetText.replace(/\\r/g, \"\");\n        var tokens = this.tokenizeTmSnippet(snippetText);\n        tokens = this.resolveVariables(tokens, editor);\n        tokens = tokens.map(function (x) {\n            if (x == \"\\n\" && !options.excludeExtraIndent)\n                return x + indentString;\n            if (typeof x == \"string\")\n                return x.replace(/\\t/g, tabString);\n            return x;\n        });\n        var tabstops = [];\n        tokens.forEach(function (p, i) {\n            if (typeof p != \"object\")\n                return;\n            var id = p.tabstopId;\n            var ts = tabstops[id];\n            if (!ts) {\n                ts = tabstops[id] = [];\n                ts.index = id;\n                ts.value = \"\";\n                ts.parents = {};\n            }\n            if (ts.indexOf(p) !== -1)\n                return;\n            if (p.choices && !ts.choices)\n                ts.choices = p.choices;\n            ts.push(p);\n            var i1 = tokens.indexOf(p, i + 1);\n            if (i1 === -1)\n                return;\n            var value = tokens.slice(i + 1, i1);\n            var isNested = value.some(function (t) { return typeof t === \"object\"; });\n            if (isNested && !ts.value) {\n                ts.value = value;\n            }\n            else if (value.length && (!ts.value || typeof ts.value !== \"string\")) {\n                ts.value = value.join(\"\");\n            }\n        });\n        tabstops.forEach(function (ts) { ts.length = 0; });\n        var expanding = {};\n        function copyValue(val) {\n            var copy = [];\n            for (var i = 0; i < val.length; i++) {\n                var p = val[i];\n                if (typeof p == \"object\") {\n                    if (expanding[p.tabstopId])\n                        continue;\n                    var j = val.lastIndexOf(p, i - 1);\n                    p = copy[j] || { tabstopId: p.tabstopId };\n                }\n                copy[i] = p;\n            }\n            return copy;\n        }\n        for (var i = 0; i < tokens.length; i++) {\n            var p = tokens[i];\n            if (typeof p != \"object\")\n                continue;\n            var id = p.tabstopId;\n            var ts = tabstops[id];\n            var i1 = tokens.indexOf(p, i + 1);\n            if (expanding[id]) {\n                if (expanding[id] === p) {\n                    delete expanding[id];\n                    Object.keys(expanding).forEach(function (parentId) {\n                        ts.parents[parentId] = true;\n                    });\n                }\n                continue;\n            }\n            expanding[id] = p;\n            var value = ts.value;\n            if (typeof value !== \"string\")\n                value = copyValue(value);\n            else if (p.fmt)\n                value = this.tmStrFormat(value, p, editor);\n            tokens.splice.apply(tokens, [i + 1, Math.max(0, i1 - i)].concat(value, p));\n            if (ts.indexOf(p) === -1)\n                ts.push(p);\n        }\n        var row = 0, column = 0;\n        var text = \"\";\n        tokens.forEach(function (t) {\n            if (typeof t === \"string\") {\n                var lines = t.split(\"\\n\");\n                if (lines.length > 1) {\n                    column = lines[lines.length - 1].length;\n                    row += lines.length - 1;\n                }\n                else\n                    column += t.length;\n                text += t;\n            }\n            else if (t) {\n                if (!t.start)\n                    t.start = { row: row, column: column };\n                else\n                    t.end = { row: row, column: column };\n            }\n        });\n        return {\n            text: text,\n            tabstops: tabstops,\n            tokens: tokens\n        };\n    };\n    this.getDisplayTextForSnippet = function (editor, snippetText) {\n        var processedSnippet = processSnippetText.call(this, editor, snippetText);\n        return processedSnippet.text;\n    };\n    this.insertSnippetForSelection = function (editor, snippetText, options) {\n        if (options === void 0) { options = {}; }\n        var processedSnippet = processSnippetText.call(this, editor, snippetText, options);\n        var range = editor.getSelectionRange();\n        if (options.range && options.range.compareRange(range) === 0) {\n            range = options.range;\n        }\n        var end = editor.session.replace(range, processedSnippet.text);\n        var tabstopManager = new TabstopManager(editor);\n        var selectionId = editor.inVirtualSelectionMode && editor.selection.index;\n        tabstopManager.addTabstops(processedSnippet.tabstops, range.start, end, selectionId);\n    };\n    this.insertSnippet = function (editor, snippetText, options) {\n        if (options === void 0) { options = {}; }\n        var self = this;\n        if (options.range && !(options.range instanceof Range))\n            options.range = Range.fromPoints(options.range.start, options.range.end);\n        if (editor.inVirtualSelectionMode)\n            return self.insertSnippetForSelection(editor, snippetText, options);\n        editor.forEachSelection(function () {\n            self.insertSnippetForSelection(editor, snippetText, options);\n        }, null, { keepOrder: true });\n        if (editor.tabstopManager)\n            editor.tabstopManager.tabNext();\n    };\n    this.$getScope = function (editor) {\n        var scope = editor.session.$mode.$id || \"\";\n        scope = scope.split(\"/\").pop();\n        if (scope === \"html\" || scope === \"php\") {\n            if (scope === \"php\" && !editor.session.$mode.inlinePhp)\n                scope = \"html\";\n            var c = editor.getCursorPosition();\n            var state = editor.session.getState(c.row);\n            if (typeof state === \"object\") {\n                state = state[0];\n            }\n            if (state.substring) {\n                if (state.substring(0, 3) == \"js-\")\n                    scope = \"javascript\";\n                else if (state.substring(0, 4) == \"css-\")\n                    scope = \"css\";\n                else if (state.substring(0, 4) == \"php-\")\n                    scope = \"php\";\n            }\n        }\n        return scope;\n    };\n    this.getActiveScopes = function (editor) {\n        var scope = this.$getScope(editor);\n        var scopes = [scope];\n        var snippetMap = this.snippetMap;\n        if (snippetMap[scope] && snippetMap[scope].includeScopes) {\n            scopes.push.apply(scopes, snippetMap[scope].includeScopes);\n        }\n        scopes.push(\"_\");\n        return scopes;\n    };\n    this.expandWithTab = function (editor, options) {\n        var self = this;\n        var result = editor.forEachSelection(function () {\n            return self.expandSnippetForSelection(editor, options);\n        }, null, { keepOrder: true });\n        if (result && editor.tabstopManager)\n            editor.tabstopManager.tabNext();\n        return result;\n    };\n    this.expandSnippetForSelection = function (editor, options) {\n        var cursor = editor.getCursorPosition();\n        var line = editor.session.getLine(cursor.row);\n        var before = line.substring(0, cursor.column);\n        var after = line.substr(cursor.column);\n        var snippetMap = this.snippetMap;\n        var snippet;\n        this.getActiveScopes(editor).some(function (scope) {\n            var snippets = snippetMap[scope];\n            if (snippets)\n                snippet = this.findMatchingSnippet(snippets, before, after);\n            return !!snippet;\n        }, this);\n        if (!snippet)\n            return false;\n        if (options && options.dryRun)\n            return true;\n        editor.session.doc.removeInLine(cursor.row, cursor.column - snippet.replaceBefore.length, cursor.column + snippet.replaceAfter.length);\n        this.variables.M__ = snippet.matchBefore;\n        this.variables.T__ = snippet.matchAfter;\n        this.insertSnippetForSelection(editor, snippet.content);\n        this.variables.M__ = this.variables.T__ = null;\n        return true;\n    };\n    this.findMatchingSnippet = function (snippetList, before, after) {\n        for (var i = snippetList.length; i--;) {\n            var s = snippetList[i];\n            if (s.startRe && !s.startRe.test(before))\n                continue;\n            if (s.endRe && !s.endRe.test(after))\n                continue;\n            if (!s.startRe && !s.endRe)\n                continue;\n            s.matchBefore = s.startRe ? s.startRe.exec(before) : [\"\"];\n            s.matchAfter = s.endRe ? s.endRe.exec(after) : [\"\"];\n            s.replaceBefore = s.triggerRe ? s.triggerRe.exec(before)[0] : \"\";\n            s.replaceAfter = s.endTriggerRe ? s.endTriggerRe.exec(after)[0] : \"\";\n            return s;\n        }\n    };\n    this.snippetMap = {};\n    this.snippetNameMap = {};\n    this.register = function (snippets, scope) {\n        var snippetMap = this.snippetMap;\n        var snippetNameMap = this.snippetNameMap;\n        var self = this;\n        if (!snippets)\n            snippets = [];\n        function wrapRegexp(src) {\n            if (src && !/^\\^?\\(.*\\)\\$?$|^\\\\b$/.test(src))\n                src = \"(?:\" + src + \")\";\n            return src || \"\";\n        }\n        function guardedRegexp(re, guard, opening) {\n            re = wrapRegexp(re);\n            guard = wrapRegexp(guard);\n            if (opening) {\n                re = guard + re;\n                if (re && re[re.length - 1] != \"$\")\n                    re = re + \"$\";\n            }\n            else {\n                re = re + guard;\n                if (re && re[0] != \"^\")\n                    re = \"^\" + re;\n            }\n            return new RegExp(re);\n        }\n        function addSnippet(s) {\n            if (!s.scope)\n                s.scope = scope || \"_\";\n            scope = s.scope;\n            if (!snippetMap[scope]) {\n                snippetMap[scope] = [];\n                snippetNameMap[scope] = {};\n            }\n            var map = snippetNameMap[scope];\n            if (s.name) {\n                var old = map[s.name];\n                if (old)\n                    self.unregister(old);\n                map[s.name] = s;\n            }\n            snippetMap[scope].push(s);\n            if (s.prefix)\n                s.tabTrigger = s.prefix;\n            if (!s.content && s.body)\n                s.content = Array.isArray(s.body) ? s.body.join(\"\\n\") : s.body;\n            if (s.tabTrigger && !s.trigger) {\n                if (!s.guard && /^\\w/.test(s.tabTrigger))\n                    s.guard = \"\\\\b\";\n                s.trigger = lang.escapeRegExp(s.tabTrigger);\n            }\n            if (!s.trigger && !s.guard && !s.endTrigger && !s.endGuard)\n                return;\n            s.startRe = guardedRegexp(s.trigger, s.guard, true);\n            s.triggerRe = new RegExp(s.trigger);\n            s.endRe = guardedRegexp(s.endTrigger, s.endGuard, true);\n            s.endTriggerRe = new RegExp(s.endTrigger);\n        }\n        if (Array.isArray(snippets)) {\n            snippets.forEach(addSnippet);\n        }\n        else {\n            Object.keys(snippets).forEach(function (key) {\n                addSnippet(snippets[key]);\n            });\n        }\n        this._signal(\"registerSnippets\", { scope: scope });\n    };\n    this.unregister = function (snippets, scope) {\n        var snippetMap = this.snippetMap;\n        var snippetNameMap = this.snippetNameMap;\n        function removeSnippet(s) {\n            var nameMap = snippetNameMap[s.scope || scope];\n            if (nameMap && nameMap[s.name]) {\n                delete nameMap[s.name];\n                var map = snippetMap[s.scope || scope];\n                var i = map && map.indexOf(s);\n                if (i >= 0)\n                    map.splice(i, 1);\n            }\n        }\n        if (snippets.content)\n            removeSnippet(snippets);\n        else if (Array.isArray(snippets))\n            snippets.forEach(removeSnippet);\n    };\n    this.parseSnippetFile = function (str) {\n        str = str.replace(/\\r/g, \"\");\n        var list = [], snippet = {};\n        var re = /^#.*|^({[\\s\\S]*})\\s*$|^(\\S+) (.*)$|^((?:\\n*\\t.*)+)/gm;\n        var m;\n        while (m = re.exec(str)) {\n            if (m[1]) {\n                try {\n                    snippet = JSON.parse(m[1]);\n                    list.push(snippet);\n                }\n                catch (e) { }\n            }\n            if (m[4]) {\n                snippet.content = m[4].replace(/^\\t/gm, \"\");\n                list.push(snippet);\n                snippet = {};\n            }\n            else {\n                var key = m[2], val = m[3];\n                if (key == \"regex\") {\n                    var guardRe = /\\/((?:[^\\/\\\\]|\\\\.)*)|$/g;\n                    snippet.guard = guardRe.exec(val)[1];\n                    snippet.trigger = guardRe.exec(val)[1];\n                    snippet.endTrigger = guardRe.exec(val)[1];\n                    snippet.endGuard = guardRe.exec(val)[1];\n                }\n                else if (key == \"snippet\") {\n                    snippet.tabTrigger = val.match(/^\\S*/)[0];\n                    if (!snippet.name)\n                        snippet.name = val;\n                }\n                else if (key) {\n                    snippet[key] = val;\n                }\n            }\n        }\n        return list;\n    };\n    this.getSnippetByName = function (name, editor) {\n        var snippetMap = this.snippetNameMap;\n        var snippet;\n        this.getActiveScopes(editor).some(function (scope) {\n            var snippets = snippetMap[scope];\n            if (snippets)\n                snippet = snippets[name];\n            return !!snippet;\n        }, this);\n        return snippet;\n    };\n}).call(SnippetManager.prototype);\nvar TabstopManager = function (editor) {\n    if (editor.tabstopManager)\n        return editor.tabstopManager;\n    editor.tabstopManager = this;\n    this.$onChange = this.onChange.bind(this);\n    this.$onChangeSelection = lang.delayedCall(this.onChangeSelection.bind(this)).schedule;\n    this.$onChangeSession = this.onChangeSession.bind(this);\n    this.$onAfterExec = this.onAfterExec.bind(this);\n    this.attach(editor);\n};\n(function () {\n    this.attach = function (editor) {\n        this.index = 0;\n        this.ranges = [];\n        this.tabstops = [];\n        this.$openTabstops = null;\n        this.selectedTabstop = null;\n        this.editor = editor;\n        this.editor.on(\"change\", this.$onChange);\n        this.editor.on(\"changeSelection\", this.$onChangeSelection);\n        this.editor.on(\"changeSession\", this.$onChangeSession);\n        this.editor.commands.on(\"afterExec\", this.$onAfterExec);\n        this.editor.keyBinding.addKeyboardHandler(this.keyboardHandler);\n    };\n    this.detach = function () {\n        this.tabstops.forEach(this.removeTabstopMarkers, this);\n        this.ranges = null;\n        this.tabstops = null;\n        this.selectedTabstop = null;\n        this.editor.removeListener(\"change\", this.$onChange);\n        this.editor.removeListener(\"changeSelection\", this.$onChangeSelection);\n        this.editor.removeListener(\"changeSession\", this.$onChangeSession);\n        this.editor.commands.removeListener(\"afterExec\", this.$onAfterExec);\n        this.editor.keyBinding.removeKeyboardHandler(this.keyboardHandler);\n        this.editor.tabstopManager = null;\n        this.editor = null;\n    };\n    this.onChange = function (delta) {\n        var isRemove = delta.action[0] == \"r\";\n        var selectedTabstop = this.selectedTabstop || {};\n        var parents = selectedTabstop.parents || {};\n        var tabstops = (this.tabstops || []).slice();\n        for (var i = 0; i < tabstops.length; i++) {\n            var ts = tabstops[i];\n            var active = ts == selectedTabstop || parents[ts.index];\n            ts.rangeList.$bias = active ? 0 : 1;\n            if (delta.action == \"remove\" && ts !== selectedTabstop) {\n                var parentActive = ts.parents && ts.parents[selectedTabstop.index];\n                var startIndex = ts.rangeList.pointIndex(delta.start, parentActive);\n                startIndex = startIndex < 0 ? -startIndex - 1 : startIndex + 1;\n                var endIndex = ts.rangeList.pointIndex(delta.end, parentActive);\n                endIndex = endIndex < 0 ? -endIndex - 1 : endIndex - 1;\n                var toRemove = ts.rangeList.ranges.slice(startIndex, endIndex);\n                for (var j = 0; j < toRemove.length; j++)\n                    this.removeRange(toRemove[j]);\n            }\n            ts.rangeList.$onChange(delta);\n        }\n        var session = this.editor.session;\n        if (!this.$inChange && isRemove && session.getLength() == 1 && !session.getValue())\n            this.detach();\n    };\n    this.updateLinkedFields = function () {\n        var ts = this.selectedTabstop;\n        if (!ts || !ts.hasLinkedRanges || !ts.firstNonLinked)\n            return;\n        this.$inChange = true;\n        var session = this.editor.session;\n        var text = session.getTextRange(ts.firstNonLinked);\n        for (var i = 0; i < ts.length; i++) {\n            var range = ts[i];\n            if (!range.linked)\n                continue;\n            var original = range.original;\n            var fmt = exports.snippetManager.tmStrFormat(text, original, this.editor);\n            session.replace(range, fmt);\n        }\n        this.$inChange = false;\n    };\n    this.onAfterExec = function (e) {\n        if (e.command && !e.command.readOnly)\n            this.updateLinkedFields();\n    };\n    this.onChangeSelection = function () {\n        if (!this.editor)\n            return;\n        var lead = this.editor.selection.lead;\n        var anchor = this.editor.selection.anchor;\n        var isEmpty = this.editor.selection.isEmpty();\n        for (var i = 0; i < this.ranges.length; i++) {\n            if (this.ranges[i].linked)\n                continue;\n            var containsLead = this.ranges[i].contains(lead.row, lead.column);\n            var containsAnchor = isEmpty || this.ranges[i].contains(anchor.row, anchor.column);\n            if (containsLead && containsAnchor)\n                return;\n        }\n        this.detach();\n    };\n    this.onChangeSession = function () {\n        this.detach();\n    };\n    this.tabNext = function (dir) {\n        var max = this.tabstops.length;\n        var index = this.index + (dir || 1);\n        index = Math.min(Math.max(index, 1), max);\n        if (index == max)\n            index = 0;\n        this.selectTabstop(index);\n        if (index === 0)\n            this.detach();\n    };\n    this.selectTabstop = function (index) {\n        this.$openTabstops = null;\n        var ts = this.tabstops[this.index];\n        if (ts)\n            this.addTabstopMarkers(ts);\n        this.index = index;\n        ts = this.tabstops[this.index];\n        if (!ts || !ts.length)\n            return;\n        this.selectedTabstop = ts;\n        var range = ts.firstNonLinked || ts;\n        if (ts.choices)\n            range.cursor = range.start;\n        if (!this.editor.inVirtualSelectionMode) {\n            var sel = this.editor.multiSelect;\n            sel.toSingleRange(range);\n            for (var i = 0; i < ts.length; i++) {\n                if (ts.hasLinkedRanges && ts[i].linked)\n                    continue;\n                sel.addRange(ts[i].clone(), true);\n            }\n        }\n        else {\n            this.editor.selection.fromOrientedRange(range);\n        }\n        this.editor.keyBinding.addKeyboardHandler(this.keyboardHandler);\n        if (this.selectedTabstop && this.selectedTabstop.choices)\n            this.editor.execCommand(\"startAutocomplete\", { matches: this.selectedTabstop.choices });\n    };\n    this.addTabstops = function (tabstops, start, end) {\n        var useLink = this.useLink || !this.editor.getOption(\"enableMultiselect\");\n        if (!this.$openTabstops)\n            this.$openTabstops = [];\n        if (!tabstops[0]) {\n            var p = Range.fromPoints(end, end);\n            moveRelative(p.start, start);\n            moveRelative(p.end, start);\n            tabstops[0] = [p];\n            tabstops[0].index = 0;\n        }\n        var i = this.index;\n        var arg = [i + 1, 0];\n        var ranges = this.ranges;\n        tabstops.forEach(function (ts, index) {\n            var dest = this.$openTabstops[index] || ts;\n            for (var i = 0; i < ts.length; i++) {\n                var p = ts[i];\n                var range = Range.fromPoints(p.start, p.end || p.start);\n                movePoint(range.start, start);\n                movePoint(range.end, start);\n                range.original = p;\n                range.tabstop = dest;\n                ranges.push(range);\n                if (dest != ts)\n                    dest.unshift(range);\n                else\n                    dest[i] = range;\n                if (p.fmtString || (dest.firstNonLinked && useLink)) {\n                    range.linked = true;\n                    dest.hasLinkedRanges = true;\n                }\n                else if (!dest.firstNonLinked)\n                    dest.firstNonLinked = range;\n            }\n            if (!dest.firstNonLinked)\n                dest.hasLinkedRanges = false;\n            if (dest === ts) {\n                arg.push(dest);\n                this.$openTabstops[index] = dest;\n            }\n            this.addTabstopMarkers(dest);\n            dest.rangeList = dest.rangeList || new RangeList();\n            dest.rangeList.$bias = 0;\n            dest.rangeList.addList(dest);\n        }, this);\n        if (arg.length > 2) {\n            if (this.tabstops.length)\n                arg.push(arg.splice(2, 1)[0]);\n            this.tabstops.splice.apply(this.tabstops, arg);\n        }\n    };\n    this.addTabstopMarkers = function (ts) {\n        var session = this.editor.session;\n        ts.forEach(function (range) {\n            if (!range.markerId)\n                range.markerId = session.addMarker(range, \"ace_snippet-marker\", \"text\");\n        });\n    };\n    this.removeTabstopMarkers = function (ts) {\n        var session = this.editor.session;\n        ts.forEach(function (range) {\n            session.removeMarker(range.markerId);\n            range.markerId = null;\n        });\n    };\n    this.removeRange = function (range) {\n        var i = range.tabstop.indexOf(range);\n        if (i != -1)\n            range.tabstop.splice(i, 1);\n        i = this.ranges.indexOf(range);\n        if (i != -1)\n            this.ranges.splice(i, 1);\n        i = range.tabstop.rangeList.ranges.indexOf(range);\n        if (i != -1)\n            range.tabstop.splice(i, 1);\n        this.editor.session.removeMarker(range.markerId);\n        if (!range.tabstop.length) {\n            i = this.tabstops.indexOf(range.tabstop);\n            if (i != -1)\n                this.tabstops.splice(i, 1);\n            if (!this.tabstops.length)\n                this.detach();\n        }\n    };\n    this.keyboardHandler = new HashHandler();\n    this.keyboardHandler.bindKeys({\n        \"Tab\": function (editor) {\n            if (exports.snippetManager && exports.snippetManager.expandWithTab(editor))\n                return;\n            editor.tabstopManager.tabNext(1);\n            editor.renderer.scrollCursorIntoView();\n        },\n        \"Shift-Tab\": function (editor) {\n            editor.tabstopManager.tabNext(-1);\n            editor.renderer.scrollCursorIntoView();\n        },\n        \"Esc\": function (editor) {\n            editor.tabstopManager.detach();\n        }\n    });\n}).call(TabstopManager.prototype);\nvar movePoint = function (point, diff) {\n    if (point.row == 0)\n        point.column += diff.column;\n    point.row += diff.row;\n};\nvar moveRelative = function (point, start) {\n    if (point.row == start.row)\n        point.column -= start.column;\n    point.row -= start.row;\n};\ndom.importCssString(\"\\n.ace_snippet-marker {\\n    -moz-box-sizing: border-box;\\n    box-sizing: border-box;\\n    background: rgba(194, 193, 208, 0.09);\\n    border: 1px dotted rgba(211, 208, 235, 0.62);\\n    position: absolute;\\n}\", \"snippets.css\", false);\nexports.snippetManager = new SnippetManager();\nvar Editor = require(\"./editor\").Editor;\n(function () {\n    this.insertSnippet = function (content, options) {\n        return exports.snippetManager.insertSnippet(this, content, options);\n    };\n    this.expandSnippet = function (options) {\n        return exports.snippetManager.expandWithTab(this, options);\n    };\n}).call(Editor.prototype);\n\n});\n\nace.define(\"ace/autocomplete/popup\",[\"require\",\"exports\",\"module\",\"ace/virtual_renderer\",\"ace/editor\",\"ace/range\",\"ace/lib/event\",\"ace/lib/lang\",\"ace/lib/dom\",\"ace/config\"], function(require, exports, module){\"use strict\";\nvar Renderer = require(\"../virtual_renderer\").VirtualRenderer;\nvar Editor = require(\"../editor\").Editor;\nvar Range = require(\"../range\").Range;\nvar event = require(\"../lib/event\");\nvar lang = require(\"../lib/lang\");\nvar dom = require(\"../lib/dom\");\nvar nls = require(\"../config\").nls;\nvar getAriaId = function (index) {\n    return \"suggest-aria-id:\".concat(index);\n};\nvar $singleLineEditor = function (el) {\n    var renderer = new Renderer(el);\n    renderer.$maxLines = 4;\n    var editor = new Editor(renderer);\n    editor.setHighlightActiveLine(false);\n    editor.setShowPrintMargin(false);\n    editor.renderer.setShowGutter(false);\n    editor.renderer.setHighlightGutterLine(false);\n    editor.$mouseHandler.$focusTimeout = 0;\n    editor.$highlightTagPending = true;\n    return editor;\n};\nvar AcePopup = /** @class */ (function () {\n    function AcePopup(parentNode) {\n        var el = dom.createElement(\"div\");\n        var popup = new $singleLineEditor(el);\n        if (parentNode) {\n            parentNode.appendChild(el);\n        }\n        el.style.display = \"none\";\n        popup.renderer.content.style.cursor = \"default\";\n        popup.renderer.setStyle(\"ace_autocomplete\");\n        popup.renderer.container.setAttribute(\"role\", \"listbox\");\n        popup.renderer.container.setAttribute(\"aria-label\", nls(\"Autocomplete suggestions\"));\n        popup.setOption(\"displayIndentGuides\", false);\n        popup.setOption(\"dragDelay\", 150);\n        var noop = function () { };\n        popup.focus = noop;\n        popup.$isFocused = true;\n        popup.renderer.$cursorLayer.restartTimer = noop;\n        popup.renderer.$cursorLayer.element.style.opacity = 0;\n        popup.renderer.$maxLines = 8;\n        popup.renderer.$keepTextAreaAtCursor = false;\n        popup.setHighlightActiveLine(false);\n        popup.session.highlight(\"\");\n        popup.session.$searchHighlight.clazz = \"ace_highlight-marker\";\n        popup.on(\"mousedown\", function (e) {\n            var pos = e.getDocumentPosition();\n            popup.selection.moveToPosition(pos);\n            selectionMarker.start.row = selectionMarker.end.row = pos.row;\n            e.stop();\n        });\n        var lastMouseEvent;\n        var hoverMarker = new Range(-1, 0, -1, Infinity);\n        var selectionMarker = new Range(-1, 0, -1, Infinity);\n        selectionMarker.id = popup.session.addMarker(selectionMarker, \"ace_active-line\", \"fullLine\");\n        popup.setSelectOnHover = function (val) {\n            if (!val) {\n                hoverMarker.id = popup.session.addMarker(hoverMarker, \"ace_line-hover\", \"fullLine\");\n            }\n            else if (hoverMarker.id) {\n                popup.session.removeMarker(hoverMarker.id);\n                hoverMarker.id = null;\n            }\n        };\n        popup.setSelectOnHover(false);\n        popup.on(\"mousemove\", function (e) {\n            if (!lastMouseEvent) {\n                lastMouseEvent = e;\n                return;\n            }\n            if (lastMouseEvent.x == e.x && lastMouseEvent.y == e.y) {\n                return;\n            }\n            lastMouseEvent = e;\n            lastMouseEvent.scrollTop = popup.renderer.scrollTop;\n            var row = lastMouseEvent.getDocumentPosition().row;\n            if (hoverMarker.start.row != row) {\n                if (!hoverMarker.id)\n                    popup.setRow(row);\n                setHoverMarker(row);\n            }\n        });\n        popup.renderer.on(\"beforeRender\", function () {\n            if (lastMouseEvent && hoverMarker.start.row != -1) {\n                lastMouseEvent.$pos = null;\n                var row = lastMouseEvent.getDocumentPosition().row;\n                if (!hoverMarker.id)\n                    popup.setRow(row);\n                setHoverMarker(row, true);\n            }\n        });\n        popup.renderer.on(\"afterRender\", function () {\n            var row = popup.getRow();\n            var t = popup.renderer.$textLayer;\n            var selected = t.element.childNodes[row - t.config.firstRow];\n            var el = document.activeElement; // Active element is textarea of main editor\n            if (selected !== t.selectedNode && t.selectedNode) {\n                dom.removeCssClass(t.selectedNode, \"ace_selected\");\n                el.removeAttribute(\"aria-activedescendant\");\n                t.selectedNode.removeAttribute(\"id\");\n            }\n            t.selectedNode = selected;\n            if (selected) {\n                dom.addCssClass(selected, \"ace_selected\");\n                var ariaId = getAriaId(row);\n                selected.id = ariaId;\n                popup.renderer.container.setAttribute(\"aria-activedescendant\", ariaId);\n                el.setAttribute(\"aria-activedescendant\", ariaId);\n                selected.setAttribute(\"role\", \"option\");\n                selected.setAttribute(\"aria-label\", popup.getData(row).value);\n                selected.setAttribute(\"aria-setsize\", popup.data.length);\n                selected.setAttribute(\"aria-posinset\", row);\n            }\n        });\n        var hideHoverMarker = function () { setHoverMarker(-1); };\n        var setHoverMarker = function (row, suppressRedraw) {\n            if (row !== hoverMarker.start.row) {\n                hoverMarker.start.row = hoverMarker.end.row = row;\n                if (!suppressRedraw)\n                    popup.session._emit(\"changeBackMarker\");\n                popup._emit(\"changeHoverMarker\");\n            }\n        };\n        popup.getHoveredRow = function () {\n            return hoverMarker.start.row;\n        };\n        event.addListener(popup.container, \"mouseout\", hideHoverMarker);\n        popup.on(\"hide\", hideHoverMarker);\n        popup.on(\"changeSelection\", hideHoverMarker);\n        popup.session.doc.getLength = function () {\n            return popup.data.length;\n        };\n        popup.session.doc.getLine = function (i) {\n            var data = popup.data[i];\n            if (typeof data == \"string\")\n                return data;\n            return (data && data.value) || \"\";\n        };\n        var bgTokenizer = popup.session.bgTokenizer;\n        bgTokenizer.$tokenizeRow = function (row) {\n            var data = popup.data[row];\n            var tokens = [];\n            if (!data)\n                return tokens;\n            if (typeof data == \"string\")\n                data = { value: data };\n            var caption = data.caption || data.value || data.name;\n            function addToken(value, className) {\n                value && tokens.push({\n                    type: (data.className || \"\") + (className || \"\"),\n                    value: value\n                });\n            }\n            var lower = caption.toLowerCase();\n            var filterText = (popup.filterText || \"\").toLowerCase();\n            var lastIndex = 0;\n            var lastI = 0;\n            for (var i = 0; i <= filterText.length; i++) {\n                if (i != lastI && (data.matchMask & (1 << i) || i == filterText.length)) {\n                    var sub = filterText.slice(lastI, i);\n                    lastI = i;\n                    var index = lower.indexOf(sub, lastIndex);\n                    if (index == -1)\n                        continue;\n                    addToken(caption.slice(lastIndex, index), \"\");\n                    lastIndex = index + sub.length;\n                    addToken(caption.slice(index, lastIndex), \"completion-highlight\");\n                }\n            }\n            addToken(caption.slice(lastIndex, caption.length), \"\");\n            tokens.push({ type: \"completion-spacer\", value: \" \" });\n            if (data.meta)\n                tokens.push({ type: \"completion-meta\", value: data.meta });\n            if (data.message)\n                tokens.push({ type: \"completion-message\", value: data.message });\n            return tokens;\n        };\n        bgTokenizer.$updateOnChange = noop;\n        bgTokenizer.start = noop;\n        popup.session.$computeWidth = function () {\n            return this.screenWidth = 0;\n        };\n        popup.isOpen = false;\n        popup.isTopdown = false;\n        popup.autoSelect = true;\n        popup.filterText = \"\";\n        popup.data = [];\n        popup.setData = function (list, filterText) {\n            popup.filterText = filterText || \"\";\n            popup.setValue(lang.stringRepeat(\"\\n\", list.length), -1);\n            popup.data = list || [];\n            popup.setRow(0);\n        };\n        popup.getData = function (row) {\n            return popup.data[row];\n        };\n        popup.getRow = function () {\n            return selectionMarker.start.row;\n        };\n        popup.setRow = function (line) {\n            line = Math.max(this.autoSelect ? 0 : -1, Math.min(this.data.length - 1, line));\n            if (selectionMarker.start.row != line) {\n                popup.selection.clearSelection();\n                selectionMarker.start.row = selectionMarker.end.row = line || 0;\n                popup.session._emit(\"changeBackMarker\");\n                popup.moveCursorTo(line || 0, 0);\n                if (popup.isOpen)\n                    popup._signal(\"select\");\n            }\n        };\n        popup.on(\"changeSelection\", function () {\n            if (popup.isOpen)\n                popup.setRow(popup.selection.lead.row);\n            popup.renderer.scrollCursorIntoView();\n        });\n        popup.hide = function () {\n            this.container.style.display = \"none\";\n            popup.anchorPos = null;\n            popup.anchor = null;\n            if (popup.isOpen) {\n                popup.isOpen = false;\n                this._signal(\"hide\");\n            }\n        };\n        popup.tryShow = function (pos, lineHeight, anchor, forceShow) {\n            if (!forceShow && popup.isOpen && popup.anchorPos && popup.anchor &&\n                popup.anchorPos.top === pos.top && popup.anchorPos.left === pos.left &&\n                popup.anchor === anchor) {\n                return true;\n            }\n            var el = this.container;\n            var screenHeight = window.innerHeight;\n            var screenWidth = window.innerWidth;\n            var renderer = this.renderer;\n            var maxH = renderer.$maxLines * lineHeight * 1.4;\n            var dims = { top: 0, bottom: 0, left: 0 };\n            var spaceBelow = screenHeight - pos.top - 3 * this.$borderSize - lineHeight;\n            var spaceAbove = pos.top - 3 * this.$borderSize;\n            if (!anchor) {\n                if (spaceAbove <= spaceBelow || spaceBelow >= maxH) {\n                    anchor = \"bottom\";\n                }\n                else {\n                    anchor = \"top\";\n                }\n            }\n            if (anchor === \"top\") {\n                dims.bottom = pos.top - this.$borderSize;\n                dims.top = dims.bottom - maxH;\n            }\n            else if (anchor === \"bottom\") {\n                dims.top = pos.top + lineHeight + this.$borderSize;\n                dims.bottom = dims.top + maxH;\n            }\n            var fitsX = dims.top >= 0 && dims.bottom <= screenHeight;\n            if (!forceShow && !fitsX) {\n                return false;\n            }\n            if (!fitsX) {\n                if (anchor === \"top\") {\n                    renderer.$maxPixelHeight = spaceAbove;\n                }\n                else {\n                    renderer.$maxPixelHeight = spaceBelow;\n                }\n            }\n            else {\n                renderer.$maxPixelHeight = null;\n            }\n            if (anchor === \"top\") {\n                el.style.top = \"\";\n                el.style.bottom = (screenHeight - dims.bottom) + \"px\";\n                popup.isTopdown = false;\n            }\n            else {\n                el.style.top = dims.top + \"px\";\n                el.style.bottom = \"\";\n                popup.isTopdown = true;\n            }\n            el.style.display = \"\";\n            var left = pos.left;\n            if (left + el.offsetWidth > screenWidth)\n                left = screenWidth - el.offsetWidth;\n            el.style.left = left + \"px\";\n            el.style.right = \"\";\n            if (!popup.isOpen) {\n                popup.isOpen = true;\n                this._signal(\"show\");\n                lastMouseEvent = null;\n            }\n            popup.anchorPos = pos;\n            popup.anchor = anchor;\n            return true;\n        };\n        popup.show = function (pos, lineHeight, topdownOnly) {\n            this.tryShow(pos, lineHeight, topdownOnly ? \"bottom\" : undefined, true);\n        };\n        popup.goTo = function (where) {\n            var row = this.getRow();\n            var max = this.session.getLength() - 1;\n            switch (where) {\n                case \"up\":\n                    row = row <= 0 ? max : row - 1;\n                    break;\n                case \"down\":\n                    row = row >= max ? -1 : row + 1;\n                    break;\n                case \"start\":\n                    row = 0;\n                    break;\n                case \"end\":\n                    row = max;\n                    break;\n            }\n            this.setRow(row);\n        };\n        popup.getTextLeftOffset = function () {\n            return this.$borderSize + this.renderer.$padding + this.$imageSize;\n        };\n        popup.$imageSize = 0;\n        popup.$borderSize = 1;\n        return popup;\n    }\n    return AcePopup;\n}());\ndom.importCssString(\"\\n.ace_editor.ace_autocomplete .ace_marker-layer .ace_active-line {\\n    background-color: #CAD6FA;\\n    z-index: 1;\\n}\\n.ace_dark.ace_editor.ace_autocomplete .ace_marker-layer .ace_active-line {\\n    background-color: #3a674e;\\n}\\n.ace_editor.ace_autocomplete .ace_line-hover {\\n    border: 1px solid #abbffe;\\n    margin-top: -1px;\\n    background: rgba(233,233,253,0.4);\\n    position: absolute;\\n    z-index: 2;\\n}\\n.ace_dark.ace_editor.ace_autocomplete .ace_line-hover {\\n    border: 1px solid rgba(109, 150, 13, 0.8);\\n    background: rgba(58, 103, 78, 0.62);\\n}\\n.ace_completion-meta {\\n    opacity: 0.5;\\n    margin: 0 0.9em;\\n}\\n.ace_completion-message {\\n    color: blue;\\n}\\n.ace_editor.ace_autocomplete .ace_completion-highlight{\\n    color: #2d69c7;\\n}\\n.ace_dark.ace_editor.ace_autocomplete .ace_completion-highlight{\\n    color: #93ca12;\\n}\\n.ace_editor.ace_autocomplete {\\n    width: 300px;\\n    z-index: 200000;\\n    border: 1px lightgray solid;\\n    position: fixed;\\n    box-shadow: 2px 3px 5px rgba(0,0,0,.2);\\n    line-height: 1.4;\\n    background: #fefefe;\\n    color: #111;\\n}\\n.ace_dark.ace_editor.ace_autocomplete {\\n    border: 1px #484747 solid;\\n    box-shadow: 2px 3px 5px rgba(0, 0, 0, 0.51);\\n    line-height: 1.4;\\n    background: #25282c;\\n    color: #c1c1c1;\\n}\\n.ace_autocomplete_right .ace_text-layer  {\\n    width: calc(100% - 8px);\\n}\\n.ace_autocomplete_right .ace_line {\\n    display: flex;\\n}\\n.ace_autocomplete_right .ace_completion-spacer {\\n    flex: 1;\\n}\\n\", \"autocompletion.css\", false);\nexports.AcePopup = AcePopup;\nexports.$singleLineEditor = $singleLineEditor;\nexports.getAriaId = getAriaId;\n\n});\n\nace.define(\"ace/autocomplete/inline\",[\"require\",\"exports\",\"module\",\"ace/snippets\"], function(require, exports, module){\"use strict\";\nvar snippetManager = require(\"../snippets\").snippetManager;\nvar AceInline = /** @class */ (function () {\n    function AceInline() {\n        this.editor = null;\n    }\n    AceInline.prototype.show = function (editor, completion, prefix) {\n        prefix = prefix || \"\";\n        if (editor && this.editor && this.editor !== editor) {\n            this.hide();\n            this.editor = null;\n        }\n        if (!editor || !completion) {\n            return false;\n        }\n        var displayText = completion.snippet ? snippetManager.getDisplayTextForSnippet(editor, completion.snippet) : completion.value;\n        if (!displayText || !displayText.startsWith(prefix)) {\n            return false;\n        }\n        this.editor = editor;\n        displayText = displayText.slice(prefix.length);\n        if (displayText === \"\") {\n            editor.removeGhostText();\n        }\n        else {\n            editor.setGhostText(displayText);\n        }\n        return true;\n    };\n    AceInline.prototype.isOpen = function () {\n        if (!this.editor) {\n            return false;\n        }\n        return !!this.editor.renderer.$ghostText;\n    };\n    AceInline.prototype.hide = function () {\n        if (!this.editor) {\n            return false;\n        }\n        this.editor.removeGhostText();\n        return true;\n    };\n    AceInline.prototype.destroy = function () {\n        this.hide();\n        this.editor = null;\n    };\n    return AceInline;\n}());\nexports.AceInline = AceInline;\n\n});\n\nace.define(\"ace/autocomplete/util\",[\"require\",\"exports\",\"module\"], function(require, exports, module){\"use strict\";\nexports.parForEach = function (array, fn, callback) {\n    var completed = 0;\n    var arLength = array.length;\n    if (arLength === 0)\n        callback();\n    for (var i = 0; i < arLength; i++) {\n        fn(array[i], function (result, err) {\n            completed++;\n            if (completed === arLength)\n                callback(result, err);\n        });\n    }\n};\nvar ID_REGEX = /[a-zA-Z_0-9\\$\\-\\u00A2-\\u2000\\u2070-\\uFFFF]/;\nexports.retrievePrecedingIdentifier = function (text, pos, regex) {\n    regex = regex || ID_REGEX;\n    var buf = [];\n    for (var i = pos - 1; i >= 0; i--) {\n        if (regex.test(text[i]))\n            buf.push(text[i]);\n        else\n            break;\n    }\n    return buf.reverse().join(\"\");\n};\nexports.retrieveFollowingIdentifier = function (text, pos, regex) {\n    regex = regex || ID_REGEX;\n    var buf = [];\n    for (var i = pos; i < text.length; i++) {\n        if (regex.test(text[i]))\n            buf.push(text[i]);\n        else\n            break;\n    }\n    return buf;\n};\nexports.getCompletionPrefix = function (editor) {\n    var pos = editor.getCursorPosition();\n    var line = editor.session.getLine(pos.row);\n    var prefix;\n    editor.completers.forEach(function (completer) {\n        if (completer.identifierRegexps) {\n            completer.identifierRegexps.forEach(function (identifierRegex) {\n                if (!prefix && identifierRegex)\n                    prefix = this.retrievePrecedingIdentifier(line, pos.column, identifierRegex);\n            }.bind(this));\n        }\n    }.bind(this));\n    return prefix || this.retrievePrecedingIdentifier(line, pos.column);\n};\nexports.triggerAutocomplete = function (editor) {\n    var pos = editor.getCursorPosition();\n    var line = editor.session.getLine(pos.row);\n    var column = (pos.column === 0) ? 0 : pos.column - 1;\n    var previousChar = line[column];\n    return editor.completers.some(function (el) {\n        if (el.triggerCharacters && Array.isArray(el.triggerCharacters)) {\n            return el.triggerCharacters.includes(previousChar);\n        }\n    });\n};\n\n});\n\nace.define(\"ace/autocomplete\",[\"require\",\"exports\",\"module\",\"ace/keyboard/hash_handler\",\"ace/autocomplete/popup\",\"ace/autocomplete/inline\",\"ace/autocomplete/popup\",\"ace/autocomplete/util\",\"ace/lib/lang\",\"ace/lib/dom\",\"ace/snippets\",\"ace/config\"], function(require, exports, module){\"use strict\";\nvar HashHandler = require(\"./keyboard/hash_handler\").HashHandler;\nvar AcePopup = require(\"./autocomplete/popup\").AcePopup;\nvar AceInline = require(\"./autocomplete/inline\").AceInline;\nvar getAriaId = require(\"./autocomplete/popup\").getAriaId;\nvar util = require(\"./autocomplete/util\");\nvar lang = require(\"./lib/lang\");\nvar dom = require(\"./lib/dom\");\nvar snippetManager = require(\"./snippets\").snippetManager;\nvar config = require(\"./config\");\nvar destroyCompleter = function (e, editor) {\n    editor.completer && editor.completer.destroy();\n};\nvar Autocomplete = /** @class */ (function () {\n    function Autocomplete() {\n        this.autoInsert = false;\n        this.autoSelect = true;\n        this.autoShown = false;\n        this.exactMatch = false;\n        this.inlineEnabled = false;\n        this.keyboardHandler = new HashHandler();\n        this.keyboardHandler.bindKeys(this.commands);\n        this.parentNode = null;\n        this.blurListener = this.blurListener.bind(this);\n        this.changeListener = this.changeListener.bind(this);\n        this.mousedownListener = this.mousedownListener.bind(this);\n        this.mousewheelListener = this.mousewheelListener.bind(this);\n        this.changeTimer = lang.delayedCall(function () {\n            this.updateCompletions(true);\n        }.bind(this));\n        this.tooltipTimer = lang.delayedCall(this.updateDocTooltip.bind(this), 50);\n    }\n    Autocomplete.prototype.$init = function () {\n        this.popup = new AcePopup(this.parentNode || document.body || document.documentElement);\n        this.popup.on(\"click\", function (e) {\n            this.insertMatch();\n            e.stop();\n        }.bind(this));\n        this.popup.focus = this.editor.focus.bind(this.editor);\n        this.popup.on(\"show\", this.$onPopupChange.bind(this));\n        this.popup.on(\"hide\", this.$onHidePopup.bind(this));\n        this.popup.on(\"select\", this.$onPopupChange.bind(this));\n        this.popup.on(\"changeHoverMarker\", this.tooltipTimer.bind(null, null));\n        return this.popup;\n    };\n    Autocomplete.prototype.$initInline = function () {\n        if (!this.inlineEnabled || this.inlineRenderer)\n            return;\n        this.inlineRenderer = new AceInline();\n        return this.inlineRenderer;\n    };\n    Autocomplete.prototype.getPopup = function () {\n        return this.popup || this.$init();\n    };\n    Autocomplete.prototype.$onHidePopup = function () {\n        if (this.inlineRenderer) {\n            this.inlineRenderer.hide();\n        }\n        this.hideDocTooltip();\n    };\n    Autocomplete.prototype.$onPopupChange = function (hide) {\n        if (this.inlineRenderer && this.inlineEnabled) {\n            var completion = hide ? null : this.popup.getData(this.popup.getRow());\n            var prefix = util.getCompletionPrefix(this.editor);\n            if (!this.inlineRenderer.show(this.editor, completion, prefix)) {\n                this.inlineRenderer.hide();\n            }\n            this.$updatePopupPosition();\n        }\n        this.tooltipTimer.call(null, null);\n    };\n    Autocomplete.prototype.$updatePopupPosition = function () {\n        var editor = this.editor;\n        var renderer = editor.renderer;\n        var lineHeight = renderer.layerConfig.lineHeight;\n        var pos = renderer.$cursorLayer.getPixelPosition(this.base, true);\n        pos.left -= this.popup.getTextLeftOffset();\n        var rect = editor.container.getBoundingClientRect();\n        pos.top += rect.top - renderer.layerConfig.offset;\n        pos.left += rect.left - editor.renderer.scrollLeft;\n        pos.left += renderer.gutterWidth;\n        var posGhostText = {\n            top: pos.top,\n            left: pos.left\n        };\n        if (renderer.$ghostText && renderer.$ghostTextWidget) {\n            if (this.base.row === renderer.$ghostText.position.row) {\n                posGhostText.top += renderer.$ghostTextWidget.el.offsetHeight;\n            }\n        }\n        if (this.popup.tryShow(posGhostText, lineHeight, \"bottom\")) {\n            return;\n        }\n        if (this.popup.tryShow(pos, lineHeight, \"top\")) {\n            return;\n        }\n        this.popup.show(pos, lineHeight);\n    };\n    Autocomplete.prototype.openPopup = function (editor, prefix, keepPopupPosition) {\n        if (!this.popup)\n            this.$init();\n        if (this.inlineEnabled && !this.inlineRenderer)\n            this.$initInline();\n        this.popup.autoSelect = this.autoSelect;\n        this.popup.setData(this.completions.filtered, this.completions.filterText);\n        if (this.editor.textInput.setAriaOptions) {\n            this.editor.textInput.setAriaOptions({\n                activeDescendant: getAriaId(this.popup.getRow()),\n                inline: this.inlineEnabled\n            });\n        }\n        editor.keyBinding.addKeyboardHandler(this.keyboardHandler);\n        this.popup.setRow(this.autoSelect ? 0 : -1);\n        if (!keepPopupPosition) {\n            this.popup.setTheme(editor.getTheme());\n            this.popup.setFontSize(editor.getFontSize());\n            this.$updatePopupPosition();\n            if (this.tooltipNode) {\n                this.updateDocTooltip();\n            }\n        }\n        else if (keepPopupPosition && !prefix) {\n            this.detach();\n        }\n        this.changeTimer.cancel();\n    };\n    Autocomplete.prototype.detach = function () {\n        if (this.editor) {\n            this.editor.keyBinding.removeKeyboardHandler(this.keyboardHandler);\n            this.editor.off(\"changeSelection\", this.changeListener);\n            this.editor.off(\"blur\", this.blurListener);\n            this.editor.off(\"mousedown\", this.mousedownListener);\n            this.editor.off(\"mousewheel\", this.mousewheelListener);\n        }\n        this.changeTimer.cancel();\n        this.hideDocTooltip();\n        if (this.completionProvider) {\n            this.completionProvider.detach();\n        }\n        if (this.popup && this.popup.isOpen)\n            this.popup.hide();\n        if (this.base)\n            this.base.detach();\n        this.activated = false;\n        this.completionProvider = this.completions = this.base = null;\n    };\n    Autocomplete.prototype.changeListener = function (e) {\n        var cursor = this.editor.selection.lead;\n        if (cursor.row != this.base.row || cursor.column < this.base.column) {\n            this.detach();\n        }\n        if (this.activated)\n            this.changeTimer.schedule();\n        else\n            this.detach();\n    };\n    Autocomplete.prototype.blurListener = function (e) {\n        var el = document.activeElement;\n        var text = this.editor.textInput.getElement();\n        var fromTooltip = e.relatedTarget && this.tooltipNode && this.tooltipNode.contains(e.relatedTarget);\n        var container = this.popup && this.popup.container;\n        if (el != text && el.parentNode != container && !fromTooltip\n            && el != this.tooltipNode && e.relatedTarget != text) {\n            this.detach();\n        }\n    };\n    Autocomplete.prototype.mousedownListener = function (e) {\n        this.detach();\n    };\n    Autocomplete.prototype.mousewheelListener = function (e) {\n        this.detach();\n    };\n    Autocomplete.prototype.goTo = function (where) {\n        this.popup.goTo(where);\n    };\n    Autocomplete.prototype.insertMatch = function (data, options) {\n        if (!data)\n            data = this.popup.getData(this.popup.getRow());\n        if (!data)\n            return false;\n        if (data.value === \"\") // Explicitly given nothing to insert, e.g. \"No suggestion state\"\n            return this.detach();\n        var completions = this.completions;\n        var result = this.getCompletionProvider().insertMatch(this.editor, data, completions.filterText, options);\n        if (this.completions == completions)\n            this.detach();\n        return result;\n    };\n    Autocomplete.prototype.showPopup = function (editor, options) {\n        if (this.editor)\n            this.detach();\n        this.activated = true;\n        this.editor = editor;\n        if (editor.completer != this) {\n            if (editor.completer)\n                editor.completer.detach();\n            editor.completer = this;\n        }\n        editor.on(\"changeSelection\", this.changeListener);\n        editor.on(\"blur\", this.blurListener);\n        editor.on(\"mousedown\", this.mousedownListener);\n        editor.on(\"mousewheel\", this.mousewheelListener);\n        this.updateCompletions(false, options);\n    };\n    Autocomplete.prototype.getCompletionProvider = function () {\n        if (!this.completionProvider)\n            this.completionProvider = new CompletionProvider();\n        return this.completionProvider;\n    };\n    Autocomplete.prototype.gatherCompletions = function (editor, callback) {\n        return this.getCompletionProvider().gatherCompletions(editor, callback);\n    };\n    Autocomplete.prototype.updateCompletions = function (keepPopupPosition, options) {\n        if (keepPopupPosition && this.base && this.completions) {\n            var pos = this.editor.getCursorPosition();\n            var prefix = this.editor.session.getTextRange({ start: this.base, end: pos });\n            if (prefix == this.completions.filterText)\n                return;\n            this.completions.setFilter(prefix);\n            if (!this.completions.filtered.length)\n                return this.detach();\n            if (this.completions.filtered.length == 1\n                && this.completions.filtered[0].value == prefix\n                && !this.completions.filtered[0].snippet)\n                return this.detach();\n            this.openPopup(this.editor, prefix, keepPopupPosition);\n            return;\n        }\n        if (options && options.matches) {\n            var pos = this.editor.getSelectionRange().start;\n            this.base = this.editor.session.doc.createAnchor(pos.row, pos.column);\n            this.base.$insertRight = true;\n            this.completions = new FilteredList(options.matches);\n            return this.openPopup(this.editor, \"\", keepPopupPosition);\n        }\n        var session = this.editor.getSession();\n        var pos = this.editor.getCursorPosition();\n        var prefix = util.getCompletionPrefix(this.editor);\n        this.base = session.doc.createAnchor(pos.row, pos.column - prefix.length);\n        this.base.$insertRight = true;\n        var completionOptions = { exactMatch: this.exactMatch };\n        this.getCompletionProvider().provideCompletions(this.editor, completionOptions, function (err, completions, finished) {\n            var filtered = completions.filtered;\n            var prefix = util.getCompletionPrefix(this.editor);\n            if (finished) {\n                if (!filtered.length) {\n                    var emptyMessage = !this.autoShown && this.emptyMessage;\n                    if (typeof emptyMessage == \"function\")\n                        emptyMessage = this.emptyMessage(prefix);\n                    if (emptyMessage) {\n                        var completionsForEmpty = [{\n                                caption: this.emptyMessage(prefix),\n                                value: \"\"\n                            }];\n                        this.completions = new FilteredList(completionsForEmpty);\n                        this.openPopup(this.editor, prefix, keepPopupPosition);\n                        return;\n                    }\n                    return this.detach();\n                }\n                if (filtered.length == 1 && filtered[0].value == prefix && !filtered[0].snippet)\n                    return this.detach();\n                if (this.autoInsert && !this.autoShown && filtered.length == 1)\n                    return this.insertMatch(filtered[0]);\n            }\n            this.completions = completions;\n            this.openPopup(this.editor, prefix, keepPopupPosition);\n        }.bind(this));\n    };\n    Autocomplete.prototype.cancelContextMenu = function () {\n        this.editor.$mouseHandler.cancelContextMenu();\n    };\n    Autocomplete.prototype.updateDocTooltip = function () {\n        var popup = this.popup;\n        var all = popup.data;\n        var selected = all && (all[popup.getHoveredRow()] || all[popup.getRow()]);\n        var doc = null;\n        if (!selected || !this.editor || !this.popup.isOpen)\n            return this.hideDocTooltip();\n        var completersLength = this.editor.completers.length;\n        for (var i = 0; i < completersLength; i++) {\n            var completer = this.editor.completers[i];\n            if (completer.getDocTooltip && selected.completerId === completer.id) {\n                doc = completer.getDocTooltip(selected);\n                break;\n            }\n        }\n        if (!doc && typeof selected != \"string\")\n            doc = selected;\n        if (typeof doc == \"string\")\n            doc = { docText: doc };\n        if (!doc || !(doc.docHTML || doc.docText))\n            return this.hideDocTooltip();\n        this.showDocTooltip(doc);\n    };\n    Autocomplete.prototype.showDocTooltip = function (item) {\n        if (!this.tooltipNode) {\n            this.tooltipNode = dom.createElement(\"div\");\n            this.tooltipNode.style.margin = 0;\n            this.tooltipNode.style.pointerEvents = \"auto\";\n            this.tooltipNode.tabIndex = -1;\n            this.tooltipNode.onblur = this.blurListener.bind(this);\n            this.tooltipNode.onclick = this.onTooltipClick.bind(this);\n        }\n        var theme = this.editor.renderer.theme;\n        this.tooltipNode.className = \"ace_tooltip ace_doc-tooltip \" +\n            (theme.isDark ? \"ace_dark \" : \"\") + (theme.cssClass || \"\");\n        var tooltipNode = this.tooltipNode;\n        if (item.docHTML) {\n            tooltipNode.innerHTML = item.docHTML;\n        }\n        else if (item.docText) {\n            tooltipNode.textContent = item.docText;\n        }\n        if (!tooltipNode.parentNode)\n            this.popup.container.appendChild(this.tooltipNode);\n        var popup = this.popup;\n        var rect = popup.container.getBoundingClientRect();\n        tooltipNode.style.top = popup.container.style.top;\n        tooltipNode.style.bottom = popup.container.style.bottom;\n        tooltipNode.style.display = \"block\";\n        if (window.innerWidth - rect.right < 320) {\n            if (rect.left < 320) {\n                if (popup.isTopdown) {\n                    tooltipNode.style.top = rect.bottom + \"px\";\n                    tooltipNode.style.left = rect.left + \"px\";\n                    tooltipNode.style.right = \"\";\n                    tooltipNode.style.bottom = \"\";\n                }\n                else {\n                    tooltipNode.style.top = popup.container.offsetTop - tooltipNode.offsetHeight + \"px\";\n                    tooltipNode.style.left = rect.left + \"px\";\n                    tooltipNode.style.right = \"\";\n                    tooltipNode.style.bottom = \"\";\n                }\n            }\n            else {\n                tooltipNode.style.right = window.innerWidth - rect.left + \"px\";\n                tooltipNode.style.left = \"\";\n            }\n        }\n        else {\n            tooltipNode.style.left = (rect.right + 1) + \"px\";\n            tooltipNode.style.right = \"\";\n        }\n    };\n    Autocomplete.prototype.hideDocTooltip = function () {\n        this.tooltipTimer.cancel();\n        if (!this.tooltipNode)\n            return;\n        var el = this.tooltipNode;\n        if (!this.editor.isFocused() && document.activeElement == el)\n            this.editor.focus();\n        this.tooltipNode = null;\n        if (el.parentNode)\n            el.parentNode.removeChild(el);\n    };\n    Autocomplete.prototype.onTooltipClick = function (e) {\n        var a = e.target;\n        while (a && a != this.tooltipNode) {\n            if (a.nodeName == \"A\" && a.href) {\n                a.rel = \"noreferrer\";\n                a.target = \"_blank\";\n                break;\n            }\n            a = a.parentNode;\n        }\n    };\n    Autocomplete.prototype.destroy = function () {\n        this.detach();\n        if (this.popup) {\n            this.popup.destroy();\n            var el = this.popup.container;\n            if (el && el.parentNode)\n                el.parentNode.removeChild(el);\n        }\n        if (this.editor && this.editor.completer == this) {\n            this.editor.off(\"destroy\", destroyCompleter);\n            this.editor.completer = null;\n        }\n        this.inlineRenderer = this.popup = this.editor = null;\n    };\n    return Autocomplete;\n}());\nAutocomplete.prototype.commands = {\n    \"Up\": function (editor) { editor.completer.goTo(\"up\"); },\n    \"Down\": function (editor) { editor.completer.goTo(\"down\"); },\n    \"Ctrl-Up|Ctrl-Home\": function (editor) { editor.completer.goTo(\"start\"); },\n    \"Ctrl-Down|Ctrl-End\": function (editor) { editor.completer.goTo(\"end\"); },\n    \"Esc\": function (editor) { editor.completer.detach(); },\n    \"Return\": function (editor) { return editor.completer.insertMatch(); },\n    \"Shift-Return\": function (editor) { editor.completer.insertMatch(null, { deleteSuffix: true }); },\n    \"Tab\": function (editor) {\n        var result = editor.completer.insertMatch();\n        if (!result && !editor.tabstopManager)\n            editor.completer.goTo(\"down\");\n        else\n            return result;\n    },\n    \"PageUp\": function (editor) { editor.completer.popup.gotoPageUp(); },\n    \"PageDown\": function (editor) { editor.completer.popup.gotoPageDown(); }\n};\nAutocomplete.for = function (editor) {\n    if (editor.completer instanceof Autocomplete) {\n        return editor.completer;\n    }\n    if (editor.completer) {\n        editor.completer.destroy();\n        editor.completer = null;\n    }\n    if (config.get(\"sharedPopups\")) {\n        if (!Autocomplete.$sharedInstance)\n            Autocomplete.$sharedInstance = new Autocomplete();\n        editor.completer = Autocomplete.$sharedInstance;\n    }\n    else {\n        editor.completer = new Autocomplete();\n        editor.once(\"destroy\", destroyCompleter);\n    }\n    return editor.completer;\n};\nAutocomplete.startCommand = {\n    name: \"startAutocomplete\",\n    exec: function (editor, options) {\n        var completer = Autocomplete.for(editor);\n        completer.autoInsert = false;\n        completer.autoSelect = true;\n        completer.autoShown = false;\n        completer.showPopup(editor, options);\n        completer.cancelContextMenu();\n    },\n    bindKey: \"Ctrl-Space|Ctrl-Shift-Space|Alt-Space\"\n};\nvar CompletionProvider = /** @class */ (function () {\n    function CompletionProvider() {\n        this.active = true;\n    }\n    CompletionProvider.prototype.insertByIndex = function (editor, index, options) {\n        if (!this.completions || !this.completions.filtered) {\n            return false;\n        }\n        return this.insertMatch(editor, this.completions.filtered[index], options);\n    };\n    CompletionProvider.prototype.insertMatch = function (editor, data, options) {\n        if (!data)\n            return false;\n        editor.startOperation({ command: { name: \"insertMatch\" } });\n        if (data.completer && data.completer.insertMatch) {\n            data.completer.insertMatch(editor, data);\n        }\n        else {\n            if (!this.completions)\n                return false;\n            if (this.completions.filterText) {\n                var ranges;\n                if (editor.selection.getAllRanges) {\n                    ranges = editor.selection.getAllRanges();\n                }\n                else {\n                    ranges = [editor.getSelectionRange()];\n                }\n                for (var i = 0, range; range = ranges[i]; i++) {\n                    range.start.column -= this.completions.filterText.length;\n                    editor.session.remove(range);\n                }\n            }\n            if (data.snippet)\n                snippetManager.insertSnippet(editor, data.snippet, { range: data.range });\n            else {\n                this.$insertString(editor, data);\n            }\n            if (data.command && data.command === \"startAutocomplete\") {\n                editor.execCommand(data.command);\n            }\n        }\n        editor.endOperation();\n        return true;\n    };\n    CompletionProvider.prototype.$insertString = function (editor, data) {\n        var text = data.value || data;\n        if (data.range) {\n            if (editor.inVirtualSelectionMode) {\n                return editor.session.replace(data.range, text);\n            }\n            editor.forEachSelection(function () {\n                var range = editor.getSelectionRange();\n                if (data.range.compareRange(range) === 0) {\n                    editor.session.replace(data.range, text);\n                }\n                else {\n                    editor.insert(text);\n                }\n            }, null, { keepOrder: true });\n        }\n        else {\n            editor.execCommand(\"insertstring\", text);\n        }\n    };\n    CompletionProvider.prototype.gatherCompletions = function (editor, callback) {\n        var session = editor.getSession();\n        var pos = editor.getCursorPosition();\n        var prefix = util.getCompletionPrefix(editor);\n        var matches = [];\n        var total = editor.completers.length;\n        editor.completers.forEach(function (completer, i) {\n            completer.getCompletions(editor, session, pos, prefix, function (err, results) {\n                if (!err && results)\n                    matches = matches.concat(results);\n                callback(null, {\n                    prefix: util.getCompletionPrefix(editor),\n                    matches: matches,\n                    finished: (--total === 0)\n                });\n            });\n        });\n        return true;\n    };\n    CompletionProvider.prototype.provideCompletions = function (editor, options, callback) {\n        var processResults = function (results) {\n            var prefix = results.prefix;\n            var matches = results.matches;\n            this.completions = new FilteredList(matches);\n            if (options.exactMatch)\n                this.completions.exactMatch = true;\n            if (options.ignoreCaption)\n                this.completions.ignoreCaption = true;\n            this.completions.setFilter(prefix);\n            if (results.finished || this.completions.filtered.length)\n                callback(null, this.completions, results.finished);\n        }.bind(this);\n        var isImmediate = true;\n        var immediateResults = null;\n        this.gatherCompletions(editor, function (err, results) {\n            if (!this.active) {\n                return;\n            }\n            if (err) {\n                callback(err, [], true);\n                this.detach();\n            }\n            var prefix = results.prefix;\n            if (prefix.indexOf(results.prefix) !== 0)\n                return;\n            if (isImmediate) {\n                immediateResults = results;\n                return;\n            }\n            processResults(results);\n        }.bind(this));\n        isImmediate = false;\n        if (immediateResults) {\n            var results = immediateResults;\n            immediateResults = null;\n            processResults(results);\n        }\n    };\n    CompletionProvider.prototype.detach = function () {\n        this.active = false;\n    };\n    return CompletionProvider;\n}());\nvar FilteredList = /** @class */ (function () {\n    function FilteredList(array, filterText) {\n        this.all = array;\n        this.filtered = array;\n        this.filterText = filterText || \"\";\n        this.exactMatch = false;\n        this.ignoreCaption = false;\n    }\n    FilteredList.prototype.setFilter = function (str) {\n        if (str.length > this.filterText && str.lastIndexOf(this.filterText, 0) === 0)\n            var matches = this.filtered;\n        else\n            var matches = this.all;\n        this.filterText = str;\n        matches = this.filterCompletions(matches, this.filterText);\n        matches = matches.sort(function (a, b) {\n            return b.exactMatch - a.exactMatch || b.$score - a.$score\n                || (a.caption || a.value).localeCompare(b.caption || b.value);\n        });\n        var prev = null;\n        matches = matches.filter(function (item) {\n            var caption = item.snippet || item.caption || item.value;\n            if (caption === prev)\n                return false;\n            prev = caption;\n            return true;\n        });\n        this.filtered = matches;\n    };\n    FilteredList.prototype.filterCompletions = function (items, needle) {\n        var results = [];\n        var upper = needle.toUpperCase();\n        var lower = needle.toLowerCase();\n        loop: for (var i = 0, item; item = items[i]; i++) {\n            var caption = (!this.ignoreCaption && item.caption) || item.value || item.snippet;\n            if (!caption)\n                continue;\n            var lastIndex = -1;\n            var matchMask = 0;\n            var penalty = 0;\n            var index, distance;\n            if (this.exactMatch) {\n                if (needle !== caption.substr(0, needle.length))\n                    continue loop;\n            }\n            else {\n                var fullMatchIndex = caption.toLowerCase().indexOf(lower);\n                if (fullMatchIndex > -1) {\n                    penalty = fullMatchIndex;\n                }\n                else {\n                    for (var j = 0; j < needle.length; j++) {\n                        var i1 = caption.indexOf(lower[j], lastIndex + 1);\n                        var i2 = caption.indexOf(upper[j], lastIndex + 1);\n                        index = (i1 >= 0) ? ((i2 < 0 || i1 < i2) ? i1 : i2) : i2;\n                        if (index < 0)\n                            continue loop;\n                        distance = index - lastIndex - 1;\n                        if (distance > 0) {\n                            if (lastIndex === -1)\n                                penalty += 10;\n                            penalty += distance;\n                            matchMask = matchMask | (1 << j);\n                        }\n                        lastIndex = index;\n                    }\n                }\n            }\n            item.matchMask = matchMask;\n            item.exactMatch = penalty ? 0 : 1;\n            item.$score = (item.score || 0) - penalty;\n            results.push(item);\n        }\n        return results;\n    };\n    return FilteredList;\n}());\nexports.Autocomplete = Autocomplete;\nexports.CompletionProvider = CompletionProvider;\nexports.FilteredList = FilteredList;\n\n});\n\nace.define(\"ace/autocomplete/text_completer\",[\"require\",\"exports\",\"module\",\"ace/range\"], function(require, exports, module){var Range = require(\"../range\").Range;\nvar splitRegex = /[^a-zA-Z_0-9\\$\\-\\u00C0-\\u1FFF\\u2C00-\\uD7FF\\w]+/;\nfunction getWordIndex(doc, pos) {\n    var textBefore = doc.getTextRange(Range.fromPoints({\n        row: 0,\n        column: 0\n    }, pos));\n    return textBefore.split(splitRegex).length - 1;\n}\nfunction wordDistance(doc, pos) {\n    var prefixPos = getWordIndex(doc, pos);\n    var words = doc.getValue().split(splitRegex);\n    var wordScores = Object.create(null);\n    var currentWord = words[prefixPos];\n    words.forEach(function (word, idx) {\n        if (!word || word === currentWord)\n            return;\n        var distance = Math.abs(prefixPos - idx);\n        var score = words.length - distance;\n        if (wordScores[word]) {\n            wordScores[word] = Math.max(score, wordScores[word]);\n        }\n        else {\n            wordScores[word] = score;\n        }\n    });\n    return wordScores;\n}\nexports.getCompletions = function (editor, session, pos, prefix, callback) {\n    var wordScore = wordDistance(session, pos);\n    var wordList = Object.keys(wordScore);\n    callback(null, wordList.map(function (word) {\n        return {\n            caption: word,\n            value: word,\n            score: wordScore[word],\n            meta: \"local\"\n        };\n    }));\n};\n\n});\n\nace.define(\"ace/ext/language_tools\",[\"require\",\"exports\",\"module\",\"ace/snippets\",\"ace/autocomplete\",\"ace/config\",\"ace/lib/lang\",\"ace/autocomplete/util\",\"ace/autocomplete/text_completer\",\"ace/editor\",\"ace/config\"], function(require, exports, module){\"use strict\";\nvar snippetManager = require(\"../snippets\").snippetManager;\nvar Autocomplete = require(\"../autocomplete\").Autocomplete;\nvar config = require(\"../config\");\nvar lang = require(\"../lib/lang\");\nvar util = require(\"../autocomplete/util\");\nvar textCompleter = require(\"../autocomplete/text_completer\");\nvar keyWordCompleter = {\n    getCompletions: function (editor, session, pos, prefix, callback) {\n        if (session.$mode.completer) {\n            return session.$mode.completer.getCompletions(editor, session, pos, prefix, callback);\n        }\n        var state = editor.session.getState(pos.row);\n        var completions = session.$mode.getCompletions(state, session, pos, prefix);\n        completions = completions.map(function (el) {\n            el.completerId = keyWordCompleter.id;\n            return el;\n        });\n        callback(null, completions);\n    },\n    id: \"keywordCompleter\"\n};\nvar transformSnippetTooltip = function (str) {\n    var record = {};\n    return str.replace(/\\${(\\d+)(:(.*?))?}/g, function (_, p1, p2, p3) {\n        return (record[p1] = p3 || '');\n    }).replace(/\\$(\\d+?)/g, function (_, p1) {\n        return record[p1];\n    });\n};\nvar snippetCompleter = {\n    getCompletions: function (editor, session, pos, prefix, callback) {\n        var scopes = [];\n        var token = session.getTokenAt(pos.row, pos.column);\n        if (token && token.type.match(/(tag-name|tag-open|tag-whitespace|attribute-name|attribute-value)\\.xml$/))\n            scopes.push('html-tag');\n        else\n            scopes = snippetManager.getActiveScopes(editor);\n        var snippetMap = snippetManager.snippetMap;\n        var completions = [];\n        scopes.forEach(function (scope) {\n            var snippets = snippetMap[scope] || [];\n            for (var i = snippets.length; i--;) {\n                var s = snippets[i];\n                var caption = s.name || s.tabTrigger;\n                if (!caption)\n                    continue;\n                completions.push({\n                    caption: caption,\n                    snippet: s.content,\n                    meta: s.tabTrigger && !s.name ? s.tabTrigger + \"\\u21E5 \" : \"snippet\",\n                    completerId: snippetCompleter.id\n                });\n            }\n        }, this);\n        callback(null, completions);\n    },\n    getDocTooltip: function (item) {\n        if (item.snippet && !item.docHTML) {\n            item.docHTML = [\n                \"<b>\", lang.escapeHTML(item.caption), \"</b>\", \"<hr></hr>\",\n                lang.escapeHTML(transformSnippetTooltip(item.snippet))\n            ].join(\"\");\n        }\n    },\n    id: \"snippetCompleter\"\n};\nvar completers = [snippetCompleter, textCompleter, keyWordCompleter];\nexports.setCompleters = function (val) {\n    completers.length = 0;\n    if (val)\n        completers.push.apply(completers, val);\n};\nexports.addCompleter = function (completer) {\n    completers.push(completer);\n};\nexports.textCompleter = textCompleter;\nexports.keyWordCompleter = keyWordCompleter;\nexports.snippetCompleter = snippetCompleter;\nvar expandSnippet = {\n    name: \"expandSnippet\",\n    exec: function (editor) {\n        return snippetManager.expandWithTab(editor);\n    },\n    bindKey: \"Tab\"\n};\nvar onChangeMode = function (e, editor) {\n    loadSnippetsForMode(editor.session.$mode);\n};\nvar loadSnippetsForMode = function (mode) {\n    if (typeof mode == \"string\")\n        mode = config.$modes[mode];\n    if (!mode)\n        return;\n    if (!snippetManager.files)\n        snippetManager.files = {};\n    loadSnippetFile(mode.$id, mode.snippetFileId);\n    if (mode.modes)\n        mode.modes.forEach(loadSnippetsForMode);\n};\nvar loadSnippetFile = function (id, snippetFilePath) {\n    if (!snippetFilePath || !id || snippetManager.files[id])\n        return;\n    snippetManager.files[id] = {};\n    config.loadModule(snippetFilePath, function (m) {\n        if (!m)\n            return;\n        snippetManager.files[id] = m;\n        if (!m.snippets && m.snippetText)\n            m.snippets = snippetManager.parseSnippetFile(m.snippetText);\n        snippetManager.register(m.snippets || [], m.scope);\n        if (m.includeScopes) {\n            snippetManager.snippetMap[m.scope].includeScopes = m.includeScopes;\n            m.includeScopes.forEach(function (x) {\n                loadSnippetsForMode(\"ace/mode/\" + x);\n            });\n        }\n    });\n};\nvar doLiveAutocomplete = function (e) {\n    var editor = e.editor;\n    var hasCompleter = editor.completer && editor.completer.activated;\n    if (e.command.name === \"backspace\") {\n        if (hasCompleter && !util.getCompletionPrefix(editor))\n            editor.completer.detach();\n    }\n    else if (e.command.name === \"insertstring\") {\n        var prefix = util.getCompletionPrefix(editor);\n        var triggerAutocomplete = util.triggerAutocomplete(editor);\n        if ((prefix || triggerAutocomplete) && !hasCompleter) {\n            var completer = Autocomplete.for(editor);\n            completer.autoShown = true;\n            completer.showPopup(editor);\n        }\n    }\n};\nvar Editor = require(\"../editor\").Editor;\nrequire(\"../config\").defineOptions(Editor.prototype, \"editor\", {\n    enableBasicAutocompletion: {\n        set: function (val) {\n            if (val) {\n                if (!this.completers)\n                    this.completers = Array.isArray(val) ? val : completers;\n                this.commands.addCommand(Autocomplete.startCommand);\n            }\n            else {\n                this.commands.removeCommand(Autocomplete.startCommand);\n            }\n        },\n        value: false\n    },\n    enableLiveAutocompletion: {\n        set: function (val) {\n            if (val) {\n                if (!this.completers)\n                    this.completers = Array.isArray(val) ? val : completers;\n                this.commands.on('afterExec', doLiveAutocomplete);\n            }\n            else {\n                this.commands.removeListener('afterExec', doLiveAutocomplete);\n            }\n        },\n        value: false\n    },\n    enableSnippets: {\n        set: function (val) {\n            if (val) {\n                this.commands.addCommand(expandSnippet);\n                this.on(\"changeMode\", onChangeMode);\n                onChangeMode(null, this);\n            }\n            else {\n                this.commands.removeCommand(expandSnippet);\n                this.off(\"changeMode\", onChangeMode);\n            }\n        },\n        value: false\n    }\n});\n\n});                (function() {\n                    ace.require([\"ace/ext/language_tools\"], function(m) {\n                        if ( true && module) {\n                            module.exports = m;\n                        }\n                    });\n                })();\n            \n\n//# sourceURL=webpack://iris-web/./node_modules/ace-builds/src-noconflict/ext-language_tools.js?");
+
+/***/ }),
+
+/***/ "./node_modules/ace-builds/src-noconflict/mode-json.js":
+/*!*************************************************************!*\
+  !*** ./node_modules/ace-builds/src-noconflict/mode-json.js ***!
+  \*************************************************************/
+/***/ ((module, __unused_webpack_exports, __webpack_require__) => {
+
+eval("/* module decorator */ module = __webpack_require__.nmd(module);\nace.define(\"ace/mode/json_highlight_rules\",[\"require\",\"exports\",\"module\",\"ace/lib/oop\",\"ace/mode/text_highlight_rules\"], function(require, exports, module){\"use strict\";\nvar oop = require(\"../lib/oop\");\nvar TextHighlightRules = require(\"./text_highlight_rules\").TextHighlightRules;\nvar JsonHighlightRules = function () {\n    this.$rules = {\n        \"start\": [\n            {\n                token: \"variable\",\n                regex: '[\"](?:(?:\\\\\\\\.)|(?:[^\"\\\\\\\\]))*?[\"]\\\\s*(?=:)'\n            }, {\n                token: \"string\",\n                regex: '\"',\n                next: \"string\"\n            }, {\n                token: \"constant.numeric\",\n                regex: \"0[xX][0-9a-fA-F]+\\\\b\"\n            }, {\n                token: \"constant.numeric\",\n                regex: \"[+-]?\\\\d+(?:(?:\\\\.\\\\d*)?(?:[eE][+-]?\\\\d+)?)?\\\\b\"\n            }, {\n                token: \"constant.language.boolean\",\n                regex: \"(?:true|false)\\\\b\"\n            }, {\n                token: \"text\",\n                regex: \"['](?:(?:\\\\\\\\.)|(?:[^'\\\\\\\\]))*?[']\"\n            }, {\n                token: \"comment\",\n                regex: \"\\\\/\\\\/.*$\"\n            }, {\n                token: \"comment.start\",\n                regex: \"\\\\/\\\\*\",\n                next: \"comment\"\n            }, {\n                token: \"paren.lparen\",\n                regex: \"[[({]\"\n            }, {\n                token: \"paren.rparen\",\n                regex: \"[\\\\])}]\"\n            }, {\n                token: \"punctuation.operator\",\n                regex: /[,]/\n            }, {\n                token: \"text\",\n                regex: \"\\\\s+\"\n            }\n        ],\n        \"string\": [\n            {\n                token: \"constant.language.escape\",\n                regex: /\\\\(?:x[0-9a-fA-F]{2}|u[0-9a-fA-F]{4}|[\"\\\\\\/bfnrt])/\n            }, {\n                token: \"string\",\n                regex: '\"|$',\n                next: \"start\"\n            }, {\n                defaultToken: \"string\"\n            }\n        ],\n        \"comment\": [\n            {\n                token: \"comment.end\",\n                regex: \"\\\\*\\\\/\",\n                next: \"start\"\n            }, {\n                defaultToken: \"comment\"\n            }\n        ]\n    };\n};\noop.inherits(JsonHighlightRules, TextHighlightRules);\nexports.JsonHighlightRules = JsonHighlightRules;\n\n});\n\nace.define(\"ace/mode/matching_brace_outdent\",[\"require\",\"exports\",\"module\",\"ace/range\"], function(require, exports, module){\"use strict\";\nvar Range = require(\"../range\").Range;\nvar MatchingBraceOutdent = function () { };\n(function () {\n    this.checkOutdent = function (line, input) {\n        if (!/^\\s+$/.test(line))\n            return false;\n        return /^\\s*\\}/.test(input);\n    };\n    this.autoOutdent = function (doc, row) {\n        var line = doc.getLine(row);\n        var match = line.match(/^(\\s*\\})/);\n        if (!match)\n            return 0;\n        var column = match[1].length;\n        var openBracePos = doc.findMatchingBracket({ row: row, column: column });\n        if (!openBracePos || openBracePos.row == row)\n            return 0;\n        var indent = this.$getIndent(doc.getLine(openBracePos.row));\n        doc.replace(new Range(row, 0, row, column - 1), indent);\n    };\n    this.$getIndent = function (line) {\n        return line.match(/^\\s*/)[0];\n    };\n}).call(MatchingBraceOutdent.prototype);\nexports.MatchingBraceOutdent = MatchingBraceOutdent;\n\n});\n\nace.define(\"ace/mode/folding/cstyle\",[\"require\",\"exports\",\"module\",\"ace/lib/oop\",\"ace/range\",\"ace/mode/folding/fold_mode\"], function(require, exports, module){\"use strict\";\nvar oop = require(\"../../lib/oop\");\nvar Range = require(\"../../range\").Range;\nvar BaseFoldMode = require(\"./fold_mode\").FoldMode;\nvar FoldMode = exports.FoldMode = function (commentRegex) {\n    if (commentRegex) {\n        this.foldingStartMarker = new RegExp(this.foldingStartMarker.source.replace(/\\|[^|]*?$/, \"|\" + commentRegex.start));\n        this.foldingStopMarker = new RegExp(this.foldingStopMarker.source.replace(/\\|[^|]*?$/, \"|\" + commentRegex.end));\n    }\n};\noop.inherits(FoldMode, BaseFoldMode);\n(function () {\n    this.foldingStartMarker = /([\\{\\[\\(])[^\\}\\]\\)]*$|^\\s*(\\/\\*)/;\n    this.foldingStopMarker = /^[^\\[\\{\\(]*([\\}\\]\\)])|^[\\s\\*]*(\\*\\/)/;\n    this.singleLineBlockCommentRe = /^\\s*(\\/\\*).*\\*\\/\\s*$/;\n    this.tripleStarBlockCommentRe = /^\\s*(\\/\\*\\*\\*).*\\*\\/\\s*$/;\n    this.startRegionRe = /^\\s*(\\/\\*|\\/\\/)#?region\\b/;\n    this._getFoldWidgetBase = this.getFoldWidget;\n    this.getFoldWidget = function (session, foldStyle, row) {\n        var line = session.getLine(row);\n        if (this.singleLineBlockCommentRe.test(line)) {\n            if (!this.startRegionRe.test(line) && !this.tripleStarBlockCommentRe.test(line))\n                return \"\";\n        }\n        var fw = this._getFoldWidgetBase(session, foldStyle, row);\n        if (!fw && this.startRegionRe.test(line))\n            return \"start\"; // lineCommentRegionStart\n        return fw;\n    };\n    this.getFoldWidgetRange = function (session, foldStyle, row, forceMultiline) {\n        var line = session.getLine(row);\n        if (this.startRegionRe.test(line))\n            return this.getCommentRegionBlock(session, line, row);\n        var match = line.match(this.foldingStartMarker);\n        if (match) {\n            var i = match.index;\n            if (match[1])\n                return this.openingBracketBlock(session, match[1], row, i);\n            var range = session.getCommentFoldRange(row, i + match[0].length, 1);\n            if (range && !range.isMultiLine()) {\n                if (forceMultiline) {\n                    range = this.getSectionRange(session, row);\n                }\n                else if (foldStyle != \"all\")\n                    range = null;\n            }\n            return range;\n        }\n        if (foldStyle === \"markbegin\")\n            return;\n        var match = line.match(this.foldingStopMarker);\n        if (match) {\n            var i = match.index + match[0].length;\n            if (match[1])\n                return this.closingBracketBlock(session, match[1], row, i);\n            return session.getCommentFoldRange(row, i, -1);\n        }\n    };\n    this.getSectionRange = function (session, row) {\n        var line = session.getLine(row);\n        var startIndent = line.search(/\\S/);\n        var startRow = row;\n        var startColumn = line.length;\n        row = row + 1;\n        var endRow = row;\n        var maxRow = session.getLength();\n        while (++row < maxRow) {\n            line = session.getLine(row);\n            var indent = line.search(/\\S/);\n            if (indent === -1)\n                continue;\n            if (startIndent > indent)\n                break;\n            var subRange = this.getFoldWidgetRange(session, \"all\", row);\n            if (subRange) {\n                if (subRange.start.row <= startRow) {\n                    break;\n                }\n                else if (subRange.isMultiLine()) {\n                    row = subRange.end.row;\n                }\n                else if (startIndent == indent) {\n                    break;\n                }\n            }\n            endRow = row;\n        }\n        return new Range(startRow, startColumn, endRow, session.getLine(endRow).length);\n    };\n    this.getCommentRegionBlock = function (session, line, row) {\n        var startColumn = line.search(/\\s*$/);\n        var maxRow = session.getLength();\n        var startRow = row;\n        var re = /^\\s*(?:\\/\\*|\\/\\/|--)#?(end)?region\\b/;\n        var depth = 1;\n        while (++row < maxRow) {\n            line = session.getLine(row);\n            var m = re.exec(line);\n            if (!m)\n                continue;\n            if (m[1])\n                depth--;\n            else\n                depth++;\n            if (!depth)\n                break;\n        }\n        var endRow = row;\n        if (endRow > startRow) {\n            return new Range(startRow, startColumn, endRow, line.length);\n        }\n    };\n}).call(FoldMode.prototype);\n\n});\n\nace.define(\"ace/mode/json\",[\"require\",\"exports\",\"module\",\"ace/lib/oop\",\"ace/mode/text\",\"ace/mode/json_highlight_rules\",\"ace/mode/matching_brace_outdent\",\"ace/mode/folding/cstyle\",\"ace/worker/worker_client\"], function(require, exports, module){\"use strict\";\nvar oop = require(\"../lib/oop\");\nvar TextMode = require(\"./text\").Mode;\nvar HighlightRules = require(\"./json_highlight_rules\").JsonHighlightRules;\nvar MatchingBraceOutdent = require(\"./matching_brace_outdent\").MatchingBraceOutdent;\nvar CStyleFoldMode = require(\"./folding/cstyle\").FoldMode;\nvar WorkerClient = require(\"../worker/worker_client\").WorkerClient;\nvar Mode = function () {\n    this.HighlightRules = HighlightRules;\n    this.$outdent = new MatchingBraceOutdent();\n    this.$behaviour = this.$defaultBehaviour;\n    this.foldingRules = new CStyleFoldMode();\n};\noop.inherits(Mode, TextMode);\n(function () {\n    this.lineCommentStart = \"//\";\n    this.blockComment = { start: \"/*\", end: \"*/\" };\n    this.getNextLineIndent = function (state, line, tab) {\n        var indent = this.$getIndent(line);\n        if (state == \"start\") {\n            var match = line.match(/^.*[\\{\\(\\[]\\s*$/);\n            if (match) {\n                indent += tab;\n            }\n        }\n        return indent;\n    };\n    this.checkOutdent = function (state, line, input) {\n        return this.$outdent.checkOutdent(line, input);\n    };\n    this.autoOutdent = function (state, doc, row) {\n        this.$outdent.autoOutdent(doc, row);\n    };\n    this.createWorker = function (session) {\n        var worker = new WorkerClient([\"ace\"], \"ace/mode/json_worker\", \"JsonWorker\");\n        worker.attachToDocument(session.getDocument());\n        worker.on(\"annotate\", function (e) {\n            session.setAnnotations(e.data);\n        });\n        worker.on(\"terminate\", function () {\n            session.clearAnnotations();\n        });\n        return worker;\n    };\n    this.$id = \"ace/mode/json\";\n}).call(Mode.prototype);\nexports.Mode = Mode;\n\n});                (function() {\n                    ace.require([\"ace/mode/json\"], function(m) {\n                        if ( true && module) {\n                            module.exports = m;\n                        }\n                    });\n                })();\n            \n\n//# sourceURL=webpack://iris-web/./node_modules/ace-builds/src-noconflict/mode-json.js?");
+
+/***/ }),
+
+/***/ "./node_modules/ace-builds/src-noconflict/theme-tomorrow.js":
+/*!******************************************************************!*\
+  !*** ./node_modules/ace-builds/src-noconflict/theme-tomorrow.js ***!
+  \******************************************************************/
+/***/ ((module, __unused_webpack_exports, __webpack_require__) => {
+
+eval("/* module decorator */ module = __webpack_require__.nmd(module);\nace.define(\"ace/theme/tomorrow.css\",[\"require\",\"exports\",\"module\"], function(require, exports, module){module.exports = \".ace-tomorrow .ace_gutter {\\n  background: #f6f6f6;\\n  color: #4D4D4C\\n}\\n\\n.ace-tomorrow .ace_print-margin {\\n  width: 1px;\\n  background: #f6f6f6\\n}\\n\\n.ace-tomorrow {\\n  background-color: #FFFFFF;\\n  color: #4D4D4C\\n}\\n\\n.ace-tomorrow .ace_cursor {\\n  color: #AEAFAD\\n}\\n\\n.ace-tomorrow .ace_marker-layer .ace_selection {\\n  background: #D6D6D6\\n}\\n\\n.ace-tomorrow.ace_multiselect .ace_selection.ace_start {\\n  box-shadow: 0 0 3px 0px #FFFFFF;\\n}\\n\\n.ace-tomorrow .ace_marker-layer .ace_step {\\n  background: rgb(255, 255, 0)\\n}\\n\\n.ace-tomorrow .ace_marker-layer .ace_bracket {\\n  margin: -1px 0 0 -1px;\\n  border: 1px solid #D1D1D1\\n}\\n\\n.ace-tomorrow .ace_marker-layer .ace_active-line {\\n  background: #EFEFEF\\n}\\n\\n.ace-tomorrow .ace_gutter-active-line {\\n  background-color : #dcdcdc\\n}\\n\\n.ace-tomorrow .ace_marker-layer .ace_selected-word {\\n  border: 1px solid #D6D6D6\\n}\\n\\n.ace-tomorrow .ace_invisible {\\n  color: #D1D1D1\\n}\\n\\n.ace-tomorrow .ace_keyword,\\n.ace-tomorrow .ace_meta,\\n.ace-tomorrow .ace_storage,\\n.ace-tomorrow .ace_storage.ace_type,\\n.ace-tomorrow .ace_support.ace_type {\\n  color: #8959A8\\n}\\n\\n.ace-tomorrow .ace_keyword.ace_operator {\\n  color: #3E999F\\n}\\n\\n.ace-tomorrow .ace_constant.ace_character,\\n.ace-tomorrow .ace_constant.ace_language,\\n.ace-tomorrow .ace_constant.ace_numeric,\\n.ace-tomorrow .ace_keyword.ace_other.ace_unit,\\n.ace-tomorrow .ace_support.ace_constant,\\n.ace-tomorrow .ace_variable.ace_parameter {\\n  color: #F5871F\\n}\\n\\n.ace-tomorrow .ace_constant.ace_other {\\n  color: #666969\\n}\\n\\n.ace-tomorrow .ace_invalid {\\n  color: #FFFFFF;\\n  background-color: #C82829\\n}\\n\\n.ace-tomorrow .ace_invalid.ace_deprecated {\\n  color: #FFFFFF;\\n  background-color: #8959A8\\n}\\n\\n.ace-tomorrow .ace_fold {\\n  background-color: #4271AE;\\n  border-color: #4D4D4C\\n}\\n\\n.ace-tomorrow .ace_entity.ace_name.ace_function,\\n.ace-tomorrow .ace_support.ace_function,\\n.ace-tomorrow .ace_variable {\\n  color: #4271AE\\n}\\n\\n.ace-tomorrow .ace_support.ace_class,\\n.ace-tomorrow .ace_support.ace_type {\\n  color: #C99E00\\n}\\n\\n.ace-tomorrow .ace_heading,\\n.ace-tomorrow .ace_markup.ace_heading,\\n.ace-tomorrow .ace_string {\\n  color: #718C00\\n}\\n\\n.ace-tomorrow .ace_entity.ace_name.ace_tag,\\n.ace-tomorrow .ace_entity.ace_other.ace_attribute-name,\\n.ace-tomorrow .ace_meta.ace_tag,\\n.ace-tomorrow .ace_string.ace_regexp,\\n.ace-tomorrow .ace_variable {\\n  color: #C82829\\n}\\n\\n.ace-tomorrow .ace_comment {\\n  color: #8E908C\\n}\\n\\n.ace-tomorrow .ace_indent-guide {\\n  background: url(data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAACCAYAAACZgbYnAAAAE0lEQVQImWP4////f4bdu3f/BwAlfgctduB85QAAAABJRU5ErkJggg==) right repeat-y\\n}\\n\\n.ace-tomorrow .ace_indent-guide-active {\\n  background: url(\\\"data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAACCAYAAACZgbYnAAAACXBIWXMAAAsTAAALEwEAmpwYAAAAIGNIUk0AAHolAACAgwAA+f8AAIDpAAB1MAAA6mAAADqYAAAXb5JfxUYAAAAZSURBVHjaYvj///9/hivKyv8BAAAA//8DACLqBhbvk+/eAAAAAElFTkSuQmCC\\\") right repeat-y;\\n} \\n\";\n\n});\n\nace.define(\"ace/theme/tomorrow\",[\"require\",\"exports\",\"module\",\"ace/theme/tomorrow.css\",\"ace/lib/dom\"], function(require, exports, module){exports.isDark = false;\nexports.cssClass = \"ace-tomorrow\";\nexports.cssText = require(\"./tomorrow.css\");\nvar dom = require(\"../lib/dom\");\ndom.importCssString(exports.cssText, exports.cssClass, false);\n\n});                (function() {\n                    ace.require([\"ace/theme/tomorrow\"], function(m) {\n                        if ( true && module) {\n                            module.exports = m;\n                        }\n                    });\n                })();\n            \n\n//# sourceURL=webpack://iris-web/./node_modules/ace-builds/src-noconflict/theme-tomorrow.js?");
+
+/***/ }),
+
+/***/ "./node_modules/ace-builds/webpack-resolver.js":
+/*!*****************************************************!*\
+  !*** ./node_modules/ace-builds/webpack-resolver.js ***!
+  \*****************************************************/
+/***/ ((__unused_webpack_module, __unused_webpack_exports, __webpack_require__) => {
+
+eval("\nace.config.setModuleUrl('ace/ext/beautify', __webpack_require__(/*! file-loader?esModule=false!./src-noconflict/ext-beautify.js */ \"./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/ext-beautify.js\"));\nace.config.setModuleUrl('ace/ext/code_lens', __webpack_require__(/*! file-loader?esModule=false!./src-noconflict/ext-code_lens.js */ \"./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/ext-code_lens.js\"));\nace.config.setModuleUrl('ace/ext/command_bar', __webpack_require__(/*! file-loader?esModule=false!./src-noconflict/ext-command_bar.js */ \"./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/ext-command_bar.js\"));\nace.config.setModuleUrl('ace/ext/elastic_tabstops_lite', __webpack_require__(/*! file-loader?esModule=false!./src-noconflict/ext-elastic_tabstops_lite.js */ \"./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/ext-elastic_tabstops_lite.js\"));\nace.config.setModuleUrl('ace/ext/emmet', __webpack_require__(/*! file-loader?esModule=false!./src-noconflict/ext-emmet.js */ \"./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/ext-emmet.js\"));\nace.config.setModuleUrl('ace/ext/error_marker', __webpack_require__(/*! file-loader?esModule=false!./src-noconflict/ext-error_marker.js */ \"./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/ext-error_marker.js\"));\nace.config.setModuleUrl('ace/ext/hardwrap', __webpack_require__(/*! file-loader?esModule=false!./src-noconflict/ext-hardwrap.js */ \"./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/ext-hardwrap.js\"));\nace.config.setModuleUrl('ace/ext/inline_autocomplete', __webpack_require__(/*! file-loader?esModule=false!./src-noconflict/ext-inline_autocomplete.js */ \"./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/ext-inline_autocomplete.js\"));\nace.config.setModuleUrl('ace/ext/keyboard_menu', __webpack_require__(/*! file-loader?esModule=false!./src-noconflict/ext-keybinding_menu.js */ \"./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/ext-keybinding_menu.js\"));\nace.config.setModuleUrl('ace/ext/language_tools', __webpack_require__(/*! file-loader?esModule=false!./src-noconflict/ext-language_tools.js */ \"./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/ext-language_tools.js\"));\nace.config.setModuleUrl('ace/ext/linking', __webpack_require__(/*! file-loader?esModule=false!./src-noconflict/ext-linking.js */ \"./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/ext-linking.js\"));\nace.config.setModuleUrl('ace/ext/modelist', __webpack_require__(/*! file-loader?esModule=false!./src-noconflict/ext-modelist.js */ \"./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/ext-modelist.js\"));\nace.config.setModuleUrl('ace/ext/options', __webpack_require__(/*! file-loader?esModule=false!./src-noconflict/ext-options.js */ \"./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/ext-options.js\"));\nace.config.setModuleUrl('ace/ext/prompt', __webpack_require__(/*! file-loader?esModule=false!./src-noconflict/ext-prompt.js */ \"./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/ext-prompt.js\"));\nace.config.setModuleUrl('ace/ext/rtl', __webpack_require__(/*! file-loader?esModule=false!./src-noconflict/ext-rtl.js */ \"./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/ext-rtl.js\"));\nace.config.setModuleUrl('ace/ext/searchbox', __webpack_require__(/*! file-loader?esModule=false!./src-noconflict/ext-searchbox.js */ \"./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/ext-searchbox.js\"));\nace.config.setModuleUrl('ace/ext/settings_menu', __webpack_require__(/*! file-loader?esModule=false!./src-noconflict/ext-settings_menu.js */ \"./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/ext-settings_menu.js\"));\nace.config.setModuleUrl('ace/ext/spellcheck', __webpack_require__(/*! file-loader?esModule=false!./src-noconflict/ext-spellcheck.js */ \"./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/ext-spellcheck.js\"));\nace.config.setModuleUrl('ace/ext/split', __webpack_require__(/*! file-loader?esModule=false!./src-noconflict/ext-split.js */ \"./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/ext-split.js\"));\nace.config.setModuleUrl('ace/ext/static_highlight', __webpack_require__(/*! file-loader?esModule=false!./src-noconflict/ext-static_highlight.js */ \"./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/ext-static_highlight.js\"));\nace.config.setModuleUrl('ace/ext/statusbar', __webpack_require__(/*! file-loader?esModule=false!./src-noconflict/ext-statusbar.js */ \"./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/ext-statusbar.js\"));\nace.config.setModuleUrl('ace/ext/textarea', __webpack_require__(/*! file-loader?esModule=false!./src-noconflict/ext-textarea.js */ \"./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/ext-textarea.js\"));\nace.config.setModuleUrl('ace/ext/themelist', __webpack_require__(/*! file-loader?esModule=false!./src-noconflict/ext-themelist.js */ \"./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/ext-themelist.js\"));\nace.config.setModuleUrl('ace/ext/whitespace', __webpack_require__(/*! file-loader?esModule=false!./src-noconflict/ext-whitespace.js */ \"./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/ext-whitespace.js\"));\nace.config.setModuleUrl('ace/keyboard/emacs', __webpack_require__(/*! file-loader?esModule=false!./src-noconflict/keybinding-emacs.js */ \"./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/keybinding-emacs.js\"));\nace.config.setModuleUrl('ace/keyboard/sublime', __webpack_require__(/*! file-loader?esModule=false!./src-noconflict/keybinding-sublime.js */ \"./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/keybinding-sublime.js\"));\nace.config.setModuleUrl('ace/keyboard/vim', __webpack_require__(/*! file-loader?esModule=false!./src-noconflict/keybinding-vim.js */ \"./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/keybinding-vim.js\"));\nace.config.setModuleUrl('ace/keyboard/vscode', __webpack_require__(/*! file-loader?esModule=false!./src-noconflict/keybinding-vscode.js */ \"./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/keybinding-vscode.js\"));\nace.config.setModuleUrl('ace/mode/abap', __webpack_require__(/*! file-loader?esModule=false!./src-noconflict/mode-abap.js */ \"./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/mode-abap.js\"));\nace.config.setModuleUrl('ace/mode/abc', __webpack_require__(/*! file-loader?esModule=false!./src-noconflict/mode-abc.js */ \"./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/mode-abc.js\"));\nace.config.setModuleUrl('ace/mode/actionscript', __webpack_require__(/*! file-loader?esModule=false!./src-noconflict/mode-actionscript.js */ \"./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/mode-actionscript.js\"));\nace.config.setModuleUrl('ace/mode/ada', __webpack_require__(/*! file-loader?esModule=false!./src-noconflict/mode-ada.js */ \"./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/mode-ada.js\"));\nace.config.setModuleUrl('ace/mode/alda', __webpack_require__(/*! file-loader?esModule=false!./src-noconflict/mode-alda.js */ \"./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/mode-alda.js\"));\nace.config.setModuleUrl('ace/mode/apache_conf', __webpack_require__(/*! file-loader?esModule=false!./src-noconflict/mode-apache_conf.js */ \"./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/mode-apache_conf.js\"));\nace.config.setModuleUrl('ace/mode/apex', __webpack_require__(/*! file-loader?esModule=false!./src-noconflict/mode-apex.js */ \"./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/mode-apex.js\"));\nace.config.setModuleUrl('ace/mode/applescript', __webpack_require__(/*! file-loader?esModule=false!./src-noconflict/mode-applescript.js */ \"./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/mode-applescript.js\"));\nace.config.setModuleUrl('ace/mode/aql', __webpack_require__(/*! file-loader?esModule=false!./src-noconflict/mode-aql.js */ \"./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/mode-aql.js\"));\nace.config.setModuleUrl('ace/mode/asciidoc', __webpack_require__(/*! file-loader?esModule=false!./src-noconflict/mode-asciidoc.js */ \"./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/mode-asciidoc.js\"));\nace.config.setModuleUrl('ace/mode/asl', __webpack_require__(/*! file-loader?esModule=false!./src-noconflict/mode-asl.js */ \"./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/mode-asl.js\"));\nace.config.setModuleUrl('ace/mode/assembly_x86', __webpack_require__(/*! file-loader?esModule=false!./src-noconflict/mode-assembly_x86.js */ \"./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/mode-assembly_x86.js\"));\nace.config.setModuleUrl('ace/mode/autohotkey', __webpack_require__(/*! file-loader?esModule=false!./src-noconflict/mode-autohotkey.js */ \"./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/mode-autohotkey.js\"));\nace.config.setModuleUrl('ace/mode/batchfile', __webpack_require__(/*! file-loader?esModule=false!./src-noconflict/mode-batchfile.js */ \"./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/mode-batchfile.js\"));\nace.config.setModuleUrl('ace/mode/bibtex', __webpack_require__(/*! file-loader?esModule=false!./src-noconflict/mode-bibtex.js */ \"./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/mode-bibtex.js\"));\nace.config.setModuleUrl('ace/mode/c9search', __webpack_require__(/*! file-loader?esModule=false!./src-noconflict/mode-c9search.js */ \"./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/mode-c9search.js\"));\nace.config.setModuleUrl('ace/mode/c_cpp', __webpack_require__(/*! file-loader?esModule=false!./src-noconflict/mode-c_cpp.js */ \"./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/mode-c_cpp.js\"));\nace.config.setModuleUrl('ace/mode/cirru', __webpack_require__(/*! file-loader?esModule=false!./src-noconflict/mode-cirru.js */ \"./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/mode-cirru.js\"));\nace.config.setModuleUrl('ace/mode/clojure', __webpack_require__(/*! file-loader?esModule=false!./src-noconflict/mode-clojure.js */ \"./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/mode-clojure.js\"));\nace.config.setModuleUrl('ace/mode/cobol', __webpack_require__(/*! file-loader?esModule=false!./src-noconflict/mode-cobol.js */ \"./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/mode-cobol.js\"));\nace.config.setModuleUrl('ace/mode/coffee', __webpack_require__(/*! file-loader?esModule=false!./src-noconflict/mode-coffee.js */ \"./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/mode-coffee.js\"));\nace.config.setModuleUrl('ace/mode/coldfusion', __webpack_require__(/*! file-loader?esModule=false!./src-noconflict/mode-coldfusion.js */ \"./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/mode-coldfusion.js\"));\nace.config.setModuleUrl('ace/mode/crystal', __webpack_require__(/*! file-loader?esModule=false!./src-noconflict/mode-crystal.js */ \"./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/mode-crystal.js\"));\nace.config.setModuleUrl('ace/mode/csharp', __webpack_require__(/*! file-loader?esModule=false!./src-noconflict/mode-csharp.js */ \"./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/mode-csharp.js\"));\nace.config.setModuleUrl('ace/mode/csound_document', __webpack_require__(/*! file-loader?esModule=false!./src-noconflict/mode-csound_document.js */ \"./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/mode-csound_document.js\"));\nace.config.setModuleUrl('ace/mode/csound_orchestra', __webpack_require__(/*! file-loader?esModule=false!./src-noconflict/mode-csound_orchestra.js */ \"./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/mode-csound_orchestra.js\"));\nace.config.setModuleUrl('ace/mode/csound_score', __webpack_require__(/*! file-loader?esModule=false!./src-noconflict/mode-csound_score.js */ \"./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/mode-csound_score.js\"));\nace.config.setModuleUrl('ace/mode/csp', __webpack_require__(/*! file-loader?esModule=false!./src-noconflict/mode-csp.js */ \"./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/mode-csp.js\"));\nace.config.setModuleUrl('ace/mode/css', __webpack_require__(/*! file-loader?esModule=false!./src-noconflict/mode-css.js */ \"./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/mode-css.js\"));\nace.config.setModuleUrl('ace/mode/curly', __webpack_require__(/*! file-loader?esModule=false!./src-noconflict/mode-curly.js */ \"./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/mode-curly.js\"));\nace.config.setModuleUrl('ace/mode/d', __webpack_require__(/*! file-loader?esModule=false!./src-noconflict/mode-d.js */ \"./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/mode-d.js\"));\nace.config.setModuleUrl('ace/mode/dart', __webpack_require__(/*! file-loader?esModule=false!./src-noconflict/mode-dart.js */ \"./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/mode-dart.js\"));\nace.config.setModuleUrl('ace/mode/diff', __webpack_require__(/*! file-loader?esModule=false!./src-noconflict/mode-diff.js */ \"./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/mode-diff.js\"));\nace.config.setModuleUrl('ace/mode/django', __webpack_require__(/*! file-loader?esModule=false!./src-noconflict/mode-django.js */ \"./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/mode-django.js\"));\nace.config.setModuleUrl('ace/mode/dockerfile', __webpack_require__(/*! file-loader?esModule=false!./src-noconflict/mode-dockerfile.js */ \"./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/mode-dockerfile.js\"));\nace.config.setModuleUrl('ace/mode/dot', __webpack_require__(/*! file-loader?esModule=false!./src-noconflict/mode-dot.js */ \"./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/mode-dot.js\"));\nace.config.setModuleUrl('ace/mode/drools', __webpack_require__(/*! file-loader?esModule=false!./src-noconflict/mode-drools.js */ \"./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/mode-drools.js\"));\nace.config.setModuleUrl('ace/mode/edifact', __webpack_require__(/*! file-loader?esModule=false!./src-noconflict/mode-edifact.js */ \"./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/mode-edifact.js\"));\nace.config.setModuleUrl('ace/mode/eiffel', __webpack_require__(/*! file-loader?esModule=false!./src-noconflict/mode-eiffel.js */ \"./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/mode-eiffel.js\"));\nace.config.setModuleUrl('ace/mode/ejs', __webpack_require__(/*! file-loader?esModule=false!./src-noconflict/mode-ejs.js */ \"./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/mode-ejs.js\"));\nace.config.setModuleUrl('ace/mode/elixir', __webpack_require__(/*! file-loader?esModule=false!./src-noconflict/mode-elixir.js */ \"./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/mode-elixir.js\"));\nace.config.setModuleUrl('ace/mode/elm', __webpack_require__(/*! file-loader?esModule=false!./src-noconflict/mode-elm.js */ \"./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/mode-elm.js\"));\nace.config.setModuleUrl('ace/mode/erlang', __webpack_require__(/*! file-loader?esModule=false!./src-noconflict/mode-erlang.js */ \"./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/mode-erlang.js\"));\nace.config.setModuleUrl('ace/mode/forth', __webpack_require__(/*! file-loader?esModule=false!./src-noconflict/mode-forth.js */ \"./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/mode-forth.js\"));\nace.config.setModuleUrl('ace/mode/fortran', __webpack_require__(/*! file-loader?esModule=false!./src-noconflict/mode-fortran.js */ \"./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/mode-fortran.js\"));\nace.config.setModuleUrl('ace/mode/fsharp', __webpack_require__(/*! file-loader?esModule=false!./src-noconflict/mode-fsharp.js */ \"./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/mode-fsharp.js\"));\nace.config.setModuleUrl('ace/mode/fsl', __webpack_require__(/*! file-loader?esModule=false!./src-noconflict/mode-fsl.js */ \"./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/mode-fsl.js\"));\nace.config.setModuleUrl('ace/mode/ftl', __webpack_require__(/*! file-loader?esModule=false!./src-noconflict/mode-ftl.js */ \"./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/mode-ftl.js\"));\nace.config.setModuleUrl('ace/mode/gcode', __webpack_require__(/*! file-loader?esModule=false!./src-noconflict/mode-gcode.js */ \"./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/mode-gcode.js\"));\nace.config.setModuleUrl('ace/mode/gherkin', __webpack_require__(/*! file-loader?esModule=false!./src-noconflict/mode-gherkin.js */ \"./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/mode-gherkin.js\"));\nace.config.setModuleUrl('ace/mode/gitignore', __webpack_require__(/*! file-loader?esModule=false!./src-noconflict/mode-gitignore.js */ \"./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/mode-gitignore.js\"));\nace.config.setModuleUrl('ace/mode/glsl', __webpack_require__(/*! file-loader?esModule=false!./src-noconflict/mode-glsl.js */ \"./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/mode-glsl.js\"));\nace.config.setModuleUrl('ace/mode/gobstones', __webpack_require__(/*! file-loader?esModule=false!./src-noconflict/mode-gobstones.js */ \"./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/mode-gobstones.js\"));\nace.config.setModuleUrl('ace/mode/golang', __webpack_require__(/*! file-loader?esModule=false!./src-noconflict/mode-golang.js */ \"./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/mode-golang.js\"));\nace.config.setModuleUrl('ace/mode/graphqlschema', __webpack_require__(/*! file-loader?esModule=false!./src-noconflict/mode-graphqlschema.js */ \"./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/mode-graphqlschema.js\"));\nace.config.setModuleUrl('ace/mode/groovy', __webpack_require__(/*! file-loader?esModule=false!./src-noconflict/mode-groovy.js */ \"./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/mode-groovy.js\"));\nace.config.setModuleUrl('ace/mode/haml', __webpack_require__(/*! file-loader?esModule=false!./src-noconflict/mode-haml.js */ \"./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/mode-haml.js\"));\nace.config.setModuleUrl('ace/mode/handlebars', __webpack_require__(/*! file-loader?esModule=false!./src-noconflict/mode-handlebars.js */ \"./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/mode-handlebars.js\"));\nace.config.setModuleUrl('ace/mode/haskell', __webpack_require__(/*! file-loader?esModule=false!./src-noconflict/mode-haskell.js */ \"./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/mode-haskell.js\"));\nace.config.setModuleUrl('ace/mode/haskell_cabal', __webpack_require__(/*! file-loader?esModule=false!./src-noconflict/mode-haskell_cabal.js */ \"./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/mode-haskell_cabal.js\"));\nace.config.setModuleUrl('ace/mode/haxe', __webpack_require__(/*! file-loader?esModule=false!./src-noconflict/mode-haxe.js */ \"./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/mode-haxe.js\"));\nace.config.setModuleUrl('ace/mode/hjson', __webpack_require__(/*! file-loader?esModule=false!./src-noconflict/mode-hjson.js */ \"./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/mode-hjson.js\"));\nace.config.setModuleUrl('ace/mode/html', __webpack_require__(/*! file-loader?esModule=false!./src-noconflict/mode-html.js */ \"./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/mode-html.js\"));\nace.config.setModuleUrl('ace/mode/html_elixir', __webpack_require__(/*! file-loader?esModule=false!./src-noconflict/mode-html_elixir.js */ \"./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/mode-html_elixir.js\"));\nace.config.setModuleUrl('ace/mode/html_ruby', __webpack_require__(/*! file-loader?esModule=false!./src-noconflict/mode-html_ruby.js */ \"./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/mode-html_ruby.js\"));\nace.config.setModuleUrl('ace/mode/ini', __webpack_require__(/*! file-loader?esModule=false!./src-noconflict/mode-ini.js */ \"./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/mode-ini.js\"));\nace.config.setModuleUrl('ace/mode/io', __webpack_require__(/*! file-loader?esModule=false!./src-noconflict/mode-io.js */ \"./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/mode-io.js\"));\nace.config.setModuleUrl('ace/mode/ion', __webpack_require__(/*! file-loader?esModule=false!./src-noconflict/mode-ion.js */ \"./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/mode-ion.js\"));\nace.config.setModuleUrl('ace/mode/jack', __webpack_require__(/*! file-loader?esModule=false!./src-noconflict/mode-jack.js */ \"./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/mode-jack.js\"));\nace.config.setModuleUrl('ace/mode/jade', __webpack_require__(/*! file-loader?esModule=false!./src-noconflict/mode-jade.js */ \"./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/mode-jade.js\"));\nace.config.setModuleUrl('ace/mode/java', __webpack_require__(/*! file-loader?esModule=false!./src-noconflict/mode-java.js */ \"./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/mode-java.js\"));\nace.config.setModuleUrl('ace/mode/javascript', __webpack_require__(/*! file-loader?esModule=false!./src-noconflict/mode-javascript.js */ \"./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/mode-javascript.js\"));\nace.config.setModuleUrl('ace/mode/jexl', __webpack_require__(/*! file-loader?esModule=false!./src-noconflict/mode-jexl.js */ \"./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/mode-jexl.js\"));\nace.config.setModuleUrl('ace/mode/json', __webpack_require__(/*! file-loader?esModule=false!./src-noconflict/mode-json.js */ \"./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/mode-json.js\"));\nace.config.setModuleUrl('ace/mode/json5', __webpack_require__(/*! file-loader?esModule=false!./src-noconflict/mode-json5.js */ \"./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/mode-json5.js\"));\nace.config.setModuleUrl('ace/mode/jsoniq', __webpack_require__(/*! file-loader?esModule=false!./src-noconflict/mode-jsoniq.js */ \"./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/mode-jsoniq.js\"));\nace.config.setModuleUrl('ace/mode/jsp', __webpack_require__(/*! file-loader?esModule=false!./src-noconflict/mode-jsp.js */ \"./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/mode-jsp.js\"));\nace.config.setModuleUrl('ace/mode/jssm', __webpack_require__(/*! file-loader?esModule=false!./src-noconflict/mode-jssm.js */ \"./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/mode-jssm.js\"));\nace.config.setModuleUrl('ace/mode/jsx', __webpack_require__(/*! file-loader?esModule=false!./src-noconflict/mode-jsx.js */ \"./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/mode-jsx.js\"));\nace.config.setModuleUrl('ace/mode/julia', __webpack_require__(/*! file-loader?esModule=false!./src-noconflict/mode-julia.js */ \"./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/mode-julia.js\"));\nace.config.setModuleUrl('ace/mode/kotlin', __webpack_require__(/*! file-loader?esModule=false!./src-noconflict/mode-kotlin.js */ \"./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/mode-kotlin.js\"));\nace.config.setModuleUrl('ace/mode/latex', __webpack_require__(/*! file-loader?esModule=false!./src-noconflict/mode-latex.js */ \"./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/mode-latex.js\"));\nace.config.setModuleUrl('ace/mode/latte', __webpack_require__(/*! file-loader?esModule=false!./src-noconflict/mode-latte.js */ \"./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/mode-latte.js\"));\nace.config.setModuleUrl('ace/mode/less', __webpack_require__(/*! file-loader?esModule=false!./src-noconflict/mode-less.js */ \"./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/mode-less.js\"));\nace.config.setModuleUrl('ace/mode/liquid', __webpack_require__(/*! file-loader?esModule=false!./src-noconflict/mode-liquid.js */ \"./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/mode-liquid.js\"));\nace.config.setModuleUrl('ace/mode/lisp', __webpack_require__(/*! file-loader?esModule=false!./src-noconflict/mode-lisp.js */ \"./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/mode-lisp.js\"));\nace.config.setModuleUrl('ace/mode/livescript', __webpack_require__(/*! file-loader?esModule=false!./src-noconflict/mode-livescript.js */ \"./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/mode-livescript.js\"));\nace.config.setModuleUrl('ace/mode/logiql', __webpack_require__(/*! file-loader?esModule=false!./src-noconflict/mode-logiql.js */ \"./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/mode-logiql.js\"));\nace.config.setModuleUrl('ace/mode/logtalk', __webpack_require__(/*! file-loader?esModule=false!./src-noconflict/mode-logtalk.js */ \"./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/mode-logtalk.js\"));\nace.config.setModuleUrl('ace/mode/lsl', __webpack_require__(/*! file-loader?esModule=false!./src-noconflict/mode-lsl.js */ \"./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/mode-lsl.js\"));\nace.config.setModuleUrl('ace/mode/lua', __webpack_require__(/*! file-loader?esModule=false!./src-noconflict/mode-lua.js */ \"./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/mode-lua.js\"));\nace.config.setModuleUrl('ace/mode/luapage', __webpack_require__(/*! file-loader?esModule=false!./src-noconflict/mode-luapage.js */ \"./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/mode-luapage.js\"));\nace.config.setModuleUrl('ace/mode/lucene', __webpack_require__(/*! file-loader?esModule=false!./src-noconflict/mode-lucene.js */ \"./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/mode-lucene.js\"));\nace.config.setModuleUrl('ace/mode/makefile', __webpack_require__(/*! file-loader?esModule=false!./src-noconflict/mode-makefile.js */ \"./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/mode-makefile.js\"));\nace.config.setModuleUrl('ace/mode/markdown', __webpack_require__(/*! file-loader?esModule=false!./src-noconflict/mode-markdown.js */ \"./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/mode-markdown.js\"));\nace.config.setModuleUrl('ace/mode/mask', __webpack_require__(/*! file-loader?esModule=false!./src-noconflict/mode-mask.js */ \"./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/mode-mask.js\"));\nace.config.setModuleUrl('ace/mode/matlab', __webpack_require__(/*! file-loader?esModule=false!./src-noconflict/mode-matlab.js */ \"./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/mode-matlab.js\"));\nace.config.setModuleUrl('ace/mode/maze', __webpack_require__(/*! file-loader?esModule=false!./src-noconflict/mode-maze.js */ \"./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/mode-maze.js\"));\nace.config.setModuleUrl('ace/mode/mediawiki', __webpack_require__(/*! file-loader?esModule=false!./src-noconflict/mode-mediawiki.js */ \"./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/mode-mediawiki.js\"));\nace.config.setModuleUrl('ace/mode/mel', __webpack_require__(/*! file-loader?esModule=false!./src-noconflict/mode-mel.js */ \"./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/mode-mel.js\"));\nace.config.setModuleUrl('ace/mode/mips', __webpack_require__(/*! file-loader?esModule=false!./src-noconflict/mode-mips.js */ \"./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/mode-mips.js\"));\nace.config.setModuleUrl('ace/mode/mixal', __webpack_require__(/*! file-loader?esModule=false!./src-noconflict/mode-mixal.js */ \"./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/mode-mixal.js\"));\nace.config.setModuleUrl('ace/mode/mushcode', __webpack_require__(/*! file-loader?esModule=false!./src-noconflict/mode-mushcode.js */ \"./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/mode-mushcode.js\"));\nace.config.setModuleUrl('ace/mode/mysql', __webpack_require__(/*! file-loader?esModule=false!./src-noconflict/mode-mysql.js */ \"./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/mode-mysql.js\"));\nace.config.setModuleUrl('ace/mode/nginx', __webpack_require__(/*! file-loader?esModule=false!./src-noconflict/mode-nginx.js */ \"./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/mode-nginx.js\"));\nace.config.setModuleUrl('ace/mode/nim', __webpack_require__(/*! file-loader?esModule=false!./src-noconflict/mode-nim.js */ \"./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/mode-nim.js\"));\nace.config.setModuleUrl('ace/mode/nix', __webpack_require__(/*! file-loader?esModule=false!./src-noconflict/mode-nix.js */ \"./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/mode-nix.js\"));\nace.config.setModuleUrl('ace/mode/nsis', __webpack_require__(/*! file-loader?esModule=false!./src-noconflict/mode-nsis.js */ \"./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/mode-nsis.js\"));\nace.config.setModuleUrl('ace/mode/nunjucks', __webpack_require__(/*! file-loader?esModule=false!./src-noconflict/mode-nunjucks.js */ \"./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/mode-nunjucks.js\"));\nace.config.setModuleUrl('ace/mode/objectivec', __webpack_require__(/*! file-loader?esModule=false!./src-noconflict/mode-objectivec.js */ \"./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/mode-objectivec.js\"));\nace.config.setModuleUrl('ace/mode/ocaml', __webpack_require__(/*! file-loader?esModule=false!./src-noconflict/mode-ocaml.js */ \"./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/mode-ocaml.js\"));\nace.config.setModuleUrl('ace/mode/partiql', __webpack_require__(/*! file-loader?esModule=false!./src-noconflict/mode-partiql.js */ \"./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/mode-partiql.js\"));\nace.config.setModuleUrl('ace/mode/pascal', __webpack_require__(/*! file-loader?esModule=false!./src-noconflict/mode-pascal.js */ \"./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/mode-pascal.js\"));\nace.config.setModuleUrl('ace/mode/perl', __webpack_require__(/*! file-loader?esModule=false!./src-noconflict/mode-perl.js */ \"./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/mode-perl.js\"));\nace.config.setModuleUrl('ace/mode/pgsql', __webpack_require__(/*! file-loader?esModule=false!./src-noconflict/mode-pgsql.js */ \"./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/mode-pgsql.js\"));\nace.config.setModuleUrl('ace/mode/php', __webpack_require__(/*! file-loader?esModule=false!./src-noconflict/mode-php.js */ \"./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/mode-php.js\"));\nace.config.setModuleUrl('ace/mode/php_laravel_blade', __webpack_require__(/*! file-loader?esModule=false!./src-noconflict/mode-php_laravel_blade.js */ \"./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/mode-php_laravel_blade.js\"));\nace.config.setModuleUrl('ace/mode/pig', __webpack_require__(/*! file-loader?esModule=false!./src-noconflict/mode-pig.js */ \"./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/mode-pig.js\"));\nace.config.setModuleUrl('ace/mode/plain_text', __webpack_require__(/*! file-loader?esModule=false!./src-noconflict/mode-plain_text.js */ \"./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/mode-plain_text.js\"));\nace.config.setModuleUrl('ace/mode/plsql', __webpack_require__(/*! file-loader?esModule=false!./src-noconflict/mode-plsql.js */ \"./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/mode-plsql.js\"));\nace.config.setModuleUrl('ace/mode/powershell', __webpack_require__(/*! file-loader?esModule=false!./src-noconflict/mode-powershell.js */ \"./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/mode-powershell.js\"));\nace.config.setModuleUrl('ace/mode/praat', __webpack_require__(/*! file-loader?esModule=false!./src-noconflict/mode-praat.js */ \"./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/mode-praat.js\"));\nace.config.setModuleUrl('ace/mode/prisma', __webpack_require__(/*! file-loader?esModule=false!./src-noconflict/mode-prisma.js */ \"./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/mode-prisma.js\"));\nace.config.setModuleUrl('ace/mode/prolog', __webpack_require__(/*! file-loader?esModule=false!./src-noconflict/mode-prolog.js */ \"./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/mode-prolog.js\"));\nace.config.setModuleUrl('ace/mode/properties', __webpack_require__(/*! file-loader?esModule=false!./src-noconflict/mode-properties.js */ \"./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/mode-properties.js\"));\nace.config.setModuleUrl('ace/mode/protobuf', __webpack_require__(/*! file-loader?esModule=false!./src-noconflict/mode-protobuf.js */ \"./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/mode-protobuf.js\"));\nace.config.setModuleUrl('ace/mode/puppet', __webpack_require__(/*! file-loader?esModule=false!./src-noconflict/mode-puppet.js */ \"./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/mode-puppet.js\"));\nace.config.setModuleUrl('ace/mode/python', __webpack_require__(/*! file-loader?esModule=false!./src-noconflict/mode-python.js */ \"./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/mode-python.js\"));\nace.config.setModuleUrl('ace/mode/qml', __webpack_require__(/*! file-loader?esModule=false!./src-noconflict/mode-qml.js */ \"./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/mode-qml.js\"));\nace.config.setModuleUrl('ace/mode/r', __webpack_require__(/*! file-loader?esModule=false!./src-noconflict/mode-r.js */ \"./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/mode-r.js\"));\nace.config.setModuleUrl('ace/mode/raku', __webpack_require__(/*! file-loader?esModule=false!./src-noconflict/mode-raku.js */ \"./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/mode-raku.js\"));\nace.config.setModuleUrl('ace/mode/razor', __webpack_require__(/*! file-loader?esModule=false!./src-noconflict/mode-razor.js */ \"./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/mode-razor.js\"));\nace.config.setModuleUrl('ace/mode/rdoc', __webpack_require__(/*! file-loader?esModule=false!./src-noconflict/mode-rdoc.js */ \"./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/mode-rdoc.js\"));\nace.config.setModuleUrl('ace/mode/red', __webpack_require__(/*! file-loader?esModule=false!./src-noconflict/mode-red.js */ \"./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/mode-red.js\"));\nace.config.setModuleUrl('ace/mode/redshift', __webpack_require__(/*! file-loader?esModule=false!./src-noconflict/mode-redshift.js */ \"./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/mode-redshift.js\"));\nace.config.setModuleUrl('ace/mode/rhtml', __webpack_require__(/*! file-loader?esModule=false!./src-noconflict/mode-rhtml.js */ \"./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/mode-rhtml.js\"));\nace.config.setModuleUrl('ace/mode/robot', __webpack_require__(/*! file-loader?esModule=false!./src-noconflict/mode-robot.js */ \"./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/mode-robot.js\"));\nace.config.setModuleUrl('ace/mode/rst', __webpack_require__(/*! file-loader?esModule=false!./src-noconflict/mode-rst.js */ \"./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/mode-rst.js\"));\nace.config.setModuleUrl('ace/mode/ruby', __webpack_require__(/*! file-loader?esModule=false!./src-noconflict/mode-ruby.js */ \"./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/mode-ruby.js\"));\nace.config.setModuleUrl('ace/mode/rust', __webpack_require__(/*! file-loader?esModule=false!./src-noconflict/mode-rust.js */ \"./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/mode-rust.js\"));\nace.config.setModuleUrl('ace/mode/sac', __webpack_require__(/*! file-loader?esModule=false!./src-noconflict/mode-sac.js */ \"./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/mode-sac.js\"));\nace.config.setModuleUrl('ace/mode/sass', __webpack_require__(/*! file-loader?esModule=false!./src-noconflict/mode-sass.js */ \"./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/mode-sass.js\"));\nace.config.setModuleUrl('ace/mode/scad', __webpack_require__(/*! file-loader?esModule=false!./src-noconflict/mode-scad.js */ \"./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/mode-scad.js\"));\nace.config.setModuleUrl('ace/mode/scala', __webpack_require__(/*! file-loader?esModule=false!./src-noconflict/mode-scala.js */ \"./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/mode-scala.js\"));\nace.config.setModuleUrl('ace/mode/scheme', __webpack_require__(/*! file-loader?esModule=false!./src-noconflict/mode-scheme.js */ \"./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/mode-scheme.js\"));\nace.config.setModuleUrl('ace/mode/scrypt', __webpack_require__(/*! file-loader?esModule=false!./src-noconflict/mode-scrypt.js */ \"./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/mode-scrypt.js\"));\nace.config.setModuleUrl('ace/mode/scss', __webpack_require__(/*! file-loader?esModule=false!./src-noconflict/mode-scss.js */ \"./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/mode-scss.js\"));\nace.config.setModuleUrl('ace/mode/sh', __webpack_require__(/*! file-loader?esModule=false!./src-noconflict/mode-sh.js */ \"./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/mode-sh.js\"));\nace.config.setModuleUrl('ace/mode/sjs', __webpack_require__(/*! file-loader?esModule=false!./src-noconflict/mode-sjs.js */ \"./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/mode-sjs.js\"));\nace.config.setModuleUrl('ace/mode/slim', __webpack_require__(/*! file-loader?esModule=false!./src-noconflict/mode-slim.js */ \"./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/mode-slim.js\"));\nace.config.setModuleUrl('ace/mode/smarty', __webpack_require__(/*! file-loader?esModule=false!./src-noconflict/mode-smarty.js */ \"./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/mode-smarty.js\"));\nace.config.setModuleUrl('ace/mode/smithy', __webpack_require__(/*! file-loader?esModule=false!./src-noconflict/mode-smithy.js */ \"./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/mode-smithy.js\"));\nace.config.setModuleUrl('ace/mode/snippets', __webpack_require__(/*! file-loader?esModule=false!./src-noconflict/mode-snippets.js */ \"./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/mode-snippets.js\"));\nace.config.setModuleUrl('ace/mode/soy_template', __webpack_require__(/*! file-loader?esModule=false!./src-noconflict/mode-soy_template.js */ \"./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/mode-soy_template.js\"));\nace.config.setModuleUrl('ace/mode/space', __webpack_require__(/*! file-loader?esModule=false!./src-noconflict/mode-space.js */ \"./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/mode-space.js\"));\nace.config.setModuleUrl('ace/mode/sparql', __webpack_require__(/*! file-loader?esModule=false!./src-noconflict/mode-sparql.js */ \"./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/mode-sparql.js\"));\nace.config.setModuleUrl('ace/mode/sql', __webpack_require__(/*! file-loader?esModule=false!./src-noconflict/mode-sql.js */ \"./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/mode-sql.js\"));\nace.config.setModuleUrl('ace/mode/sqlserver', __webpack_require__(/*! file-loader?esModule=false!./src-noconflict/mode-sqlserver.js */ \"./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/mode-sqlserver.js\"));\nace.config.setModuleUrl('ace/mode/stylus', __webpack_require__(/*! file-loader?esModule=false!./src-noconflict/mode-stylus.js */ \"./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/mode-stylus.js\"));\nace.config.setModuleUrl('ace/mode/svg', __webpack_require__(/*! file-loader?esModule=false!./src-noconflict/mode-svg.js */ \"./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/mode-svg.js\"));\nace.config.setModuleUrl('ace/mode/swift', __webpack_require__(/*! file-loader?esModule=false!./src-noconflict/mode-swift.js */ \"./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/mode-swift.js\"));\nace.config.setModuleUrl('ace/mode/tcl', __webpack_require__(/*! file-loader?esModule=false!./src-noconflict/mode-tcl.js */ \"./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/mode-tcl.js\"));\nace.config.setModuleUrl('ace/mode/terraform', __webpack_require__(/*! file-loader?esModule=false!./src-noconflict/mode-terraform.js */ \"./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/mode-terraform.js\"));\nace.config.setModuleUrl('ace/mode/tex', __webpack_require__(/*! file-loader?esModule=false!./src-noconflict/mode-tex.js */ \"./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/mode-tex.js\"));\nace.config.setModuleUrl('ace/mode/text', __webpack_require__(/*! file-loader?esModule=false!./src-noconflict/mode-text.js */ \"./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/mode-text.js\"));\nace.config.setModuleUrl('ace/mode/textile', __webpack_require__(/*! file-loader?esModule=false!./src-noconflict/mode-textile.js */ \"./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/mode-textile.js\"));\nace.config.setModuleUrl('ace/mode/toml', __webpack_require__(/*! file-loader?esModule=false!./src-noconflict/mode-toml.js */ \"./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/mode-toml.js\"));\nace.config.setModuleUrl('ace/mode/tsx', __webpack_require__(/*! file-loader?esModule=false!./src-noconflict/mode-tsx.js */ \"./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/mode-tsx.js\"));\nace.config.setModuleUrl('ace/mode/turtle', __webpack_require__(/*! file-loader?esModule=false!./src-noconflict/mode-turtle.js */ \"./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/mode-turtle.js\"));\nace.config.setModuleUrl('ace/mode/twig', __webpack_require__(/*! file-loader?esModule=false!./src-noconflict/mode-twig.js */ \"./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/mode-twig.js\"));\nace.config.setModuleUrl('ace/mode/typescript', __webpack_require__(/*! file-loader?esModule=false!./src-noconflict/mode-typescript.js */ \"./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/mode-typescript.js\"));\nace.config.setModuleUrl('ace/mode/vala', __webpack_require__(/*! file-loader?esModule=false!./src-noconflict/mode-vala.js */ \"./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/mode-vala.js\"));\nace.config.setModuleUrl('ace/mode/vbscript', __webpack_require__(/*! file-loader?esModule=false!./src-noconflict/mode-vbscript.js */ \"./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/mode-vbscript.js\"));\nace.config.setModuleUrl('ace/mode/velocity', __webpack_require__(/*! file-loader?esModule=false!./src-noconflict/mode-velocity.js */ \"./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/mode-velocity.js\"));\nace.config.setModuleUrl('ace/mode/verilog', __webpack_require__(/*! file-loader?esModule=false!./src-noconflict/mode-verilog.js */ \"./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/mode-verilog.js\"));\nace.config.setModuleUrl('ace/mode/vhdl', __webpack_require__(/*! file-loader?esModule=false!./src-noconflict/mode-vhdl.js */ \"./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/mode-vhdl.js\"));\nace.config.setModuleUrl('ace/mode/visualforce', __webpack_require__(/*! file-loader?esModule=false!./src-noconflict/mode-visualforce.js */ \"./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/mode-visualforce.js\"));\nace.config.setModuleUrl('ace/mode/wollok', __webpack_require__(/*! file-loader?esModule=false!./src-noconflict/mode-wollok.js */ \"./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/mode-wollok.js\"));\nace.config.setModuleUrl('ace/mode/xml', __webpack_require__(/*! file-loader?esModule=false!./src-noconflict/mode-xml.js */ \"./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/mode-xml.js\"));\nace.config.setModuleUrl('ace/mode/xquery', __webpack_require__(/*! file-loader?esModule=false!./src-noconflict/mode-xquery.js */ \"./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/mode-xquery.js\"));\nace.config.setModuleUrl('ace/mode/yaml', __webpack_require__(/*! file-loader?esModule=false!./src-noconflict/mode-yaml.js */ \"./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/mode-yaml.js\"));\nace.config.setModuleUrl('ace/mode/zeek', __webpack_require__(/*! file-loader?esModule=false!./src-noconflict/mode-zeek.js */ \"./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/mode-zeek.js\"));\n\nace.config.setModuleUrl('ace/theme/ambiance', __webpack_require__(/*! file-loader?esModule=false!./src-noconflict/theme-ambiance.js */ \"./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/theme-ambiance.js\"));\nace.config.setModuleUrl('ace/theme/chaos', __webpack_require__(/*! file-loader?esModule=false!./src-noconflict/theme-chaos.js */ \"./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/theme-chaos.js\"));\nace.config.setModuleUrl('ace/theme/chrome', __webpack_require__(/*! file-loader?esModule=false!./src-noconflict/theme-chrome.js */ \"./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/theme-chrome.js\"));\nace.config.setModuleUrl('ace/theme/cloud9_day', __webpack_require__(/*! file-loader?esModule=false!./src-noconflict/theme-cloud9_day.js */ \"./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/theme-cloud9_day.js\"));\nace.config.setModuleUrl('ace/theme/cloud9_night', __webpack_require__(/*! file-loader?esModule=false!./src-noconflict/theme-cloud9_night.js */ \"./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/theme-cloud9_night.js\"));\nace.config.setModuleUrl('ace/theme/cloud9_night_low_color', __webpack_require__(/*! file-loader?esModule=false!./src-noconflict/theme-cloud9_night_low_color.js */ \"./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/theme-cloud9_night_low_color.js\"));\nace.config.setModuleUrl('ace/theme/clouds', __webpack_require__(/*! file-loader?esModule=false!./src-noconflict/theme-clouds.js */ \"./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/theme-clouds.js\"));\nace.config.setModuleUrl('ace/theme/clouds_midnight', __webpack_require__(/*! file-loader?esModule=false!./src-noconflict/theme-clouds_midnight.js */ \"./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/theme-clouds_midnight.js\"));\nace.config.setModuleUrl('ace/theme/cobalt', __webpack_require__(/*! file-loader?esModule=false!./src-noconflict/theme-cobalt.js */ \"./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/theme-cobalt.js\"));\nace.config.setModuleUrl('ace/theme/crimson_editor', __webpack_require__(/*! file-loader?esModule=false!./src-noconflict/theme-crimson_editor.js */ \"./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/theme-crimson_editor.js\"));\nace.config.setModuleUrl('ace/theme/dawn', __webpack_require__(/*! file-loader?esModule=false!./src-noconflict/theme-dawn.js */ \"./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/theme-dawn.js\"));\nace.config.setModuleUrl('ace/theme/dracula', __webpack_require__(/*! file-loader?esModule=false!./src-noconflict/theme-dracula.js */ \"./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/theme-dracula.js\"));\nace.config.setModuleUrl('ace/theme/dreamweaver', __webpack_require__(/*! file-loader?esModule=false!./src-noconflict/theme-dreamweaver.js */ \"./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/theme-dreamweaver.js\"));\nace.config.setModuleUrl('ace/theme/eclipse', __webpack_require__(/*! file-loader?esModule=false!./src-noconflict/theme-eclipse.js */ \"./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/theme-eclipse.js\"));\nace.config.setModuleUrl('ace/theme/github', __webpack_require__(/*! file-loader?esModule=false!./src-noconflict/theme-github.js */ \"./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/theme-github.js\"));\nace.config.setModuleUrl('ace/theme/github_dark', __webpack_require__(/*! file-loader?esModule=false!./src-noconflict/theme-github_dark.js */ \"./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/theme-github_dark.js\"));\nace.config.setModuleUrl('ace/theme/gob', __webpack_require__(/*! file-loader?esModule=false!./src-noconflict/theme-gob.js */ \"./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/theme-gob.js\"));\nace.config.setModuleUrl('ace/theme/gruvbox', __webpack_require__(/*! file-loader?esModule=false!./src-noconflict/theme-gruvbox.js */ \"./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/theme-gruvbox.js\"));\nace.config.setModuleUrl('ace/theme/gruvbox_dark_hard', __webpack_require__(/*! file-loader?esModule=false!./src-noconflict/theme-gruvbox_dark_hard.js */ \"./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/theme-gruvbox_dark_hard.js\"));\nace.config.setModuleUrl('ace/theme/gruvbox_light_hard', __webpack_require__(/*! file-loader?esModule=false!./src-noconflict/theme-gruvbox_light_hard.js */ \"./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/theme-gruvbox_light_hard.js\"));\nace.config.setModuleUrl('ace/theme/idle_fingers', __webpack_require__(/*! file-loader?esModule=false!./src-noconflict/theme-idle_fingers.js */ \"./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/theme-idle_fingers.js\"));\nace.config.setModuleUrl('ace/theme/iplastic', __webpack_require__(/*! file-loader?esModule=false!./src-noconflict/theme-iplastic.js */ \"./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/theme-iplastic.js\"));\nace.config.setModuleUrl('ace/theme/katzenmilch', __webpack_require__(/*! file-loader?esModule=false!./src-noconflict/theme-katzenmilch.js */ \"./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/theme-katzenmilch.js\"));\nace.config.setModuleUrl('ace/theme/kr_theme', __webpack_require__(/*! file-loader?esModule=false!./src-noconflict/theme-kr_theme.js */ \"./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/theme-kr_theme.js\"));\nace.config.setModuleUrl('ace/theme/kuroir', __webpack_require__(/*! file-loader?esModule=false!./src-noconflict/theme-kuroir.js */ \"./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/theme-kuroir.js\"));\nace.config.setModuleUrl('ace/theme/merbivore', __webpack_require__(/*! file-loader?esModule=false!./src-noconflict/theme-merbivore.js */ \"./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/theme-merbivore.js\"));\nace.config.setModuleUrl('ace/theme/merbivore_soft', __webpack_require__(/*! file-loader?esModule=false!./src-noconflict/theme-merbivore_soft.js */ \"./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/theme-merbivore_soft.js\"));\nace.config.setModuleUrl('ace/theme/mono_industrial', __webpack_require__(/*! file-loader?esModule=false!./src-noconflict/theme-mono_industrial.js */ \"./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/theme-mono_industrial.js\"));\nace.config.setModuleUrl('ace/theme/monokai', __webpack_require__(/*! file-loader?esModule=false!./src-noconflict/theme-monokai.js */ \"./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/theme-monokai.js\"));\nace.config.setModuleUrl('ace/theme/nord_dark', __webpack_require__(/*! file-loader?esModule=false!./src-noconflict/theme-nord_dark.js */ \"./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/theme-nord_dark.js\"));\nace.config.setModuleUrl('ace/theme/one_dark', __webpack_require__(/*! file-loader?esModule=false!./src-noconflict/theme-one_dark.js */ \"./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/theme-one_dark.js\"));\nace.config.setModuleUrl('ace/theme/pastel_on_dark', __webpack_require__(/*! file-loader?esModule=false!./src-noconflict/theme-pastel_on_dark.js */ \"./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/theme-pastel_on_dark.js\"));\nace.config.setModuleUrl('ace/theme/solarized_dark', __webpack_require__(/*! file-loader?esModule=false!./src-noconflict/theme-solarized_dark.js */ \"./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/theme-solarized_dark.js\"));\nace.config.setModuleUrl('ace/theme/solarized_light', __webpack_require__(/*! file-loader?esModule=false!./src-noconflict/theme-solarized_light.js */ \"./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/theme-solarized_light.js\"));\nace.config.setModuleUrl('ace/theme/sqlserver', __webpack_require__(/*! file-loader?esModule=false!./src-noconflict/theme-sqlserver.js */ \"./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/theme-sqlserver.js\"));\nace.config.setModuleUrl('ace/theme/terminal', __webpack_require__(/*! file-loader?esModule=false!./src-noconflict/theme-terminal.js */ \"./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/theme-terminal.js\"));\nace.config.setModuleUrl('ace/theme/textmate', __webpack_require__(/*! file-loader?esModule=false!./src-noconflict/theme-textmate.js */ \"./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/theme-textmate.js\"));\nace.config.setModuleUrl('ace/theme/tomorrow', __webpack_require__(/*! file-loader?esModule=false!./src-noconflict/theme-tomorrow.js */ \"./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/theme-tomorrow.js\"));\nace.config.setModuleUrl('ace/theme/tomorrow_night', __webpack_require__(/*! file-loader?esModule=false!./src-noconflict/theme-tomorrow_night.js */ \"./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/theme-tomorrow_night.js\"));\nace.config.setModuleUrl('ace/theme/tomorrow_night_blue', __webpack_require__(/*! file-loader?esModule=false!./src-noconflict/theme-tomorrow_night_blue.js */ \"./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/theme-tomorrow_night_blue.js\"));\nace.config.setModuleUrl('ace/theme/tomorrow_night_bright', __webpack_require__(/*! file-loader?esModule=false!./src-noconflict/theme-tomorrow_night_bright.js */ \"./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/theme-tomorrow_night_bright.js\"));\nace.config.setModuleUrl('ace/theme/tomorrow_night_eighties', __webpack_require__(/*! file-loader?esModule=false!./src-noconflict/theme-tomorrow_night_eighties.js */ \"./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/theme-tomorrow_night_eighties.js\"));\nace.config.setModuleUrl('ace/theme/twilight', __webpack_require__(/*! file-loader?esModule=false!./src-noconflict/theme-twilight.js */ \"./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/theme-twilight.js\"));\nace.config.setModuleUrl('ace/theme/vibrant_ink', __webpack_require__(/*! file-loader?esModule=false!./src-noconflict/theme-vibrant_ink.js */ \"./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/theme-vibrant_ink.js\"));\nace.config.setModuleUrl('ace/theme/xcode', __webpack_require__(/*! file-loader?esModule=false!./src-noconflict/theme-xcode.js */ \"./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/theme-xcode.js\"));\nace.config.setModuleUrl('ace/mode/base_worker', __webpack_require__(/*! file-loader?esModule=false!./src-noconflict/worker-base.js */ \"./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/worker-base.js\"));\nace.config.setModuleUrl('ace/mode/coffee_worker', __webpack_require__(/*! file-loader?esModule=false!./src-noconflict/worker-coffee.js */ \"./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/worker-coffee.js\"));\nace.config.setModuleUrl('ace/mode/css_worker', __webpack_require__(/*! file-loader?esModule=false!./src-noconflict/worker-css.js */ \"./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/worker-css.js\"));\nace.config.setModuleUrl('ace/mode/html_worker', __webpack_require__(/*! file-loader?esModule=false!./src-noconflict/worker-html.js */ \"./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/worker-html.js\"));\nace.config.setModuleUrl('ace/mode/javascript_worker', __webpack_require__(/*! file-loader?esModule=false!./src-noconflict/worker-javascript.js */ \"./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/worker-javascript.js\"));\nace.config.setModuleUrl('ace/mode/json_worker', __webpack_require__(/*! file-loader?esModule=false!./src-noconflict/worker-json.js */ \"./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/worker-json.js\"));\nace.config.setModuleUrl('ace/mode/lua_worker', __webpack_require__(/*! file-loader?esModule=false!./src-noconflict/worker-lua.js */ \"./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/worker-lua.js\"));\nace.config.setModuleUrl('ace/mode/php_worker', __webpack_require__(/*! file-loader?esModule=false!./src-noconflict/worker-php.js */ \"./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/worker-php.js\"));\nace.config.setModuleUrl('ace/mode/xml_worker', __webpack_require__(/*! file-loader?esModule=false!./src-noconflict/worker-xml.js */ \"./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/worker-xml.js\"));\nace.config.setModuleUrl('ace/mode/xquery_worker', __webpack_require__(/*! file-loader?esModule=false!./src-noconflict/worker-xquery.js */ \"./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/worker-xquery.js\"));\nace.config.setModuleUrl('ace/mode/yaml_worker', __webpack_require__(/*! file-loader?esModule=false!./src-noconflict/worker-yaml.js */ \"./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/worker-yaml.js\"));\nace.config.setModuleUrl('ace/snippets/abap', __webpack_require__(/*! file-loader?esModule=false!./src-noconflict/snippets/abap.js */ \"./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/snippets/abap.js\"));\nace.config.setModuleUrl('ace/snippets/abc', __webpack_require__(/*! file-loader?esModule=false!./src-noconflict/snippets/abc.js */ \"./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/snippets/abc.js\"));\nace.config.setModuleUrl('ace/snippets/actionscript', __webpack_require__(/*! file-loader?esModule=false!./src-noconflict/snippets/actionscript.js */ \"./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/snippets/actionscript.js\"));\nace.config.setModuleUrl('ace/snippets/ada', __webpack_require__(/*! file-loader?esModule=false!./src-noconflict/snippets/ada.js */ \"./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/snippets/ada.js\"));\nace.config.setModuleUrl('ace/snippets/alda', __webpack_require__(/*! file-loader?esModule=false!./src-noconflict/snippets/alda.js */ \"./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/snippets/alda.js\"));\nace.config.setModuleUrl('ace/snippets/apache_conf', __webpack_require__(/*! file-loader?esModule=false!./src-noconflict/snippets/apache_conf.js */ \"./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/snippets/apache_conf.js\"));\nace.config.setModuleUrl('ace/snippets/apex', __webpack_require__(/*! file-loader?esModule=false!./src-noconflict/snippets/apex.js */ \"./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/snippets/apex.js\"));\nace.config.setModuleUrl('ace/snippets/applescript', __webpack_require__(/*! file-loader?esModule=false!./src-noconflict/snippets/applescript.js */ \"./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/snippets/applescript.js\"));\nace.config.setModuleUrl('ace/snippets/aql', __webpack_require__(/*! file-loader?esModule=false!./src-noconflict/snippets/aql.js */ \"./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/snippets/aql.js\"));\nace.config.setModuleUrl('ace/snippets/asciidoc', __webpack_require__(/*! file-loader?esModule=false!./src-noconflict/snippets/asciidoc.js */ \"./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/snippets/asciidoc.js\"));\nace.config.setModuleUrl('ace/snippets/asl', __webpack_require__(/*! file-loader?esModule=false!./src-noconflict/snippets/asl.js */ \"./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/snippets/asl.js\"));\nace.config.setModuleUrl('ace/snippets/assembly_x86', __webpack_require__(/*! file-loader?esModule=false!./src-noconflict/snippets/assembly_x86.js */ \"./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/snippets/assembly_x86.js\"));\nace.config.setModuleUrl('ace/snippets/autohotkey', __webpack_require__(/*! file-loader?esModule=false!./src-noconflict/snippets/autohotkey.js */ \"./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/snippets/autohotkey.js\"));\nace.config.setModuleUrl('ace/snippets/batchfile', __webpack_require__(/*! file-loader?esModule=false!./src-noconflict/snippets/batchfile.js */ \"./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/snippets/batchfile.js\"));\nace.config.setModuleUrl('ace/snippets/bibtex', __webpack_require__(/*! file-loader?esModule=false!./src-noconflict/snippets/bibtex.js */ \"./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/snippets/bibtex.js\"));\nace.config.setModuleUrl('ace/snippets/c9search', __webpack_require__(/*! file-loader?esModule=false!./src-noconflict/snippets/c9search.js */ \"./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/snippets/c9search.js\"));\nace.config.setModuleUrl('ace/snippets/c_cpp', __webpack_require__(/*! file-loader?esModule=false!./src-noconflict/snippets/c_cpp.js */ \"./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/snippets/c_cpp.js\"));\nace.config.setModuleUrl('ace/snippets/cirru', __webpack_require__(/*! file-loader?esModule=false!./src-noconflict/snippets/cirru.js */ \"./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/snippets/cirru.js\"));\nace.config.setModuleUrl('ace/snippets/clojure', __webpack_require__(/*! file-loader?esModule=false!./src-noconflict/snippets/clojure.js */ \"./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/snippets/clojure.js\"));\nace.config.setModuleUrl('ace/snippets/cobol', __webpack_require__(/*! file-loader?esModule=false!./src-noconflict/snippets/cobol.js */ \"./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/snippets/cobol.js\"));\nace.config.setModuleUrl('ace/snippets/coffee', __webpack_require__(/*! file-loader?esModule=false!./src-noconflict/snippets/coffee.js */ \"./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/snippets/coffee.js\"));\nace.config.setModuleUrl('ace/snippets/coldfusion', __webpack_require__(/*! file-loader?esModule=false!./src-noconflict/snippets/coldfusion.js */ \"./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/snippets/coldfusion.js\"));\nace.config.setModuleUrl('ace/snippets/crystal', __webpack_require__(/*! file-loader?esModule=false!./src-noconflict/snippets/crystal.js */ \"./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/snippets/crystal.js\"));\nace.config.setModuleUrl('ace/snippets/csharp', __webpack_require__(/*! file-loader?esModule=false!./src-noconflict/snippets/csharp.js */ \"./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/snippets/csharp.js\"));\nace.config.setModuleUrl('ace/snippets/csound_document', __webpack_require__(/*! file-loader?esModule=false!./src-noconflict/snippets/csound_document.js */ \"./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/snippets/csound_document.js\"));\nace.config.setModuleUrl('ace/snippets/csound_orchestra', __webpack_require__(/*! file-loader?esModule=false!./src-noconflict/snippets/csound_orchestra.js */ \"./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/snippets/csound_orchestra.js\"));\nace.config.setModuleUrl('ace/snippets/csound_score', __webpack_require__(/*! file-loader?esModule=false!./src-noconflict/snippets/csound_score.js */ \"./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/snippets/csound_score.js\"));\nace.config.setModuleUrl('ace/snippets/csp', __webpack_require__(/*! file-loader?esModule=false!./src-noconflict/snippets/csp.js */ \"./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/snippets/csp.js\"));\nace.config.setModuleUrl('ace/snippets/css', __webpack_require__(/*! file-loader?esModule=false!./src-noconflict/snippets/css.js */ \"./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/snippets/css.js\"));\nace.config.setModuleUrl('ace/snippets/curly', __webpack_require__(/*! file-loader?esModule=false!./src-noconflict/snippets/curly.js */ \"./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/snippets/curly.js\"));\nace.config.setModuleUrl('ace/snippets/d', __webpack_require__(/*! file-loader?esModule=false!./src-noconflict/snippets/d.js */ \"./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/snippets/d.js\"));\nace.config.setModuleUrl('ace/snippets/dart', __webpack_require__(/*! file-loader?esModule=false!./src-noconflict/snippets/dart.js */ \"./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/snippets/dart.js\"));\nace.config.setModuleUrl('ace/snippets/diff', __webpack_require__(/*! file-loader?esModule=false!./src-noconflict/snippets/diff.js */ \"./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/snippets/diff.js\"));\nace.config.setModuleUrl('ace/snippets/django', __webpack_require__(/*! file-loader?esModule=false!./src-noconflict/snippets/django.js */ \"./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/snippets/django.js\"));\nace.config.setModuleUrl('ace/snippets/dockerfile', __webpack_require__(/*! file-loader?esModule=false!./src-noconflict/snippets/dockerfile.js */ \"./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/snippets/dockerfile.js\"));\nace.config.setModuleUrl('ace/snippets/dot', __webpack_require__(/*! file-loader?esModule=false!./src-noconflict/snippets/dot.js */ \"./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/snippets/dot.js\"));\nace.config.setModuleUrl('ace/snippets/drools', __webpack_require__(/*! file-loader?esModule=false!./src-noconflict/snippets/drools.js */ \"./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/snippets/drools.js\"));\nace.config.setModuleUrl('ace/snippets/edifact', __webpack_require__(/*! file-loader?esModule=false!./src-noconflict/snippets/edifact.js */ \"./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/snippets/edifact.js\"));\nace.config.setModuleUrl('ace/snippets/eiffel', __webpack_require__(/*! file-loader?esModule=false!./src-noconflict/snippets/eiffel.js */ \"./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/snippets/eiffel.js\"));\nace.config.setModuleUrl('ace/snippets/ejs', __webpack_require__(/*! file-loader?esModule=false!./src-noconflict/snippets/ejs.js */ \"./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/snippets/ejs.js\"));\nace.config.setModuleUrl('ace/snippets/elixir', __webpack_require__(/*! file-loader?esModule=false!./src-noconflict/snippets/elixir.js */ \"./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/snippets/elixir.js\"));\nace.config.setModuleUrl('ace/snippets/elm', __webpack_require__(/*! file-loader?esModule=false!./src-noconflict/snippets/elm.js */ \"./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/snippets/elm.js\"));\nace.config.setModuleUrl('ace/snippets/erlang', __webpack_require__(/*! file-loader?esModule=false!./src-noconflict/snippets/erlang.js */ \"./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/snippets/erlang.js\"));\nace.config.setModuleUrl('ace/snippets/forth', __webpack_require__(/*! file-loader?esModule=false!./src-noconflict/snippets/forth.js */ \"./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/snippets/forth.js\"));\nace.config.setModuleUrl('ace/snippets/fortran', __webpack_require__(/*! file-loader?esModule=false!./src-noconflict/snippets/fortran.js */ \"./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/snippets/fortran.js\"));\nace.config.setModuleUrl('ace/snippets/fsharp', __webpack_require__(/*! file-loader?esModule=false!./src-noconflict/snippets/fsharp.js */ \"./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/snippets/fsharp.js\"));\nace.config.setModuleUrl('ace/snippets/fsl', __webpack_require__(/*! file-loader?esModule=false!./src-noconflict/snippets/fsl.js */ \"./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/snippets/fsl.js\"));\nace.config.setModuleUrl('ace/snippets/ftl', __webpack_require__(/*! file-loader?esModule=false!./src-noconflict/snippets/ftl.js */ \"./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/snippets/ftl.js\"));\nace.config.setModuleUrl('ace/snippets/gcode', __webpack_require__(/*! file-loader?esModule=false!./src-noconflict/snippets/gcode.js */ \"./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/snippets/gcode.js\"));\nace.config.setModuleUrl('ace/snippets/gherkin', __webpack_require__(/*! file-loader?esModule=false!./src-noconflict/snippets/gherkin.js */ \"./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/snippets/gherkin.js\"));\nace.config.setModuleUrl('ace/snippets/gitignore', __webpack_require__(/*! file-loader?esModule=false!./src-noconflict/snippets/gitignore.js */ \"./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/snippets/gitignore.js\"));\nace.config.setModuleUrl('ace/snippets/glsl', __webpack_require__(/*! file-loader?esModule=false!./src-noconflict/snippets/glsl.js */ \"./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/snippets/glsl.js\"));\nace.config.setModuleUrl('ace/snippets/gobstones', __webpack_require__(/*! file-loader?esModule=false!./src-noconflict/snippets/gobstones.js */ \"./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/snippets/gobstones.js\"));\nace.config.setModuleUrl('ace/snippets/golang', __webpack_require__(/*! file-loader?esModule=false!./src-noconflict/snippets/golang.js */ \"./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/snippets/golang.js\"));\nace.config.setModuleUrl('ace/snippets/graphqlschema', __webpack_require__(/*! file-loader?esModule=false!./src-noconflict/snippets/graphqlschema.js */ \"./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/snippets/graphqlschema.js\"));\nace.config.setModuleUrl('ace/snippets/groovy', __webpack_require__(/*! file-loader?esModule=false!./src-noconflict/snippets/groovy.js */ \"./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/snippets/groovy.js\"));\nace.config.setModuleUrl('ace/snippets/haml', __webpack_require__(/*! file-loader?esModule=false!./src-noconflict/snippets/haml.js */ \"./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/snippets/haml.js\"));\nace.config.setModuleUrl('ace/snippets/handlebars', __webpack_require__(/*! file-loader?esModule=false!./src-noconflict/snippets/handlebars.js */ \"./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/snippets/handlebars.js\"));\nace.config.setModuleUrl('ace/snippets/haskell', __webpack_require__(/*! file-loader?esModule=false!./src-noconflict/snippets/haskell.js */ \"./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/snippets/haskell.js\"));\nace.config.setModuleUrl('ace/snippets/haskell_cabal', __webpack_require__(/*! file-loader?esModule=false!./src-noconflict/snippets/haskell_cabal.js */ \"./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/snippets/haskell_cabal.js\"));\nace.config.setModuleUrl('ace/snippets/haxe', __webpack_require__(/*! file-loader?esModule=false!./src-noconflict/snippets/haxe.js */ \"./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/snippets/haxe.js\"));\nace.config.setModuleUrl('ace/snippets/hjson', __webpack_require__(/*! file-loader?esModule=false!./src-noconflict/snippets/hjson.js */ \"./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/snippets/hjson.js\"));\nace.config.setModuleUrl('ace/snippets/html', __webpack_require__(/*! file-loader?esModule=false!./src-noconflict/snippets/html.js */ \"./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/snippets/html.js\"));\nace.config.setModuleUrl('ace/snippets/html_elixir', __webpack_require__(/*! file-loader?esModule=false!./src-noconflict/snippets/html_elixir.js */ \"./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/snippets/html_elixir.js\"));\nace.config.setModuleUrl('ace/snippets/html_ruby', __webpack_require__(/*! file-loader?esModule=false!./src-noconflict/snippets/html_ruby.js */ \"./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/snippets/html_ruby.js\"));\nace.config.setModuleUrl('ace/snippets/ini', __webpack_require__(/*! file-loader?esModule=false!./src-noconflict/snippets/ini.js */ \"./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/snippets/ini.js\"));\nace.config.setModuleUrl('ace/snippets/io', __webpack_require__(/*! file-loader?esModule=false!./src-noconflict/snippets/io.js */ \"./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/snippets/io.js\"));\nace.config.setModuleUrl('ace/snippets/ion', __webpack_require__(/*! file-loader?esModule=false!./src-noconflict/snippets/ion.js */ \"./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/snippets/ion.js\"));\nace.config.setModuleUrl('ace/snippets/jack', __webpack_require__(/*! file-loader?esModule=false!./src-noconflict/snippets/jack.js */ \"./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/snippets/jack.js\"));\nace.config.setModuleUrl('ace/snippets/jade', __webpack_require__(/*! file-loader?esModule=false!./src-noconflict/snippets/jade.js */ \"./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/snippets/jade.js\"));\nace.config.setModuleUrl('ace/snippets/java', __webpack_require__(/*! file-loader?esModule=false!./src-noconflict/snippets/java.js */ \"./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/snippets/java.js\"));\nace.config.setModuleUrl('ace/snippets/javascript', __webpack_require__(/*! file-loader?esModule=false!./src-noconflict/snippets/javascript.js */ \"./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/snippets/javascript.js\"));\nace.config.setModuleUrl('ace/snippets/jexl', __webpack_require__(/*! file-loader?esModule=false!./src-noconflict/snippets/jexl.js */ \"./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/snippets/jexl.js\"));\nace.config.setModuleUrl('ace/snippets/json', __webpack_require__(/*! file-loader?esModule=false!./src-noconflict/snippets/json.js */ \"./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/snippets/json.js\"));\nace.config.setModuleUrl('ace/snippets/json5', __webpack_require__(/*! file-loader?esModule=false!./src-noconflict/snippets/json5.js */ \"./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/snippets/json5.js\"));\nace.config.setModuleUrl('ace/snippets/jsoniq', __webpack_require__(/*! file-loader?esModule=false!./src-noconflict/snippets/jsoniq.js */ \"./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/snippets/jsoniq.js\"));\nace.config.setModuleUrl('ace/snippets/jsp', __webpack_require__(/*! file-loader?esModule=false!./src-noconflict/snippets/jsp.js */ \"./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/snippets/jsp.js\"));\nace.config.setModuleUrl('ace/snippets/jssm', __webpack_require__(/*! file-loader?esModule=false!./src-noconflict/snippets/jssm.js */ \"./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/snippets/jssm.js\"));\nace.config.setModuleUrl('ace/snippets/jsx', __webpack_require__(/*! file-loader?esModule=false!./src-noconflict/snippets/jsx.js */ \"./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/snippets/jsx.js\"));\nace.config.setModuleUrl('ace/snippets/julia', __webpack_require__(/*! file-loader?esModule=false!./src-noconflict/snippets/julia.js */ \"./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/snippets/julia.js\"));\nace.config.setModuleUrl('ace/snippets/kotlin', __webpack_require__(/*! file-loader?esModule=false!./src-noconflict/snippets/kotlin.js */ \"./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/snippets/kotlin.js\"));\nace.config.setModuleUrl('ace/snippets/latex', __webpack_require__(/*! file-loader?esModule=false!./src-noconflict/snippets/latex.js */ \"./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/snippets/latex.js\"));\nace.config.setModuleUrl('ace/snippets/latte', __webpack_require__(/*! file-loader?esModule=false!./src-noconflict/snippets/latte.js */ \"./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/snippets/latte.js\"));\nace.config.setModuleUrl('ace/snippets/less', __webpack_require__(/*! file-loader?esModule=false!./src-noconflict/snippets/less.js */ \"./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/snippets/less.js\"));\nace.config.setModuleUrl('ace/snippets/liquid', __webpack_require__(/*! file-loader?esModule=false!./src-noconflict/snippets/liquid.js */ \"./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/snippets/liquid.js\"));\nace.config.setModuleUrl('ace/snippets/lisp', __webpack_require__(/*! file-loader?esModule=false!./src-noconflict/snippets/lisp.js */ \"./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/snippets/lisp.js\"));\nace.config.setModuleUrl('ace/snippets/livescript', __webpack_require__(/*! file-loader?esModule=false!./src-noconflict/snippets/livescript.js */ \"./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/snippets/livescript.js\"));\nace.config.setModuleUrl('ace/snippets/logiql', __webpack_require__(/*! file-loader?esModule=false!./src-noconflict/snippets/logiql.js */ \"./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/snippets/logiql.js\"));\nace.config.setModuleUrl('ace/snippets/logtalk', __webpack_require__(/*! file-loader?esModule=false!./src-noconflict/snippets/logtalk.js */ \"./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/snippets/logtalk.js\"));\nace.config.setModuleUrl('ace/snippets/lsl', __webpack_require__(/*! file-loader?esModule=false!./src-noconflict/snippets/lsl.js */ \"./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/snippets/lsl.js\"));\nace.config.setModuleUrl('ace/snippets/lua', __webpack_require__(/*! file-loader?esModule=false!./src-noconflict/snippets/lua.js */ \"./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/snippets/lua.js\"));\nace.config.setModuleUrl('ace/snippets/luapage', __webpack_require__(/*! file-loader?esModule=false!./src-noconflict/snippets/luapage.js */ \"./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/snippets/luapage.js\"));\nace.config.setModuleUrl('ace/snippets/lucene', __webpack_require__(/*! file-loader?esModule=false!./src-noconflict/snippets/lucene.js */ \"./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/snippets/lucene.js\"));\nace.config.setModuleUrl('ace/snippets/makefile', __webpack_require__(/*! file-loader?esModule=false!./src-noconflict/snippets/makefile.js */ \"./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/snippets/makefile.js\"));\nace.config.setModuleUrl('ace/snippets/markdown', __webpack_require__(/*! file-loader?esModule=false!./src-noconflict/snippets/markdown.js */ \"./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/snippets/markdown.js\"));\nace.config.setModuleUrl('ace/snippets/mask', __webpack_require__(/*! file-loader?esModule=false!./src-noconflict/snippets/mask.js */ \"./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/snippets/mask.js\"));\nace.config.setModuleUrl('ace/snippets/matlab', __webpack_require__(/*! file-loader?esModule=false!./src-noconflict/snippets/matlab.js */ \"./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/snippets/matlab.js\"));\nace.config.setModuleUrl('ace/snippets/maze', __webpack_require__(/*! file-loader?esModule=false!./src-noconflict/snippets/maze.js */ \"./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/snippets/maze.js\"));\nace.config.setModuleUrl('ace/snippets/mediawiki', __webpack_require__(/*! file-loader?esModule=false!./src-noconflict/snippets/mediawiki.js */ \"./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/snippets/mediawiki.js\"));\nace.config.setModuleUrl('ace/snippets/mel', __webpack_require__(/*! file-loader?esModule=false!./src-noconflict/snippets/mel.js */ \"./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/snippets/mel.js\"));\nace.config.setModuleUrl('ace/snippets/mips', __webpack_require__(/*! file-loader?esModule=false!./src-noconflict/snippets/mips.js */ \"./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/snippets/mips.js\"));\nace.config.setModuleUrl('ace/snippets/mixal', __webpack_require__(/*! file-loader?esModule=false!./src-noconflict/snippets/mixal.js */ \"./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/snippets/mixal.js\"));\nace.config.setModuleUrl('ace/snippets/mushcode', __webpack_require__(/*! file-loader?esModule=false!./src-noconflict/snippets/mushcode.js */ \"./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/snippets/mushcode.js\"));\nace.config.setModuleUrl('ace/snippets/mysql', __webpack_require__(/*! file-loader?esModule=false!./src-noconflict/snippets/mysql.js */ \"./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/snippets/mysql.js\"));\nace.config.setModuleUrl('ace/snippets/nginx', __webpack_require__(/*! file-loader?esModule=false!./src-noconflict/snippets/nginx.js */ \"./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/snippets/nginx.js\"));\nace.config.setModuleUrl('ace/snippets/nim', __webpack_require__(/*! file-loader?esModule=false!./src-noconflict/snippets/nim.js */ \"./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/snippets/nim.js\"));\nace.config.setModuleUrl('ace/snippets/nix', __webpack_require__(/*! file-loader?esModule=false!./src-noconflict/snippets/nix.js */ \"./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/snippets/nix.js\"));\nace.config.setModuleUrl('ace/snippets/nsis', __webpack_require__(/*! file-loader?esModule=false!./src-noconflict/snippets/nsis.js */ \"./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/snippets/nsis.js\"));\nace.config.setModuleUrl('ace/snippets/nunjucks', __webpack_require__(/*! file-loader?esModule=false!./src-noconflict/snippets/nunjucks.js */ \"./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/snippets/nunjucks.js\"));\nace.config.setModuleUrl('ace/snippets/objectivec', __webpack_require__(/*! file-loader?esModule=false!./src-noconflict/snippets/objectivec.js */ \"./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/snippets/objectivec.js\"));\nace.config.setModuleUrl('ace/snippets/ocaml', __webpack_require__(/*! file-loader?esModule=false!./src-noconflict/snippets/ocaml.js */ \"./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/snippets/ocaml.js\"));\nace.config.setModuleUrl('ace/snippets/partiql', __webpack_require__(/*! file-loader?esModule=false!./src-noconflict/snippets/partiql.js */ \"./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/snippets/partiql.js\"));\nace.config.setModuleUrl('ace/snippets/pascal', __webpack_require__(/*! file-loader?esModule=false!./src-noconflict/snippets/pascal.js */ \"./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/snippets/pascal.js\"));\nace.config.setModuleUrl('ace/snippets/perl', __webpack_require__(/*! file-loader?esModule=false!./src-noconflict/snippets/perl.js */ \"./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/snippets/perl.js\"));\nace.config.setModuleUrl('ace/snippets/pgsql', __webpack_require__(/*! file-loader?esModule=false!./src-noconflict/snippets/pgsql.js */ \"./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/snippets/pgsql.js\"));\nace.config.setModuleUrl('ace/snippets/php', __webpack_require__(/*! file-loader?esModule=false!./src-noconflict/snippets/php.js */ \"./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/snippets/php.js\"));\nace.config.setModuleUrl('ace/snippets/php_laravel_blade', __webpack_require__(/*! file-loader?esModule=false!./src-noconflict/snippets/php_laravel_blade.js */ \"./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/snippets/php_laravel_blade.js\"));\nace.config.setModuleUrl('ace/snippets/pig', __webpack_require__(/*! file-loader?esModule=false!./src-noconflict/snippets/pig.js */ \"./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/snippets/pig.js\"));\nace.config.setModuleUrl('ace/snippets/plain_text', __webpack_require__(/*! file-loader?esModule=false!./src-noconflict/snippets/plain_text.js */ \"./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/snippets/plain_text.js\"));\nace.config.setModuleUrl('ace/snippets/plsql', __webpack_require__(/*! file-loader?esModule=false!./src-noconflict/snippets/plsql.js */ \"./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/snippets/plsql.js\"));\nace.config.setModuleUrl('ace/snippets/powershell', __webpack_require__(/*! file-loader?esModule=false!./src-noconflict/snippets/powershell.js */ \"./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/snippets/powershell.js\"));\nace.config.setModuleUrl('ace/snippets/praat', __webpack_require__(/*! file-loader?esModule=false!./src-noconflict/snippets/praat.js */ \"./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/snippets/praat.js\"));\nace.config.setModuleUrl('ace/snippets/prisma', __webpack_require__(/*! file-loader?esModule=false!./src-noconflict/snippets/prisma.js */ \"./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/snippets/prisma.js\"));\nace.config.setModuleUrl('ace/snippets/prolog', __webpack_require__(/*! file-loader?esModule=false!./src-noconflict/snippets/prolog.js */ \"./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/snippets/prolog.js\"));\nace.config.setModuleUrl('ace/snippets/properties', __webpack_require__(/*! file-loader?esModule=false!./src-noconflict/snippets/properties.js */ \"./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/snippets/properties.js\"));\nace.config.setModuleUrl('ace/snippets/protobuf', __webpack_require__(/*! file-loader?esModule=false!./src-noconflict/snippets/protobuf.js */ \"./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/snippets/protobuf.js\"));\nace.config.setModuleUrl('ace/snippets/puppet', __webpack_require__(/*! file-loader?esModule=false!./src-noconflict/snippets/puppet.js */ \"./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/snippets/puppet.js\"));\nace.config.setModuleUrl('ace/snippets/python', __webpack_require__(/*! file-loader?esModule=false!./src-noconflict/snippets/python.js */ \"./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/snippets/python.js\"));\nace.config.setModuleUrl('ace/snippets/qml', __webpack_require__(/*! file-loader?esModule=false!./src-noconflict/snippets/qml.js */ \"./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/snippets/qml.js\"));\nace.config.setModuleUrl('ace/snippets/r', __webpack_require__(/*! file-loader?esModule=false!./src-noconflict/snippets/r.js */ \"./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/snippets/r.js\"));\nace.config.setModuleUrl('ace/snippets/raku', __webpack_require__(/*! file-loader?esModule=false!./src-noconflict/snippets/raku.js */ \"./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/snippets/raku.js\"));\nace.config.setModuleUrl('ace/snippets/razor', __webpack_require__(/*! file-loader?esModule=false!./src-noconflict/snippets/razor.js */ \"./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/snippets/razor.js\"));\nace.config.setModuleUrl('ace/snippets/rdoc', __webpack_require__(/*! file-loader?esModule=false!./src-noconflict/snippets/rdoc.js */ \"./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/snippets/rdoc.js\"));\nace.config.setModuleUrl('ace/snippets/red', __webpack_require__(/*! file-loader?esModule=false!./src-noconflict/snippets/red.js */ \"./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/snippets/red.js\"));\nace.config.setModuleUrl('ace/snippets/redshift', __webpack_require__(/*! file-loader?esModule=false!./src-noconflict/snippets/redshift.js */ \"./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/snippets/redshift.js\"));\nace.config.setModuleUrl('ace/snippets/rhtml', __webpack_require__(/*! file-loader?esModule=false!./src-noconflict/snippets/rhtml.js */ \"./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/snippets/rhtml.js\"));\nace.config.setModuleUrl('ace/snippets/robot', __webpack_require__(/*! file-loader?esModule=false!./src-noconflict/snippets/robot.js */ \"./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/snippets/robot.js\"));\nace.config.setModuleUrl('ace/snippets/rst', __webpack_require__(/*! file-loader?esModule=false!./src-noconflict/snippets/rst.js */ \"./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/snippets/rst.js\"));\nace.config.setModuleUrl('ace/snippets/ruby', __webpack_require__(/*! file-loader?esModule=false!./src-noconflict/snippets/ruby.js */ \"./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/snippets/ruby.js\"));\nace.config.setModuleUrl('ace/snippets/rust', __webpack_require__(/*! file-loader?esModule=false!./src-noconflict/snippets/rust.js */ \"./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/snippets/rust.js\"));\nace.config.setModuleUrl('ace/snippets/sac', __webpack_require__(/*! file-loader?esModule=false!./src-noconflict/snippets/sac.js */ \"./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/snippets/sac.js\"));\nace.config.setModuleUrl('ace/snippets/sass', __webpack_require__(/*! file-loader?esModule=false!./src-noconflict/snippets/sass.js */ \"./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/snippets/sass.js\"));\nace.config.setModuleUrl('ace/snippets/scad', __webpack_require__(/*! file-loader?esModule=false!./src-noconflict/snippets/scad.js */ \"./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/snippets/scad.js\"));\nace.config.setModuleUrl('ace/snippets/scala', __webpack_require__(/*! file-loader?esModule=false!./src-noconflict/snippets/scala.js */ \"./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/snippets/scala.js\"));\nace.config.setModuleUrl('ace/snippets/scheme', __webpack_require__(/*! file-loader?esModule=false!./src-noconflict/snippets/scheme.js */ \"./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/snippets/scheme.js\"));\nace.config.setModuleUrl('ace/snippets/scrypt', __webpack_require__(/*! file-loader?esModule=false!./src-noconflict/snippets/scrypt.js */ \"./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/snippets/scrypt.js\"));\nace.config.setModuleUrl('ace/snippets/scss', __webpack_require__(/*! file-loader?esModule=false!./src-noconflict/snippets/scss.js */ \"./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/snippets/scss.js\"));\nace.config.setModuleUrl('ace/snippets/sh', __webpack_require__(/*! file-loader?esModule=false!./src-noconflict/snippets/sh.js */ \"./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/snippets/sh.js\"));\nace.config.setModuleUrl('ace/snippets/sjs', __webpack_require__(/*! file-loader?esModule=false!./src-noconflict/snippets/sjs.js */ \"./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/snippets/sjs.js\"));\nace.config.setModuleUrl('ace/snippets/slim', __webpack_require__(/*! file-loader?esModule=false!./src-noconflict/snippets/slim.js */ \"./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/snippets/slim.js\"));\nace.config.setModuleUrl('ace/snippets/smarty', __webpack_require__(/*! file-loader?esModule=false!./src-noconflict/snippets/smarty.js */ \"./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/snippets/smarty.js\"));\nace.config.setModuleUrl('ace/snippets/smithy', __webpack_require__(/*! file-loader?esModule=false!./src-noconflict/snippets/smithy.js */ \"./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/snippets/smithy.js\"));\nace.config.setModuleUrl('ace/snippets/snippets', __webpack_require__(/*! file-loader?esModule=false!./src-noconflict/snippets/snippets.js */ \"./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/snippets/snippets.js\"));\nace.config.setModuleUrl('ace/snippets/soy_template', __webpack_require__(/*! file-loader?esModule=false!./src-noconflict/snippets/soy_template.js */ \"./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/snippets/soy_template.js\"));\nace.config.setModuleUrl('ace/snippets/space', __webpack_require__(/*! file-loader?esModule=false!./src-noconflict/snippets/space.js */ \"./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/snippets/space.js\"));\nace.config.setModuleUrl('ace/snippets/sparql', __webpack_require__(/*! file-loader?esModule=false!./src-noconflict/snippets/sparql.js */ \"./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/snippets/sparql.js\"));\nace.config.setModuleUrl('ace/snippets/sql', __webpack_require__(/*! file-loader?esModule=false!./src-noconflict/snippets/sql.js */ \"./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/snippets/sql.js\"));\nace.config.setModuleUrl('ace/snippets/sqlserver', __webpack_require__(/*! file-loader?esModule=false!./src-noconflict/snippets/sqlserver.js */ \"./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/snippets/sqlserver.js\"));\nace.config.setModuleUrl('ace/snippets/stylus', __webpack_require__(/*! file-loader?esModule=false!./src-noconflict/snippets/stylus.js */ \"./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/snippets/stylus.js\"));\nace.config.setModuleUrl('ace/snippets/svg', __webpack_require__(/*! file-loader?esModule=false!./src-noconflict/snippets/svg.js */ \"./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/snippets/svg.js\"));\nace.config.setModuleUrl('ace/snippets/swift', __webpack_require__(/*! file-loader?esModule=false!./src-noconflict/snippets/swift.js */ \"./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/snippets/swift.js\"));\nace.config.setModuleUrl('ace/snippets/tcl', __webpack_require__(/*! file-loader?esModule=false!./src-noconflict/snippets/tcl.js */ \"./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/snippets/tcl.js\"));\nace.config.setModuleUrl('ace/snippets/terraform', __webpack_require__(/*! file-loader?esModule=false!./src-noconflict/snippets/terraform.js */ \"./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/snippets/terraform.js\"));\nace.config.setModuleUrl('ace/snippets/tex', __webpack_require__(/*! file-loader?esModule=false!./src-noconflict/snippets/tex.js */ \"./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/snippets/tex.js\"));\nace.config.setModuleUrl('ace/snippets/text', __webpack_require__(/*! file-loader?esModule=false!./src-noconflict/snippets/text.js */ \"./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/snippets/text.js\"));\nace.config.setModuleUrl('ace/snippets/textile', __webpack_require__(/*! file-loader?esModule=false!./src-noconflict/snippets/textile.js */ \"./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/snippets/textile.js\"));\nace.config.setModuleUrl('ace/snippets/toml', __webpack_require__(/*! file-loader?esModule=false!./src-noconflict/snippets/toml.js */ \"./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/snippets/toml.js\"));\nace.config.setModuleUrl('ace/snippets/tsx', __webpack_require__(/*! file-loader?esModule=false!./src-noconflict/snippets/tsx.js */ \"./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/snippets/tsx.js\"));\nace.config.setModuleUrl('ace/snippets/turtle', __webpack_require__(/*! file-loader?esModule=false!./src-noconflict/snippets/turtle.js */ \"./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/snippets/turtle.js\"));\nace.config.setModuleUrl('ace/snippets/twig', __webpack_require__(/*! file-loader?esModule=false!./src-noconflict/snippets/twig.js */ \"./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/snippets/twig.js\"));\nace.config.setModuleUrl('ace/snippets/typescript', __webpack_require__(/*! file-loader?esModule=false!./src-noconflict/snippets/typescript.js */ \"./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/snippets/typescript.js\"));\nace.config.setModuleUrl('ace/snippets/vala', __webpack_require__(/*! file-loader?esModule=false!./src-noconflict/snippets/vala.js */ \"./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/snippets/vala.js\"));\nace.config.setModuleUrl('ace/snippets/vbscript', __webpack_require__(/*! file-loader?esModule=false!./src-noconflict/snippets/vbscript.js */ \"./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/snippets/vbscript.js\"));\nace.config.setModuleUrl('ace/snippets/velocity', __webpack_require__(/*! file-loader?esModule=false!./src-noconflict/snippets/velocity.js */ \"./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/snippets/velocity.js\"));\nace.config.setModuleUrl('ace/snippets/verilog', __webpack_require__(/*! file-loader?esModule=false!./src-noconflict/snippets/verilog.js */ \"./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/snippets/verilog.js\"));\nace.config.setModuleUrl('ace/snippets/vhdl', __webpack_require__(/*! file-loader?esModule=false!./src-noconflict/snippets/vhdl.js */ \"./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/snippets/vhdl.js\"));\nace.config.setModuleUrl('ace/snippets/visualforce', __webpack_require__(/*! file-loader?esModule=false!./src-noconflict/snippets/visualforce.js */ \"./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/snippets/visualforce.js\"));\nace.config.setModuleUrl('ace/snippets/wollok', __webpack_require__(/*! file-loader?esModule=false!./src-noconflict/snippets/wollok.js */ \"./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/snippets/wollok.js\"));\nace.config.setModuleUrl('ace/snippets/xml', __webpack_require__(/*! file-loader?esModule=false!./src-noconflict/snippets/xml.js */ \"./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/snippets/xml.js\"));\nace.config.setModuleUrl('ace/snippets/xquery', __webpack_require__(/*! file-loader?esModule=false!./src-noconflict/snippets/xquery.js */ \"./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/snippets/xquery.js\"));\nace.config.setModuleUrl('ace/snippets/yaml', __webpack_require__(/*! file-loader?esModule=false!./src-noconflict/snippets/yaml.js */ \"./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/snippets/yaml.js\"));\nace.config.setModuleUrl('ace/snippets/zeek', __webpack_require__(/*! file-loader?esModule=false!./src-noconflict/snippets/zeek.js */ \"./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/snippets/zeek.js\"));\n\n//# sourceURL=webpack://iris-web/./node_modules/ace-builds/webpack-resolver.js?");
+
+/***/ }),
+
 /***/ "./node_modules/ajax-bootstrap-select/dist/js/ajax-bootstrap-select.js":
 /*!*****************************************************************************!*\
   !*** ./node_modules/ajax-bootstrap-select/dist/js/ajax-bootstrap-select.js ***!
@@ -102,7 +142,7 @@ eval("__webpack_require__.r(__webpack_exports__);\n/* harmony export */ __webpac
 /***/ ((__unused_webpack_module, __webpack_exports__, __webpack_require__) => {
 
 "use strict";
-eval("__webpack_require__.r(__webpack_exports__);\n/* harmony export */ __webpack_require__.d(__webpack_exports__, {\n/* harmony export */   load_datastore: () => (/* binding */ load_datastore)\n/* harmony export */ });\n/* harmony import */ var jquery__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! jquery */ \"./node_modules/jquery/dist/jquery.js\");\n/* harmony import */ var jquery__WEBPACK_IMPORTED_MODULE_0___default = /*#__PURE__*/__webpack_require__.n(jquery__WEBPACK_IMPORTED_MODULE_0__);\n/* harmony import */ var _common__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(/*! ./common */ \"./app/static/assets/js/iris/common.js\");\n/* harmony import */ var ace_builds_src_noconflict_ace__WEBPACK_IMPORTED_MODULE_2__ = __webpack_require__(/*! ace-builds/src-noconflict/ace */ \"./node_modules/ace-builds/src-noconflict/ace.js\");\n/* harmony import */ var ace_builds_src_noconflict_ace__WEBPACK_IMPORTED_MODULE_2___default = /*#__PURE__*/__webpack_require__.n(ace_builds_src_noconflict_ace__WEBPACK_IMPORTED_MODULE_2__);\n/* harmony import */ var sweetalert__WEBPACK_IMPORTED_MODULE_3__ = __webpack_require__(/*! sweetalert */ \"./node_modules/sweetalert/dist/sweetalert.min.js\");\n/* harmony import */ var sweetalert__WEBPACK_IMPORTED_MODULE_3___default = /*#__PURE__*/__webpack_require__.n(sweetalert__WEBPACK_IMPORTED_MODULE_3__);\n\n\n\n\nvar ds_filter;\nfunction load_datastore() {\n  ds_filter = ace_builds_src_noconflict_ace__WEBPACK_IMPORTED_MODULE_2___default().edit(\"ds_file_search\", {\n    autoScrollEditorIntoView: true,\n    minLines: 1,\n    maxLines: 5\n  });\n  ds_filter.setTheme(\"ace/theme/tomorrow\");\n  ds_filter.session.setMode(\"ace/mode/json\");\n  ds_filter.renderer.setShowGutter(false);\n  ds_filter.setShowPrintMargin(false);\n  ds_filter.renderer.setScrollMargin(10, 10);\n  ds_filter.setOption(\"displayIndentGuides\", true);\n  ds_filter.setOption(\"indentedSoftWrap\", true);\n  ds_filter.setOption(\"showLineNumbers\", false);\n  ds_filter.setOption(\"placeholder\", \"Search files\");\n  ds_filter.setOption(\"highlightActiveLine\", false);\n  ds_filter.commands.addCommand({\n    name: \"Do filter\",\n    bindKey: {\n      win: \"Enter\",\n      mac: \"Enter\"\n    },\n    exec: function exec() {\n      filter_ds_files();\n    }\n  });\n  (0,_common__WEBPACK_IMPORTED_MODULE_1__.get_request_api)('/datastore/list/tree').done(function (data) {\n    if ((0,_common__WEBPACK_IMPORTED_MODULE_1__.notify_auto_api)(data, true)) {\n      jquery__WEBPACK_IMPORTED_MODULE_0___default()('#ds-tree-root').empty();\n      build_ds_tree(data.data, 'ds-tree-root');\n      reparse_activate_tree();\n      show_datastore();\n    }\n  });\n}\nfunction build_ds_tree(data, tree_node) {\n  var standard_files_filters = [{\n    value: 'name: ',\n    score: 10,\n    meta: 'Match filename'\n  }, {\n    value: 'storage_name: ',\n    score: 10,\n    meta: 'Match local storage filename'\n  }, {\n    value: 'tag: ',\n    score: 10,\n    meta: 'Match tag of file'\n  }, {\n    value: 'description: ',\n    score: 10,\n    meta: 'Match description of file'\n  }, {\n    value: 'is_ioc: ',\n    score: 10,\n    meta: \"Match file is IOC\"\n  }, {\n    value: 'is_evidence: ',\n    score: 10,\n    meta: \"Match file is evidence\"\n  }, {\n    value: 'has_password: ',\n    score: 10,\n    meta: \"Match file is password protected\"\n  }, {\n    value: 'id: ',\n    score: 10,\n    meta: \"Match ID of the file\"\n  }, {\n    value: 'uuid: ',\n    score: 10,\n    meta: \"Match UUID of the file\"\n  }, {\n    value: 'sha256: ',\n    score: 10,\n    meta: \"Match sha256 of the file\"\n  }, {\n    value: 'AND ',\n    score: 10,\n    meta: 'AND operator'\n  }];\n  for (var node in data) {\n    if (data[node] === null) {\n      break;\n    }\n    if (data[node].type == 'directory') {\n      data[node].name = (0,_common__WEBPACK_IMPORTED_MODULE_1__.sanitizeHTML)(data[node].name);\n      var can_delete = '';\n      if (!data[node].is_root) {\n        can_delete = \"<div class=\\\"dropdown-divider\\\"></div><a href=\\\"#\\\" class=\\\"dropdown-item text-danger\\\" onclick=\\\"delete_ds_folder('\".concat(node, \"');\\\"><small class=\\\"fa fa-trash mr-2\\\"></small>Delete</a>\");\n      }\n      var jnode = \"<li>\\n                    <span id='\".concat(node, \"' title='Folder ID \").concat(node, \"' data-node-id=\\\"\").concat(node, \"\\\"><i class=\\\"fa-regular fa-folder\\\"></i> \").concat(data[node].name, \"</span> <i class=\\\"fas fa-plus ds-folder-menu\\\" role=\\\"menu\\\" style=\\\"cursor:pointer;\\\" data-toggle=\\\"dropdown\\\" aria-expanded=\\\"false\\\"></i>\\n                        <div class=\\\"dropdown-menu\\\" role=\\\"menu\\\">\\n                                <a href=\\\"#\\\" class=\\\"dropdown-item\\\" onclick=\\\"add_ds_folder('\").concat(node, \"');return false;\\\"><small class=\\\"fa-solid fa-folder mr-2\\\"></small>Add subfolder</a>\\n                                <a href=\\\"#\\\" class=\\\"dropdown-item\\\" onclick=\\\"add_ds_file('\").concat(node, \"');return false;\\\"><small class=\\\"fa-solid fa-file mr-2\\\"></small>Add file</a>\\n                                <div class=\\\"dropdown-divider\\\"></div>\\n                                <a href=\\\"#\\\" class=\\\"dropdown-item\\\" onclick=\\\"move_ds_folder('\").concat(node, \"');return false;\\\"><small class=\\\"fa fa-arrow-right-arrow-left mr-2\\\"></small>Move</a>\\n                                <a href=\\\"#\\\" class=\\\"dropdown-item\\\" onclick=\\\"rename_ds_folder('\").concat(node, \"', '\").concat(data[node].name, \"');return false;\\\"><small class=\\\"fa-solid fa-pencil mr-2\\\"></small>Rename</a>\\n                                \").concat(can_delete, \"\\n                        </div>\\n                    <ul id='tree-\").concat(node, \"'></ul>\\n                </li>\");\n      jquery__WEBPACK_IMPORTED_MODULE_0___default()('#' + tree_node).append(jnode);\n      build_ds_tree(data[node].children, 'tree-' + node);\n    } else {\n      data[node].file_original_name = (0,_common__WEBPACK_IMPORTED_MODULE_1__.sanitizeHTML)(data[node].file_original_name);\n      data[node].file_password = (0,_common__WEBPACK_IMPORTED_MODULE_1__.sanitizeHTML)(data[node].file_password);\n      data[node].file_description = (0,_common__WEBPACK_IMPORTED_MODULE_1__.sanitizeHTML)(data[node].file_description);\n      standard_files_filters.push({\n        value: data[node].file_original_name,\n        score: 1,\n        meta: data[node].file_description\n      });\n      var icon = '';\n      if (data[node].file_is_ioc) {\n        icon += '<i class=\"fa-solid fa-virus-covid text-danger mr-1\" title=\"File is an IOC\"></i>';\n      }\n      if (data[node].file_is_evidence) {\n        icon += '<i class=\"fa-solid fa-file-shield text-success mr-1\" title=\"File is an evidence\"></i>';\n      }\n      if (icon.length === 0) {\n        icon = '<i class=\"fa-regular fa-file mr-1\" title=\"Regular file\"></i>';\n      }\n      var icon_lock = '';\n      var has_password = data[node].file_password !== null && data[node].file_password.length > 0;\n      if (has_password) {\n        icon_lock = '<i title=\"Password protected\" class=\"fa-solid fa-lock text-success mr-1\"></i>';\n      }\n      var icn_content = btoa(icon + icon_lock);\n      var _jnode = \"<li>\\n                <span id='\".concat(node, \"' data-file-id=\\\"\").concat(node, \"\\\" title=\\\"ID : \").concat(data[node].file_id, \"\\nUUID : \").concat(data[node].file_uuid, \"\\\" class='tree-leaf'>\\n                      <span role=\\\"menu\\\" style=\\\"cursor:pointer;\\\" data-toggle=\\\"dropdown\\\" aria-expanded=\\\"false\\\">\").concat(icon).concat(icon_lock, \" \").concat(data[node].file_original_name, \"</span>\\n                      <i class=\\\"fa-regular fa-circle ds-file-selector\\\" style=\\\"cursor:pointer;display:none;\\\" onclick=\\\"ds_file_select('\").concat(node, \"');\\\"></i>\\n                        <div class=\\\"dropdown-menu\\\" role=\\\"menu\\\">\\n                                <a href=\\\"#\\\" class=\\\"dropdown-item\\\" onclick=\\\"get_link_ds_file('\").concat(node, \"');return false;\\\"><small class=\\\"fa fa-link mr-2\\\"></small>Link</a>\\n                                <a href=\\\"#\\\" class=\\\"dropdown-item\\\" onclick=\\\"get_mk_link_ds_file('\").concat(node, \"', '\").concat(data[node].file_original_name, \"', '\").concat(icn_content, \"', '\").concat(has_password, \"');return false;\\\"><small class=\\\"fa-brands fa-markdown mr-2\\\"></small>Markdown link</a>\\n                                <a href=\\\"#\\\" class=\\\"dropdown-item\\\" onclick=\\\"download_ds_file('\").concat(node, \"', '\").concat(data[node].file_original_name, \"');return false;\\\"><small class=\\\"fa-solid fa-download mr-2\\\"></small>Download</a>\\n                                <div class=\\\"dropdown-divider\\\"></div>\\n                                <a href=\\\"#\\\" class=\\\"dropdown-item\\\" onclick=\\\"info_ds_file('\").concat(node, \"');return false;\\\"><small class=\\\"fa fa-eye mr-2\\\"></small>Info</a>\\n                                <a href=\\\"#\\\" class=\\\"dropdown-item\\\" onclick=\\\"edit_ds_file('\").concat(node, \"');return false;\\\"><small class=\\\"fa fa-pencil mr-2\\\"></small>Edit</a>\\n                                <a href=\\\"#\\\" class=\\\"dropdown-item\\\" onclick=\\\"move_ds_file('\").concat(node, \"');return false;\\\"><small class=\\\"fa fa-arrow-right-arrow-left mr-2\\\"></small>Move</a>\\n                                <div class=\\\"dropdown-divider\\\"></div>\\n                                <a href=\\\"#\\\" class=\\\"dropdown-item text-danger\\\" onclick=\\\"delete_ds_file('\").concat(node, \"');\\\"><small class=\\\"fa fa-trash mr-2\\\"></small>Delete</a>\\n                        </div>\\n                    </span>\\n                </li>\");\n      jquery__WEBPACK_IMPORTED_MODULE_0___default()('#' + tree_node).append(_jnode);\n    }\n  }\n  ds_filter.setOptions({\n    enableBasicAutocompletion: [{\n      getCompletions: function getCompletions(editor, session, pos, prefix, callback) {\n        callback(null, standard_files_filters);\n      }\n    }],\n    enableLiveAutocompletion: true\n  });\n}\nfunction show_datastore() {\n  jquery__WEBPACK_IMPORTED_MODULE_0___default()('html').addClass('ds_sidebar_open');\n  jquery__WEBPACK_IMPORTED_MODULE_0___default()('.ds-sidebar-toggler').addClass('toggled');\n}\nfunction hide_datastore() {\n  jquery__WEBPACK_IMPORTED_MODULE_0___default()('html').removeClass('ds_sidebar_open');\n  jquery__WEBPACK_IMPORTED_MODULE_0___default()('.ds-sidebar-toggler').removeClass('toggled');\n}\nfunction reparse_activate_tree() {\n  jquery__WEBPACK_IMPORTED_MODULE_0___default()('.tree li:has(ul)').addClass('parent_li').find(' > span').attr('title', 'Collapse this branch');\n  jquery__WEBPACK_IMPORTED_MODULE_0___default()('.tree li.parent_li > span').on('click', function (e) {\n    var children = jquery__WEBPACK_IMPORTED_MODULE_0___default()(this).parent('li.parent_li').find(' > ul > li');\n    if (children.is(\":visible\")) {\n      children.hide('fast');\n      jquery__WEBPACK_IMPORTED_MODULE_0___default()(this).attr('title', 'Expand this branch').find(' > i').addClass('icon-plus-sign').removeClass('icon-minus-sign');\n    } else {\n      children.show('fast');\n      jquery__WEBPACK_IMPORTED_MODULE_0___default()(this).attr('title', 'Collapse this branch').find(' > i').addClass('icon-minus-sign').removeClass('icon-plus-sign');\n    }\n    e.stopPropagation();\n  });\n}\nfunction add_ds_folder(parent_node) {\n  jquery__WEBPACK_IMPORTED_MODULE_0___default()('#ds_mod_folder_name').data('parent-node', parent_node);\n  jquery__WEBPACK_IMPORTED_MODULE_0___default()('#ds_mod_folder_name').data('node-update', false);\n  jquery__WEBPACK_IMPORTED_MODULE_0___default()('#ds_mod_folder_name').val('');\n  jquery__WEBPACK_IMPORTED_MODULE_0___default()('#modal_ds_folder').modal(\"show\");\n}\nfunction rename_ds_folder(parent_node, name) {\n  jquery__WEBPACK_IMPORTED_MODULE_0___default()('#ds_mod_folder_name').data('parent-node', parent_node);\n  jquery__WEBPACK_IMPORTED_MODULE_0___default()('#ds_mod_folder_name').data('node-update', true);\n  jquery__WEBPACK_IMPORTED_MODULE_0___default()('#ds_mod_folder_name').val(name);\n  jquery__WEBPACK_IMPORTED_MODULE_0___default()('#modal_ds_folder').modal(\"show\");\n}\nfunction delete_ds_folder(node) {\n  node = node.replace('d-', '');\n  sweetalert__WEBPACK_IMPORTED_MODULE_3___default()({\n    title: \"Are you sure?\",\n    text: \"This will delete all files included and sub-folders\",\n    icon: \"warning\",\n    buttons: true,\n    dangerMode: true,\n    confirmButtonColor: '#3085d6',\n    cancelButtonColor: '#d33',\n    confirmButtonText: 'Yes, delete it!'\n  }).then(function (willDelete) {\n    if (willDelete) {\n      var data_sent = {\n        \"csrf_token\": jquery__WEBPACK_IMPORTED_MODULE_0___default()('#csrf_token').val()\n      };\n      (0,_common__WEBPACK_IMPORTED_MODULE_1__.post_request_api)('/datastore/folder/delete/' + node, JSON.stringify(data_sent)).done(function (data) {\n        if ((0,_common__WEBPACK_IMPORTED_MODULE_1__.notify_auto_api)(data)) {\n          reset_ds_file_view();\n          load_datastore();\n        }\n      });\n    } else {\n      sweetalert__WEBPACK_IMPORTED_MODULE_3___default()(\"Pfew, that was close\");\n    }\n  });\n}\nfunction save_ds_mod_folder() {\n  var data = Object();\n  data['parent_node'] = jquery__WEBPACK_IMPORTED_MODULE_0___default()('#ds_mod_folder_name').data('parent-node').replace('d-', '');\n  data['folder_name'] = jquery__WEBPACK_IMPORTED_MODULE_0___default()('#ds_mod_folder_name').val();\n  data['csrf_token'] = jquery__WEBPACK_IMPORTED_MODULE_0___default()('#csrf_token').val();\n  var uri = '/datastore/folder/add';\n  if (jquery__WEBPACK_IMPORTED_MODULE_0___default()('#ds_mod_folder_name').data('node-update')) {\n    uri = '/datastore/folder/rename/' + data['parent_node'];\n  }\n  (0,_common__WEBPACK_IMPORTED_MODULE_1__.post_request_api)(uri, JSON.stringify(data)).done(function (data) {\n    if ((0,_common__WEBPACK_IMPORTED_MODULE_1__.notify_auto_api)(data)) {\n      jquery__WEBPACK_IMPORTED_MODULE_0___default()('#modal_ds_folder').modal(\"hide\");\n      load_datastore();\n    }\n  });\n}\nfunction add_ds_file(node) {\n  node = node.replace('d-', '');\n  var url = '/datastore/file/add/' + node + '/modal' + (0,_common__WEBPACK_IMPORTED_MODULE_1__.case_param)();\n  jquery__WEBPACK_IMPORTED_MODULE_0___default()('#modal_ds_file_content').load(url, function (response, status, xhr) {\n    if (status !== \"success\") {\n      (0,_common__WEBPACK_IMPORTED_MODULE_1__.ajax_notify_error)(xhr, url);\n      return false;\n    }\n    jquery__WEBPACK_IMPORTED_MODULE_0___default()('#modal_ds_file').modal(\"show\");\n  });\n}\nfunction edit_ds_file(node) {\n  node = node.replace('f-', '');\n  var url = '/datastore/file/update/' + node + '/modal' + (0,_common__WEBPACK_IMPORTED_MODULE_1__.case_param)();\n  jquery__WEBPACK_IMPORTED_MODULE_0___default()('#modal_ds_file_content').load(url, function (response, status, xhr) {\n    if (status !== \"success\") {\n      (0,_common__WEBPACK_IMPORTED_MODULE_1__.ajax_notify_error)(xhr, url);\n      return false;\n    }\n    jquery__WEBPACK_IMPORTED_MODULE_0___default()('#modal_ds_file').modal(\"show\");\n  });\n}\nfunction info_ds_file(node) {\n  node = node.replace('f-', '');\n  var url = '/datastore/file/info/' + node + '/modal' + (0,_common__WEBPACK_IMPORTED_MODULE_1__.case_param)();\n  jquery__WEBPACK_IMPORTED_MODULE_0___default()('#modal_ds_file_content').load(url, function (response, status, xhr) {\n    if (status !== \"success\") {\n      (0,_common__WEBPACK_IMPORTED_MODULE_1__.ajax_notify_error)(xhr, url);\n      return false;\n    }\n    jquery__WEBPACK_IMPORTED_MODULE_0___default()('#modal_ds_file').modal(\"show\");\n  });\n}\nfunction save_ds_file(node, file_id) {\n  var formData = new FormData(jquery__WEBPACK_IMPORTED_MODULE_0___default()('#form_new_ds_file')[0]);\n  formData.append('file_content', jquery__WEBPACK_IMPORTED_MODULE_0___default()('#input_upload_ds_file').prop('files')[0]);\n  var uri = '/datastore/file/update/' + file_id;\n  if (file_id === undefined) {\n    uri = '/datastore/file/add/' + node;\n  }\n  (0,_common__WEBPACK_IMPORTED_MODULE_1__.post_request_data_api)(uri, formData, true, function () {\n    window.swal({\n      title: \"File is uploading\",\n      text: \"Please wait. This window will close automatically when the file is uploaded.\",\n      icon: \"/static/assets/img/loader.gif\",\n      button: false,\n      allowOutsideClick: false\n    });\n  }).done(function (data) {\n    if ((0,_common__WEBPACK_IMPORTED_MODULE_1__.notify_auto_api)(data)) {\n      jquery__WEBPACK_IMPORTED_MODULE_0___default()('#modal_ds_file').modal(\"hide\");\n      reset_ds_file_view();\n      load_datastore();\n    }\n  }).always(function () {\n    window.swal.close();\n  });\n}\nfunction refresh_ds() {\n  reset_ds_file_view();\n  load_datastore();\n  (0,_common__WEBPACK_IMPORTED_MODULE_1__.notify_success)('Datastore refreshed');\n}\nfunction upload_interactive_data(data_blob, filename, completion_callback) {\n  var data_sent = Object();\n  data_sent[\"csrf_token\"] = jquery__WEBPACK_IMPORTED_MODULE_0___default()('#csrf_token').val();\n  data_sent[\"file_content\"] = data_blob.split(';base64,')[1];\n  data_sent[\"file_original_name\"] = filename;\n  (0,_common__WEBPACK_IMPORTED_MODULE_1__.post_request_api)('/datastore/file/add-interactive', JSON.stringify(data_sent), true).done(function (data) {\n    if ((0,_common__WEBPACK_IMPORTED_MODULE_1__.notify_auto_api)(data)) {\n      if (completion_callback !== undefined) {\n        completion_callback(data);\n      }\n    }\n  });\n}\nfunction toggle_select_file() {\n  if (jquery__WEBPACK_IMPORTED_MODULE_0___default()('.btn-ds-bulk-selector').hasClass('active')) {\n    reset_ds_file_view();\n    load_datastore();\n  } else {\n    jquery__WEBPACK_IMPORTED_MODULE_0___default()('.ds-file-selector').show(250);\n    jquery__WEBPACK_IMPORTED_MODULE_0___default()('.btn-ds-bulk').show(250);\n    jquery__WEBPACK_IMPORTED_MODULE_0___default()('.btn-ds-bulk-selector').addClass('active');\n  }\n}\nfunction move_ds_file(file_id) {\n  reparse_activate_tree_selection();\n  jquery__WEBPACK_IMPORTED_MODULE_0___default()('.ds-file-selector').show();\n  jquery__WEBPACK_IMPORTED_MODULE_0___default()('#msg_mv_dst_folder').text('unselected destination');\n  jquery__WEBPACK_IMPORTED_MODULE_0___default()('#msg_select_destination_folder').show();\n  ds_file_select(file_id);\n}\nfunction reset_ds_file_view() {\n  jquery__WEBPACK_IMPORTED_MODULE_0___default()(\".node-selected\").removeClass(\"node-selected\");\n  jquery__WEBPACK_IMPORTED_MODULE_0___default()(\".file-selected\").removeClass(\"file-selected\");\n  jquery__WEBPACK_IMPORTED_MODULE_0___default()('.ds-file-selector').hide();\n  jquery__WEBPACK_IMPORTED_MODULE_0___default()('#msg_select_destination_folder').attr(\"data-file-id\", '');\n  jquery__WEBPACK_IMPORTED_MODULE_0___default()('#msg_select_destination_folder').hide();\n  jquery__WEBPACK_IMPORTED_MODULE_0___default()('#msg_select_destination_folder_folder').hide();\n  jquery__WEBPACK_IMPORTED_MODULE_0___default()('.ds-file-selector').hide();\n  jquery__WEBPACK_IMPORTED_MODULE_0___default()('.btn-ds-bulk').hide();\n  jquery__WEBPACK_IMPORTED_MODULE_0___default()('.btn-ds-bulk-selector').removeClass('active');\n}\nfunction ds_file_select(file_id) {\n  file_id = '#' + file_id;\n  if (jquery__WEBPACK_IMPORTED_MODULE_0___default()(file_id).hasClass('file-selected')) {\n    jquery__WEBPACK_IMPORTED_MODULE_0___default()(file_id + '> i').removeClass('fa-circle-check');\n    jquery__WEBPACK_IMPORTED_MODULE_0___default()(file_id + '> i').addClass('fa-circle');\n    jquery__WEBPACK_IMPORTED_MODULE_0___default()(file_id).removeClass('file-selected');\n  } else {\n    jquery__WEBPACK_IMPORTED_MODULE_0___default()(file_id + '> i').removeClass('fa-circle');\n    jquery__WEBPACK_IMPORTED_MODULE_0___default()(file_id + '> i').addClass('fa-circle-check');\n    jquery__WEBPACK_IMPORTED_MODULE_0___default()(file_id).addClass('file-selected');\n  }\n  jquery__WEBPACK_IMPORTED_MODULE_0___default()('#msg_mv_files').text(jquery__WEBPACK_IMPORTED_MODULE_0___default()('.file-selected').length);\n}\nfunction validate_ds_file_move() {\n  var data_sent = Object();\n  if (jquery__WEBPACK_IMPORTED_MODULE_0___default()(\".node-selected\").length === 0) {\n    (0,_common__WEBPACK_IMPORTED_MODULE_1__.notify_error)('No destination folder selected');\n    return false;\n  }\n  if (jquery__WEBPACK_IMPORTED_MODULE_0___default()(\".file-selected\").length === 0) {\n    (0,_common__WEBPACK_IMPORTED_MODULE_1__.notify_error)('No file to move selected');\n    return false;\n  }\n  data_sent['destination-node'] = jquery__WEBPACK_IMPORTED_MODULE_0___default()(\".node-selected\").data('node-id').replace('d-', '');\n  data_sent['csrf_token'] = jquery__WEBPACK_IMPORTED_MODULE_0___default()('#csrf_token').val();\n  var selected_files = jquery__WEBPACK_IMPORTED_MODULE_0___default()(\".file-selected\");\n  selected_files.each(function (index) {\n    var file_id = jquery__WEBPACK_IMPORTED_MODULE_0___default()(selected_files[index]).data('file-id').replace('f-', '');\n    (0,_common__WEBPACK_IMPORTED_MODULE_1__.post_request_api)('/datastore/file/move/' + file_id, JSON.stringify(data_sent)).done(function (data) {\n      if ((0,_common__WEBPACK_IMPORTED_MODULE_1__.notify_auto_api)(data)) {\n        if (index == jquery__WEBPACK_IMPORTED_MODULE_0___default()(\".file-selected\").length - 1) {\n          reset_ds_file_view();\n          load_datastore();\n        }\n        index += 1;\n      }\n    });\n  });\n}\nfunction move_ds_folder(node_id) {\n  reset_ds_file_view();\n  jquery__WEBPACK_IMPORTED_MODULE_0___default()('#msg_mv_folder').text(jquery__WEBPACK_IMPORTED_MODULE_0___default()('#' + node_id).text());\n  jquery__WEBPACK_IMPORTED_MODULE_0___default()('#msg_mv_dst_folder_folder').text('unselected destination');\n  jquery__WEBPACK_IMPORTED_MODULE_0___default()('#msg_select_destination_folder_folder').show();\n  reparse_activate_tree_selection();\n  jquery__WEBPACK_IMPORTED_MODULE_0___default()('#' + node_id).addClass('node-source-selected');\n}\nfunction validate_ds_folder_move() {\n  var data_sent = Object();\n  if (jquery__WEBPACK_IMPORTED_MODULE_0___default()(\".node-selected\").length === 0) {\n    (0,_common__WEBPACK_IMPORTED_MODULE_1__.notify_error)('No destination folder selected');\n    return false;\n  }\n  if (jquery__WEBPACK_IMPORTED_MODULE_0___default()(\".node-source-selected\").length === 0) {\n    (0,_common__WEBPACK_IMPORTED_MODULE_1__.notify_error)('No initial folder to move');\n    return false;\n  }\n  data_sent['destination-node'] = jquery__WEBPACK_IMPORTED_MODULE_0___default()(\".node-selected\").data('node-id').replace('d-', '');\n  data_sent['csrf_token'] = jquery__WEBPACK_IMPORTED_MODULE_0___default()('#csrf_token').val();\n  var node_id = jquery__WEBPACK_IMPORTED_MODULE_0___default()(\".node-source-selected\").data('node-id').replace('d-', '');\n  (0,_common__WEBPACK_IMPORTED_MODULE_1__.post_request_api)('/datastore/folder/move/' + node_id, JSON.stringify(data_sent)).done(function (data) {\n    if ((0,_common__WEBPACK_IMPORTED_MODULE_1__.notify_auto_api)(data)) {\n      reset_ds_file_view();\n      load_datastore();\n    }\n  });\n}\nfunction delete_ds_file(file_id) {\n  file_id = file_id.replace('f-', '');\n  sweetalert__WEBPACK_IMPORTED_MODULE_3___default()({\n    title: \"Are you sure?\",\n    text: \"This will delete the file on the server and any manual reference will become invalid\",\n    icon: \"warning\",\n    buttons: true,\n    dangerMode: true,\n    confirmButtonColor: '#3085d6',\n    cancelButtonColor: '#d33',\n    confirmButtonText: 'Yes, delete it!'\n  }).then(function (willDelete) {\n    if (willDelete) {\n      var data_sent = {\n        \"csrf_token\": jquery__WEBPACK_IMPORTED_MODULE_0___default()('#csrf_token').val()\n      };\n      (0,_common__WEBPACK_IMPORTED_MODULE_1__.post_request_api)('/datastore/file/delete/' + file_id, JSON.stringify(data_sent)).done(function (data) {\n        if ((0,_common__WEBPACK_IMPORTED_MODULE_1__.notify_auto_api)(data)) {\n          reset_ds_file_view();\n          load_datastore();\n        }\n      });\n    } else {\n      sweetalert__WEBPACK_IMPORTED_MODULE_3___default()(\"Pfew, that was close\");\n    }\n  });\n}\nfunction delete_bulk_ds_file() {\n  var selected_files = jquery__WEBPACK_IMPORTED_MODULE_0___default()(\".file-selected\");\n  sweetalert__WEBPACK_IMPORTED_MODULE_3___default()({\n    title: \"Are you sure?\",\n    text: \"Yu are about to delete \".concat(selected_files.length, \" files\\nThis will delete the files on the server and any manual reference will become invalid\"),\n    icon: \"warning\",\n    buttons: true,\n    dangerMode: true,\n    confirmButtonColor: '#3085d6',\n    cancelButtonColor: '#d33',\n    confirmButtonText: 'Yes, delete it!'\n  }).then(function (willDelete) {\n    if (willDelete) {\n      selected_files.each(function (index) {\n        var file_id = jquery__WEBPACK_IMPORTED_MODULE_0___default()(selected_files[index]).data('file-id').replace('f-', '');\n        var data_sent = {\n          \"csrf_token\": jquery__WEBPACK_IMPORTED_MODULE_0___default()('#csrf_token').val()\n        };\n        (0,_common__WEBPACK_IMPORTED_MODULE_1__.post_request_api)('/datastore/file/delete/' + file_id, JSON.stringify(data_sent)).done(function (data) {\n          if ((0,_common__WEBPACK_IMPORTED_MODULE_1__.notify_auto_api)(data)) {\n            if (index == jquery__WEBPACK_IMPORTED_MODULE_0___default()(\".file-selected\").length - 1) {\n              reset_ds_file_view();\n              load_datastore();\n            }\n            index += 1;\n          }\n        });\n      });\n    } else {\n      sweetalert__WEBPACK_IMPORTED_MODULE_3___default()(\"Pfew, that was close\");\n    }\n  });\n}\nfunction get_link_ds_file(file_id) {\n  file_id = file_id.replace('f-', '');\n  var link = location.protocol + '//' + location.host + '/datastore/file/view/' + file_id;\n  link = link + (0,_common__WEBPACK_IMPORTED_MODULE_1__.case_param)();\n  navigator.clipboard.writeText(link).then(function () {\n    (0,_common__WEBPACK_IMPORTED_MODULE_1__.notify_success)('File link copied');\n  }, function (err) {\n    (0,_common__WEBPACK_IMPORTED_MODULE_1__.notify_error)('Unable to copy link. Error ' + err);\n    console.error('File link link', err);\n  });\n}\nfunction build_dsfile_view_link(file_id) {\n  file_id = file_id.replace('f-', '');\n  var link = '/datastore/file/view/' + file_id;\n  link = link + (0,_common__WEBPACK_IMPORTED_MODULE_1__.case_param)();\n  return link;\n}\nfunction get_mk_link_ds_file(file_id, filename, file_icon, has_password) {\n  var link = build_dsfile_view_link(file_id);\n  file_icon = atob(file_icon);\n  var mk_link = \"[\".concat(file_icon, \" [DS] \").concat(filename, \"](\").concat(link, \")\");\n  if (has_password == 'false' && ['png', 'svg', 'jpeg', 'jpg', 'webp', 'bmp', 'gif'].includes(filename.split('.').pop())) {\n    mk_link = \"![\".concat(filename, \"](\").concat(link, \" =40%x40%)\");\n  }\n  navigator.clipboard.writeText(mk_link).then(function () {\n    (0,_common__WEBPACK_IMPORTED_MODULE_1__.notify_success)('Markdown file link copied');\n  }, function (err) {\n    (0,_common__WEBPACK_IMPORTED_MODULE_1__.notify_error)('Unable to copy link. Error ' + err);\n    console.error(\"Markdown file link \".concat(mk_link), err);\n  });\n}\nfunction download_ds_file(file_id, filename) {\n  var link = build_dsfile_view_link(file_id);\n  (0,_common__WEBPACK_IMPORTED_MODULE_1__.downloadURI)(link, filename);\n}\nfunction reparse_activate_tree_selection() {\n  jquery__WEBPACK_IMPORTED_MODULE_0___default()('.tree li.parent_li > span').on('click', function (e) {\n    if (jquery__WEBPACK_IMPORTED_MODULE_0___default()(this).hasClass('node-selected')) {\n      jquery__WEBPACK_IMPORTED_MODULE_0___default()(this).removeClass('node-selected');\n      jquery__WEBPACK_IMPORTED_MODULE_0___default()('#msg_mv_dst_folder').text('unselected destination');\n      jquery__WEBPACK_IMPORTED_MODULE_0___default()('#msg_mv_dst_folder_folder').text('unselected destination');\n    } else {\n      jquery__WEBPACK_IMPORTED_MODULE_0___default()(\".node-selected\").removeClass(\"node-selected\");\n      jquery__WEBPACK_IMPORTED_MODULE_0___default()(this).addClass('node-selected');\n      jquery__WEBPACK_IMPORTED_MODULE_0___default()('#msg_mv_dst_folder').text(jquery__WEBPACK_IMPORTED_MODULE_0___default()(\".node-selected\").text());\n      jquery__WEBPACK_IMPORTED_MODULE_0___default()('#msg_mv_dst_folder_folder').text(jquery__WEBPACK_IMPORTED_MODULE_0___default()(\".node-selected\").text());\n    }\n  });\n}\nvar parsed_filter_ds = {};\nvar ds_keywords = ['storage_name', 'name', 'tag', 'description', 'is_ioc', 'is_evidence', 'has_password', 'uuid', 'id', 'sha256'];\nfunction parse_filter(str_filter, keywords) {\n  for (var k = 0; k < keywords.length; k++) {\n    var keyword = keywords[k];\n    var items = str_filter.split(keyword + ':');\n    var ita = items[1];\n    if (ita === undefined) {\n      continue;\n    }\n    var item = (0,_common__WEBPACK_IMPORTED_MODULE_1__.split_bool)(ita);\n    if (item != null) {\n      if (!(keyword in parsed_filter_ds)) {\n        parsed_filter_ds[keyword] = [];\n      }\n      if (!parsed_filter_ds[keyword].includes(item)) {\n        parsed_filter_ds[keyword].push(item.trim());\n      }\n      if (items[1] != undefined) {\n        str_filter = str_filter.replace(keyword + ':' + item, '');\n        if (parse_filter(str_filter, keywords)) {\n          keywords.shift();\n        }\n      }\n    }\n  }\n  return true;\n}\nfunction filter_ds_files() {\n  var ds_keywords = ['storage_name', 'name', 'tag', 'description', 'is_ioc', 'is_evidence', 'has_password', 'uuid', 'id', 'sha256'];\n  var parsed_filter_ds = {};\n  parse_filter(ds_filter.getValue(), ds_keywords);\n  var filter_query = encodeURIComponent(JSON.stringify(parsed_filter_ds));\n  jquery__WEBPACK_IMPORTED_MODULE_0___default()('#dsFilterDSFile').text('Searching..');\n  (0,_common__WEBPACK_IMPORTED_MODULE_1__.get_request_data_api)(\"/datastore/list/filter\", {\n    'q': filter_query\n  }).done(function (data) {\n    if ((0,_common__WEBPACK_IMPORTED_MODULE_1__.notify_auto_api)(data, true)) {\n      jquery__WEBPACK_IMPORTED_MODULE_0___default()('#ds-tree-root').empty();\n      build_ds_tree(data.data, 'ds-tree-root');\n      reparse_activate_tree();\n      show_datastore();\n    }\n  }).always(function () {\n    jquery__WEBPACK_IMPORTED_MODULE_0___default()('#dsFilterDSFile').text('Search');\n  });\n}\nfunction reset_ds_files_filter() {\n  ds_filter.setValue(\"\");\n  load_datastore();\n}\nfunction show_ds_filter_help() {\n  jquery__WEBPACK_IMPORTED_MODULE_0___default()('#modal_help').load('/datastore/filter-help/modal' + (0,_common__WEBPACK_IMPORTED_MODULE_1__.case_param)(), function (response, status, xhr) {\n    if (status !== \"success\") {\n      (0,_common__WEBPACK_IMPORTED_MODULE_1__.ajax_notify_error)(xhr, '/datastore/filter-help/modal');\n      return false;\n    }\n    jquery__WEBPACK_IMPORTED_MODULE_0___default()('#modal_help').modal('show');\n  });\n}\njquery__WEBPACK_IMPORTED_MODULE_0___default()(function () {\n  jquery__WEBPACK_IMPORTED_MODULE_0___default()('.ds-sidebar-toggler').on('click', function () {\n    load_datastore();\n  });\n  jquery__WEBPACK_IMPORTED_MODULE_0___default()('.close-ds-sidebar').on('click', function () {\n    hide_datastore();\n  });\n  jquery__WEBPACK_IMPORTED_MODULE_0___default()('#dsRefreshDatastore').on('click', function () {\n    refresh_ds();\n  });\n  jquery__WEBPACK_IMPORTED_MODULE_0___default()('#dsToggleSelectFiles').on('click', function () {\n    toggle_select_file();\n  });\n  jquery__WEBPACK_IMPORTED_MODULE_0___default()('#dsDeleteBulkFiles').on('click', function () {\n    delete_bulk_ds_file();\n  });\n  jquery__WEBPACK_IMPORTED_MODULE_0___default()('#dsMoveFiles').on('click', function () {\n    move_ds_file();\n  });\n  jquery__WEBPACK_IMPORTED_MODULE_0___default()('.ds-reset-file-view').on('click', function () {\n    reset_ds_file_view();\n    load_datastore();\n  });\n  jquery__WEBPACK_IMPORTED_MODULE_0___default()('#dsValidateDsFileMove').on('click', function () {\n    validate_ds_file_move();\n  });\n  jquery__WEBPACK_IMPORTED_MODULE_0___default()('#dsValidateDSFolderMove').on('click', function () {\n    validate_ds_folder_move();\n  });\n  jquery__WEBPACK_IMPORTED_MODULE_0___default()('#dsFilterDSFile').on('click', function () {\n    filter_ds_files();\n  });\n  jquery__WEBPACK_IMPORTED_MODULE_0___default()('#dsResetSearchFilter').on('click', function () {\n    reset_ds_files_filter();\n  });\n});\n\n//# sourceURL=webpack://iris-web/./app/static/assets/js/iris/datastore.js?");
+eval("__webpack_require__.r(__webpack_exports__);\n/* harmony export */ __webpack_require__.d(__webpack_exports__, {\n/* harmony export */   load_datastore: () => (/* binding */ load_datastore)\n/* harmony export */ });\n/* harmony import */ var jquery__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! jquery */ \"./node_modules/jquery/dist/jquery.js\");\n/* harmony import */ var jquery__WEBPACK_IMPORTED_MODULE_0___default = /*#__PURE__*/__webpack_require__.n(jquery__WEBPACK_IMPORTED_MODULE_0__);\n/* harmony import */ var _common__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(/*! ./common */ \"./app/static/assets/js/iris/common.js\");\n/* harmony import */ var ace_builds_src_noconflict_ace__WEBPACK_IMPORTED_MODULE_2__ = __webpack_require__(/*! ace-builds/src-noconflict/ace */ \"./node_modules/ace-builds/src-noconflict/ace.js\");\n/* harmony import */ var ace_builds_src_noconflict_ace__WEBPACK_IMPORTED_MODULE_2___default = /*#__PURE__*/__webpack_require__.n(ace_builds_src_noconflict_ace__WEBPACK_IMPORTED_MODULE_2__);\n/* harmony import */ var ace_builds_webpack_resolver__WEBPACK_IMPORTED_MODULE_3__ = __webpack_require__(/*! ace-builds/webpack-resolver */ \"./node_modules/ace-builds/webpack-resolver.js\");\n/* harmony import */ var ace_builds_webpack_resolver__WEBPACK_IMPORTED_MODULE_3___default = /*#__PURE__*/__webpack_require__.n(ace_builds_webpack_resolver__WEBPACK_IMPORTED_MODULE_3__);\n/* harmony import */ var ace_builds_src_noconflict_ext_language_tools__WEBPACK_IMPORTED_MODULE_4__ = __webpack_require__(/*! ace-builds/src-noconflict/ext-language_tools */ \"./node_modules/ace-builds/src-noconflict/ext-language_tools.js\");\n/* harmony import */ var ace_builds_src_noconflict_ext_language_tools__WEBPACK_IMPORTED_MODULE_4___default = /*#__PURE__*/__webpack_require__.n(ace_builds_src_noconflict_ext_language_tools__WEBPACK_IMPORTED_MODULE_4__);\n/* harmony import */ var ace_builds_src_noconflict_mode_json__WEBPACK_IMPORTED_MODULE_5__ = __webpack_require__(/*! ace-builds/src-noconflict/mode-json */ \"./node_modules/ace-builds/src-noconflict/mode-json.js\");\n/* harmony import */ var ace_builds_src_noconflict_mode_json__WEBPACK_IMPORTED_MODULE_5___default = /*#__PURE__*/__webpack_require__.n(ace_builds_src_noconflict_mode_json__WEBPACK_IMPORTED_MODULE_5__);\n/* harmony import */ var ace_builds_src_noconflict_theme_tomorrow__WEBPACK_IMPORTED_MODULE_6__ = __webpack_require__(/*! ace-builds/src-noconflict/theme-tomorrow */ \"./node_modules/ace-builds/src-noconflict/theme-tomorrow.js\");\n/* harmony import */ var ace_builds_src_noconflict_theme_tomorrow__WEBPACK_IMPORTED_MODULE_6___default = /*#__PURE__*/__webpack_require__.n(ace_builds_src_noconflict_theme_tomorrow__WEBPACK_IMPORTED_MODULE_6__);\n/* harmony import */ var sweetalert__WEBPACK_IMPORTED_MODULE_7__ = __webpack_require__(/*! sweetalert */ \"./node_modules/sweetalert/dist/sweetalert.min.js\");\n/* harmony import */ var sweetalert__WEBPACK_IMPORTED_MODULE_7___default = /*#__PURE__*/__webpack_require__.n(sweetalert__WEBPACK_IMPORTED_MODULE_7__);\n\n\n\n\n\n\n\n\nvar ds_filter;\nfunction load_datastore() {\n  ds_filter = ace_builds_src_noconflict_ace__WEBPACK_IMPORTED_MODULE_2___default().edit(\"ds_file_search\", {\n    autoScrollEditorIntoView: true,\n    minLines: 1,\n    maxLines: 5\n  });\n  ds_filter.setTheme(\"ace/theme/tomorrow\");\n  ds_filter.session.setMode(\"ace/mode/json\");\n  ds_filter.renderer.setShowGutter(false);\n  ds_filter.setShowPrintMargin(false);\n  ds_filter.renderer.setScrollMargin(10, 10);\n  ds_filter.setOption(\"displayIndentGuides\", true);\n  ds_filter.setOption(\"indentedSoftWrap\", true);\n  ds_filter.setOption(\"showLineNumbers\", false);\n  ds_filter.setOption(\"placeholder\", \"Search files\");\n  ds_filter.setOption(\"highlightActiveLine\", false);\n  ds_filter.commands.addCommand({\n    name: \"Do filter\",\n    bindKey: {\n      win: \"Enter\",\n      mac: \"Enter\"\n    },\n    exec: function exec() {\n      filter_ds_files();\n    }\n  });\n  (0,_common__WEBPACK_IMPORTED_MODULE_1__.get_request_api)('/datastore/list/tree').done(function (data) {\n    if ((0,_common__WEBPACK_IMPORTED_MODULE_1__.notify_auto_api)(data, true)) {\n      jquery__WEBPACK_IMPORTED_MODULE_0___default()('#ds-tree-root').empty();\n      build_ds_tree(data.data, 'ds-tree-root');\n      reparse_activate_tree();\n      show_datastore();\n    }\n  });\n}\nfunction build_ds_tree(data, tree_node) {\n  var standard_files_filters = [{\n    value: 'name: ',\n    score: 10,\n    meta: 'Match filename'\n  }, {\n    value: 'storage_name: ',\n    score: 10,\n    meta: 'Match local storage filename'\n  }, {\n    value: 'tag: ',\n    score: 10,\n    meta: 'Match tag of file'\n  }, {\n    value: 'description: ',\n    score: 10,\n    meta: 'Match description of file'\n  }, {\n    value: 'is_ioc: ',\n    score: 10,\n    meta: \"Match file is IOC\"\n  }, {\n    value: 'is_evidence: ',\n    score: 10,\n    meta: \"Match file is evidence\"\n  }, {\n    value: 'has_password: ',\n    score: 10,\n    meta: \"Match file is password protected\"\n  }, {\n    value: 'id: ',\n    score: 10,\n    meta: \"Match ID of the file\"\n  }, {\n    value: 'uuid: ',\n    score: 10,\n    meta: \"Match UUID of the file\"\n  }, {\n    value: 'sha256: ',\n    score: 10,\n    meta: \"Match sha256 of the file\"\n  }, {\n    value: 'AND ',\n    score: 10,\n    meta: 'AND operator'\n  }];\n  for (var node in data) {\n    if (data[node] === null) {\n      break;\n    }\n    if (data[node].type == 'directory') {\n      data[node].name = (0,_common__WEBPACK_IMPORTED_MODULE_1__.sanitizeHTML)(data[node].name);\n      var can_delete = '';\n      if (!data[node].is_root) {\n        can_delete = \"<div class=\\\"dropdown-divider\\\"></div><a href=\\\"#\\\" class=\\\"dropdown-item text-danger\\\" onclick=\\\"delete_ds_folder('\".concat(node, \"');\\\"><small class=\\\"fa fa-trash mr-2\\\"></small>Delete</a>\");\n      }\n      var jnode = \"<li>\\n                    <span id='\".concat(node, \"' title='Folder ID \").concat(node, \"' data-node-id=\\\"\").concat(node, \"\\\"><i class=\\\"fa-regular fa-folder\\\"></i> \").concat(data[node].name, \"</span> <i class=\\\"fas fa-plus ds-folder-menu\\\" role=\\\"menu\\\" style=\\\"cursor:pointer;\\\" data-toggle=\\\"dropdown\\\" aria-expanded=\\\"false\\\"></i>\\n                        <div class=\\\"dropdown-menu\\\" role=\\\"menu\\\">\\n                                <a href=\\\"#\\\" class=\\\"dropdown-item\\\" onclick=\\\"add_ds_folder('\").concat(node, \"');return false;\\\"><small class=\\\"fa-solid fa-folder mr-2\\\"></small>Add subfolder</a>\\n                                <a href=\\\"#\\\" class=\\\"dropdown-item\\\" onclick=\\\"add_ds_file('\").concat(node, \"');return false;\\\"><small class=\\\"fa-solid fa-file mr-2\\\"></small>Add file</a>\\n                                <div class=\\\"dropdown-divider\\\"></div>\\n                                <a href=\\\"#\\\" class=\\\"dropdown-item\\\" onclick=\\\"move_ds_folder('\").concat(node, \"');return false;\\\"><small class=\\\"fa fa-arrow-right-arrow-left mr-2\\\"></small>Move</a>\\n                                <a href=\\\"#\\\" class=\\\"dropdown-item\\\" onclick=\\\"rename_ds_folder('\").concat(node, \"', '\").concat(data[node].name, \"');return false;\\\"><small class=\\\"fa-solid fa-pencil mr-2\\\"></small>Rename</a>\\n                                \").concat(can_delete, \"\\n                        </div>\\n                    <ul id='tree-\").concat(node, \"'></ul>\\n                </li>\");\n      jquery__WEBPACK_IMPORTED_MODULE_0___default()('#' + tree_node).append(jnode);\n      build_ds_tree(data[node].children, 'tree-' + node);\n    } else {\n      data[node].file_original_name = (0,_common__WEBPACK_IMPORTED_MODULE_1__.sanitizeHTML)(data[node].file_original_name);\n      data[node].file_password = (0,_common__WEBPACK_IMPORTED_MODULE_1__.sanitizeHTML)(data[node].file_password);\n      data[node].file_description = (0,_common__WEBPACK_IMPORTED_MODULE_1__.sanitizeHTML)(data[node].file_description);\n      standard_files_filters.push({\n        value: data[node].file_original_name,\n        score: 1,\n        meta: data[node].file_description\n      });\n      var icon = '';\n      if (data[node].file_is_ioc) {\n        icon += '<i class=\"fa-solid fa-virus-covid text-danger mr-1\" title=\"File is an IOC\"></i>';\n      }\n      if (data[node].file_is_evidence) {\n        icon += '<i class=\"fa-solid fa-file-shield text-success mr-1\" title=\"File is an evidence\"></i>';\n      }\n      if (icon.length === 0) {\n        icon = '<i class=\"fa-regular fa-file mr-1\" title=\"Regular file\"></i>';\n      }\n      var icon_lock = '';\n      var has_password = data[node].file_password !== null && data[node].file_password.length > 0;\n      if (has_password) {\n        icon_lock = '<i title=\"Password protected\" class=\"fa-solid fa-lock text-success mr-1\"></i>';\n      }\n      var icn_content = btoa(icon + icon_lock);\n      var _jnode = \"<li>\\n                <span id='\".concat(node, \"' data-file-id=\\\"\").concat(node, \"\\\" title=\\\"ID : \").concat(data[node].file_id, \"\\nUUID : \").concat(data[node].file_uuid, \"\\\" class='tree-leaf'>\\n                      <span role=\\\"menu\\\" style=\\\"cursor:pointer;\\\" data-toggle=\\\"dropdown\\\" aria-expanded=\\\"false\\\">\").concat(icon).concat(icon_lock, \" \").concat(data[node].file_original_name, \"</span>\\n                      <i class=\\\"fa-regular fa-circle ds-file-selector\\\" style=\\\"cursor:pointer;display:none;\\\" onclick=\\\"ds_file_select('\").concat(node, \"');\\\"></i>\\n                        <div class=\\\"dropdown-menu\\\" role=\\\"menu\\\">\\n                                <a href=\\\"#\\\" class=\\\"dropdown-item\\\" onclick=\\\"get_link_ds_file('\").concat(node, \"');return false;\\\"><small class=\\\"fa fa-link mr-2\\\"></small>Link</a>\\n                                <a href=\\\"#\\\" class=\\\"dropdown-item\\\" onclick=\\\"get_mk_link_ds_file('\").concat(node, \"', '\").concat(data[node].file_original_name, \"', '\").concat(icn_content, \"', '\").concat(has_password, \"');return false;\\\"><small class=\\\"fa-brands fa-markdown mr-2\\\"></small>Markdown link</a>\\n                                <a href=\\\"#\\\" class=\\\"dropdown-item\\\" onclick=\\\"download_ds_file('\").concat(node, \"', '\").concat(data[node].file_original_name, \"');return false;\\\"><small class=\\\"fa-solid fa-download mr-2\\\"></small>Download</a>\\n                                <div class=\\\"dropdown-divider\\\"></div>\\n                                <a href=\\\"#\\\" class=\\\"dropdown-item\\\" onclick=\\\"info_ds_file('\").concat(node, \"');return false;\\\"><small class=\\\"fa fa-eye mr-2\\\"></small>Info</a>\\n                                <a href=\\\"#\\\" class=\\\"dropdown-item\\\" onclick=\\\"edit_ds_file('\").concat(node, \"');return false;\\\"><small class=\\\"fa fa-pencil mr-2\\\"></small>Edit</a>\\n                                <a href=\\\"#\\\" class=\\\"dropdown-item\\\" onclick=\\\"move_ds_file('\").concat(node, \"');return false;\\\"><small class=\\\"fa fa-arrow-right-arrow-left mr-2\\\"></small>Move</a>\\n                                <div class=\\\"dropdown-divider\\\"></div>\\n                                <a href=\\\"#\\\" class=\\\"dropdown-item text-danger\\\" onclick=\\\"delete_ds_file('\").concat(node, \"');\\\"><small class=\\\"fa fa-trash mr-2\\\"></small>Delete</a>\\n                        </div>\\n                    </span>\\n                </li>\");\n      jquery__WEBPACK_IMPORTED_MODULE_0___default()('#' + tree_node).append(_jnode);\n    }\n  }\n  ds_filter.setOptions({\n    enableBasicAutocompletion: [{\n      getCompletions: function getCompletions(editor, session, pos, prefix, callback) {\n        callback(null, standard_files_filters);\n      }\n    }],\n    enableLiveAutocompletion: true\n  });\n}\nfunction show_datastore() {\n  jquery__WEBPACK_IMPORTED_MODULE_0___default()('html').addClass('ds_sidebar_open');\n  jquery__WEBPACK_IMPORTED_MODULE_0___default()('.ds-sidebar-toggler').addClass('toggled');\n}\nfunction hide_datastore() {\n  jquery__WEBPACK_IMPORTED_MODULE_0___default()('html').removeClass('ds_sidebar_open');\n  jquery__WEBPACK_IMPORTED_MODULE_0___default()('.ds-sidebar-toggler').removeClass('toggled');\n}\nfunction reparse_activate_tree() {\n  jquery__WEBPACK_IMPORTED_MODULE_0___default()('.tree li:has(ul)').addClass('parent_li').find(' > span').attr('title', 'Collapse this branch');\n  jquery__WEBPACK_IMPORTED_MODULE_0___default()('.tree li.parent_li > span').on('click', function (e) {\n    var children = jquery__WEBPACK_IMPORTED_MODULE_0___default()(this).parent('li.parent_li').find(' > ul > li');\n    if (children.is(\":visible\")) {\n      children.hide('fast');\n      jquery__WEBPACK_IMPORTED_MODULE_0___default()(this).attr('title', 'Expand this branch').find(' > i').addClass('icon-plus-sign').removeClass('icon-minus-sign');\n    } else {\n      children.show('fast');\n      jquery__WEBPACK_IMPORTED_MODULE_0___default()(this).attr('title', 'Collapse this branch').find(' > i').addClass('icon-minus-sign').removeClass('icon-plus-sign');\n    }\n    e.stopPropagation();\n  });\n}\nfunction add_ds_folder(parent_node) {\n  jquery__WEBPACK_IMPORTED_MODULE_0___default()('#ds_mod_folder_name').data('parent-node', parent_node);\n  jquery__WEBPACK_IMPORTED_MODULE_0___default()('#ds_mod_folder_name').data('node-update', false);\n  jquery__WEBPACK_IMPORTED_MODULE_0___default()('#ds_mod_folder_name').val('');\n  jquery__WEBPACK_IMPORTED_MODULE_0___default()('#modal_ds_folder').modal(\"show\");\n}\nfunction rename_ds_folder(parent_node, name) {\n  jquery__WEBPACK_IMPORTED_MODULE_0___default()('#ds_mod_folder_name').data('parent-node', parent_node);\n  jquery__WEBPACK_IMPORTED_MODULE_0___default()('#ds_mod_folder_name').data('node-update', true);\n  jquery__WEBPACK_IMPORTED_MODULE_0___default()('#ds_mod_folder_name').val(name);\n  jquery__WEBPACK_IMPORTED_MODULE_0___default()('#modal_ds_folder').modal(\"show\");\n}\nfunction delete_ds_folder(node) {\n  node = node.replace('d-', '');\n  sweetalert__WEBPACK_IMPORTED_MODULE_7___default()({\n    title: \"Are you sure?\",\n    text: \"This will delete all files included and sub-folders\",\n    icon: \"warning\",\n    buttons: true,\n    dangerMode: true,\n    confirmButtonColor: '#3085d6',\n    cancelButtonColor: '#d33',\n    confirmButtonText: 'Yes, delete it!'\n  }).then(function (willDelete) {\n    if (willDelete) {\n      var data_sent = {\n        \"csrf_token\": jquery__WEBPACK_IMPORTED_MODULE_0___default()('#csrf_token').val()\n      };\n      (0,_common__WEBPACK_IMPORTED_MODULE_1__.post_request_api)('/datastore/folder/delete/' + node, JSON.stringify(data_sent)).done(function (data) {\n        if ((0,_common__WEBPACK_IMPORTED_MODULE_1__.notify_auto_api)(data)) {\n          reset_ds_file_view();\n          load_datastore();\n        }\n      });\n    } else {\n      sweetalert__WEBPACK_IMPORTED_MODULE_7___default()(\"Pfew, that was close\");\n    }\n  });\n}\nfunction save_ds_mod_folder() {\n  var data = Object();\n  data['parent_node'] = jquery__WEBPACK_IMPORTED_MODULE_0___default()('#ds_mod_folder_name').data('parent-node').replace('d-', '');\n  data['folder_name'] = jquery__WEBPACK_IMPORTED_MODULE_0___default()('#ds_mod_folder_name').val();\n  data['csrf_token'] = jquery__WEBPACK_IMPORTED_MODULE_0___default()('#csrf_token').val();\n  var uri = '/datastore/folder/add';\n  if (jquery__WEBPACK_IMPORTED_MODULE_0___default()('#ds_mod_folder_name').data('node-update')) {\n    uri = '/datastore/folder/rename/' + data['parent_node'];\n  }\n  (0,_common__WEBPACK_IMPORTED_MODULE_1__.post_request_api)(uri, JSON.stringify(data)).done(function (data) {\n    if ((0,_common__WEBPACK_IMPORTED_MODULE_1__.notify_auto_api)(data)) {\n      jquery__WEBPACK_IMPORTED_MODULE_0___default()('#modal_ds_folder').modal(\"hide\");\n      load_datastore();\n    }\n  });\n}\nfunction add_ds_file(node) {\n  node = node.replace('d-', '');\n  var url = '/datastore/file/add/' + node + '/modal' + (0,_common__WEBPACK_IMPORTED_MODULE_1__.case_param)();\n  jquery__WEBPACK_IMPORTED_MODULE_0___default()('#modal_ds_file_content').load(url, function (response, status, xhr) {\n    if (status !== \"success\") {\n      (0,_common__WEBPACK_IMPORTED_MODULE_1__.ajax_notify_error)(xhr, url);\n      return false;\n    }\n    jquery__WEBPACK_IMPORTED_MODULE_0___default()('#modal_ds_file').modal(\"show\");\n  });\n}\nfunction edit_ds_file(node) {\n  node = node.replace('f-', '');\n  var url = '/datastore/file/update/' + node + '/modal' + (0,_common__WEBPACK_IMPORTED_MODULE_1__.case_param)();\n  jquery__WEBPACK_IMPORTED_MODULE_0___default()('#modal_ds_file_content').load(url, function (response, status, xhr) {\n    if (status !== \"success\") {\n      (0,_common__WEBPACK_IMPORTED_MODULE_1__.ajax_notify_error)(xhr, url);\n      return false;\n    }\n    jquery__WEBPACK_IMPORTED_MODULE_0___default()('#modal_ds_file').modal(\"show\");\n  });\n}\nfunction info_ds_file(node) {\n  node = node.replace('f-', '');\n  var url = '/datastore/file/info/' + node + '/modal' + (0,_common__WEBPACK_IMPORTED_MODULE_1__.case_param)();\n  jquery__WEBPACK_IMPORTED_MODULE_0___default()('#modal_ds_file_content').load(url, function (response, status, xhr) {\n    if (status !== \"success\") {\n      (0,_common__WEBPACK_IMPORTED_MODULE_1__.ajax_notify_error)(xhr, url);\n      return false;\n    }\n    jquery__WEBPACK_IMPORTED_MODULE_0___default()('#modal_ds_file').modal(\"show\");\n  });\n}\nfunction save_ds_file(node, file_id) {\n  var formData = new FormData(jquery__WEBPACK_IMPORTED_MODULE_0___default()('#form_new_ds_file')[0]);\n  formData.append('file_content', jquery__WEBPACK_IMPORTED_MODULE_0___default()('#input_upload_ds_file').prop('files')[0]);\n  var uri = '/datastore/file/update/' + file_id;\n  if (file_id === undefined) {\n    uri = '/datastore/file/add/' + node;\n  }\n  (0,_common__WEBPACK_IMPORTED_MODULE_1__.post_request_data_api)(uri, formData, true, function () {\n    window.swal({\n      title: \"File is uploading\",\n      text: \"Please wait. This window will close automatically when the file is uploaded.\",\n      icon: \"/static/assets/img/loader.gif\",\n      button: false,\n      allowOutsideClick: false\n    });\n  }).done(function (data) {\n    if ((0,_common__WEBPACK_IMPORTED_MODULE_1__.notify_auto_api)(data)) {\n      jquery__WEBPACK_IMPORTED_MODULE_0___default()('#modal_ds_file').modal(\"hide\");\n      reset_ds_file_view();\n      load_datastore();\n    }\n  }).always(function () {\n    window.swal.close();\n  });\n}\nfunction refresh_ds() {\n  reset_ds_file_view();\n  load_datastore();\n  (0,_common__WEBPACK_IMPORTED_MODULE_1__.notify_success)('Datastore refreshed');\n}\nfunction upload_interactive_data(data_blob, filename, completion_callback) {\n  var data_sent = Object();\n  data_sent[\"csrf_token\"] = jquery__WEBPACK_IMPORTED_MODULE_0___default()('#csrf_token').val();\n  data_sent[\"file_content\"] = data_blob.split(';base64,')[1];\n  data_sent[\"file_original_name\"] = filename;\n  (0,_common__WEBPACK_IMPORTED_MODULE_1__.post_request_api)('/datastore/file/add-interactive', JSON.stringify(data_sent), true).done(function (data) {\n    if ((0,_common__WEBPACK_IMPORTED_MODULE_1__.notify_auto_api)(data)) {\n      if (completion_callback !== undefined) {\n        completion_callback(data);\n      }\n    }\n  });\n}\nfunction toggle_select_file() {\n  if (jquery__WEBPACK_IMPORTED_MODULE_0___default()('.btn-ds-bulk-selector').hasClass('active')) {\n    reset_ds_file_view();\n    load_datastore();\n  } else {\n    jquery__WEBPACK_IMPORTED_MODULE_0___default()('.ds-file-selector').show(250);\n    jquery__WEBPACK_IMPORTED_MODULE_0___default()('.btn-ds-bulk').show(250);\n    jquery__WEBPACK_IMPORTED_MODULE_0___default()('.btn-ds-bulk-selector').addClass('active');\n  }\n}\nfunction move_ds_file(file_id) {\n  reparse_activate_tree_selection();\n  jquery__WEBPACK_IMPORTED_MODULE_0___default()('.ds-file-selector').show();\n  jquery__WEBPACK_IMPORTED_MODULE_0___default()('#msg_mv_dst_folder').text('unselected destination');\n  jquery__WEBPACK_IMPORTED_MODULE_0___default()('#msg_select_destination_folder').show();\n  ds_file_select(file_id);\n}\nfunction reset_ds_file_view() {\n  jquery__WEBPACK_IMPORTED_MODULE_0___default()(\".node-selected\").removeClass(\"node-selected\");\n  jquery__WEBPACK_IMPORTED_MODULE_0___default()(\".file-selected\").removeClass(\"file-selected\");\n  jquery__WEBPACK_IMPORTED_MODULE_0___default()('.ds-file-selector').hide();\n  jquery__WEBPACK_IMPORTED_MODULE_0___default()('#msg_select_destination_folder').attr(\"data-file-id\", '');\n  jquery__WEBPACK_IMPORTED_MODULE_0___default()('#msg_select_destination_folder').hide();\n  jquery__WEBPACK_IMPORTED_MODULE_0___default()('#msg_select_destination_folder_folder').hide();\n  jquery__WEBPACK_IMPORTED_MODULE_0___default()('.ds-file-selector').hide();\n  jquery__WEBPACK_IMPORTED_MODULE_0___default()('.btn-ds-bulk').hide();\n  jquery__WEBPACK_IMPORTED_MODULE_0___default()('.btn-ds-bulk-selector').removeClass('active');\n}\nfunction ds_file_select(file_id) {\n  file_id = '#' + file_id;\n  if (jquery__WEBPACK_IMPORTED_MODULE_0___default()(file_id).hasClass('file-selected')) {\n    jquery__WEBPACK_IMPORTED_MODULE_0___default()(file_id + '> i').removeClass('fa-circle-check');\n    jquery__WEBPACK_IMPORTED_MODULE_0___default()(file_id + '> i').addClass('fa-circle');\n    jquery__WEBPACK_IMPORTED_MODULE_0___default()(file_id).removeClass('file-selected');\n  } else {\n    jquery__WEBPACK_IMPORTED_MODULE_0___default()(file_id + '> i').removeClass('fa-circle');\n    jquery__WEBPACK_IMPORTED_MODULE_0___default()(file_id + '> i').addClass('fa-circle-check');\n    jquery__WEBPACK_IMPORTED_MODULE_0___default()(file_id).addClass('file-selected');\n  }\n  jquery__WEBPACK_IMPORTED_MODULE_0___default()('#msg_mv_files').text(jquery__WEBPACK_IMPORTED_MODULE_0___default()('.file-selected').length);\n}\nfunction validate_ds_file_move() {\n  var data_sent = Object();\n  if (jquery__WEBPACK_IMPORTED_MODULE_0___default()(\".node-selected\").length === 0) {\n    (0,_common__WEBPACK_IMPORTED_MODULE_1__.notify_error)('No destination folder selected');\n    return false;\n  }\n  if (jquery__WEBPACK_IMPORTED_MODULE_0___default()(\".file-selected\").length === 0) {\n    (0,_common__WEBPACK_IMPORTED_MODULE_1__.notify_error)('No file to move selected');\n    return false;\n  }\n  data_sent['destination-node'] = jquery__WEBPACK_IMPORTED_MODULE_0___default()(\".node-selected\").data('node-id').replace('d-', '');\n  data_sent['csrf_token'] = jquery__WEBPACK_IMPORTED_MODULE_0___default()('#csrf_token').val();\n  var selected_files = jquery__WEBPACK_IMPORTED_MODULE_0___default()(\".file-selected\");\n  selected_files.each(function (index) {\n    var file_id = jquery__WEBPACK_IMPORTED_MODULE_0___default()(selected_files[index]).data('file-id').replace('f-', '');\n    (0,_common__WEBPACK_IMPORTED_MODULE_1__.post_request_api)('/datastore/file/move/' + file_id, JSON.stringify(data_sent)).done(function (data) {\n      if ((0,_common__WEBPACK_IMPORTED_MODULE_1__.notify_auto_api)(data)) {\n        if (index == jquery__WEBPACK_IMPORTED_MODULE_0___default()(\".file-selected\").length - 1) {\n          reset_ds_file_view();\n          load_datastore();\n        }\n        index += 1;\n      }\n    });\n  });\n}\nfunction move_ds_folder(node_id) {\n  reset_ds_file_view();\n  jquery__WEBPACK_IMPORTED_MODULE_0___default()('#msg_mv_folder').text(jquery__WEBPACK_IMPORTED_MODULE_0___default()('#' + node_id).text());\n  jquery__WEBPACK_IMPORTED_MODULE_0___default()('#msg_mv_dst_folder_folder').text('unselected destination');\n  jquery__WEBPACK_IMPORTED_MODULE_0___default()('#msg_select_destination_folder_folder').show();\n  reparse_activate_tree_selection();\n  jquery__WEBPACK_IMPORTED_MODULE_0___default()('#' + node_id).addClass('node-source-selected');\n}\nfunction validate_ds_folder_move() {\n  var data_sent = Object();\n  if (jquery__WEBPACK_IMPORTED_MODULE_0___default()(\".node-selected\").length === 0) {\n    (0,_common__WEBPACK_IMPORTED_MODULE_1__.notify_error)('No destination folder selected');\n    return false;\n  }\n  if (jquery__WEBPACK_IMPORTED_MODULE_0___default()(\".node-source-selected\").length === 0) {\n    (0,_common__WEBPACK_IMPORTED_MODULE_1__.notify_error)('No initial folder to move');\n    return false;\n  }\n  data_sent['destination-node'] = jquery__WEBPACK_IMPORTED_MODULE_0___default()(\".node-selected\").data('node-id').replace('d-', '');\n  data_sent['csrf_token'] = jquery__WEBPACK_IMPORTED_MODULE_0___default()('#csrf_token').val();\n  var node_id = jquery__WEBPACK_IMPORTED_MODULE_0___default()(\".node-source-selected\").data('node-id').replace('d-', '');\n  (0,_common__WEBPACK_IMPORTED_MODULE_1__.post_request_api)('/datastore/folder/move/' + node_id, JSON.stringify(data_sent)).done(function (data) {\n    if ((0,_common__WEBPACK_IMPORTED_MODULE_1__.notify_auto_api)(data)) {\n      reset_ds_file_view();\n      load_datastore();\n    }\n  });\n}\nfunction delete_ds_file(file_id) {\n  file_id = file_id.replace('f-', '');\n  sweetalert__WEBPACK_IMPORTED_MODULE_7___default()({\n    title: \"Are you sure?\",\n    text: \"This will delete the file on the server and any manual reference will become invalid\",\n    icon: \"warning\",\n    buttons: true,\n    dangerMode: true,\n    confirmButtonColor: '#3085d6',\n    cancelButtonColor: '#d33',\n    confirmButtonText: 'Yes, delete it!'\n  }).then(function (willDelete) {\n    if (willDelete) {\n      var data_sent = {\n        \"csrf_token\": jquery__WEBPACK_IMPORTED_MODULE_0___default()('#csrf_token').val()\n      };\n      (0,_common__WEBPACK_IMPORTED_MODULE_1__.post_request_api)('/datastore/file/delete/' + file_id, JSON.stringify(data_sent)).done(function (data) {\n        if ((0,_common__WEBPACK_IMPORTED_MODULE_1__.notify_auto_api)(data)) {\n          reset_ds_file_view();\n          load_datastore();\n        }\n      });\n    } else {\n      sweetalert__WEBPACK_IMPORTED_MODULE_7___default()(\"Pfew, that was close\");\n    }\n  });\n}\nfunction delete_bulk_ds_file() {\n  var selected_files = jquery__WEBPACK_IMPORTED_MODULE_0___default()(\".file-selected\");\n  sweetalert__WEBPACK_IMPORTED_MODULE_7___default()({\n    title: \"Are you sure?\",\n    text: \"Yu are about to delete \".concat(selected_files.length, \" files\\nThis will delete the files on the server and any manual reference will become invalid\"),\n    icon: \"warning\",\n    buttons: true,\n    dangerMode: true,\n    confirmButtonColor: '#3085d6',\n    cancelButtonColor: '#d33',\n    confirmButtonText: 'Yes, delete it!'\n  }).then(function (willDelete) {\n    if (willDelete) {\n      selected_files.each(function (index) {\n        var file_id = jquery__WEBPACK_IMPORTED_MODULE_0___default()(selected_files[index]).data('file-id').replace('f-', '');\n        var data_sent = {\n          \"csrf_token\": jquery__WEBPACK_IMPORTED_MODULE_0___default()('#csrf_token').val()\n        };\n        (0,_common__WEBPACK_IMPORTED_MODULE_1__.post_request_api)('/datastore/file/delete/' + file_id, JSON.stringify(data_sent)).done(function (data) {\n          if ((0,_common__WEBPACK_IMPORTED_MODULE_1__.notify_auto_api)(data)) {\n            if (index == jquery__WEBPACK_IMPORTED_MODULE_0___default()(\".file-selected\").length - 1) {\n              reset_ds_file_view();\n              load_datastore();\n            }\n            index += 1;\n          }\n        });\n      });\n    } else {\n      sweetalert__WEBPACK_IMPORTED_MODULE_7___default()(\"Pfew, that was close\");\n    }\n  });\n}\nfunction get_link_ds_file(file_id) {\n  file_id = file_id.replace('f-', '');\n  var link = location.protocol + '//' + location.host + '/datastore/file/view/' + file_id;\n  link = link + (0,_common__WEBPACK_IMPORTED_MODULE_1__.case_param)();\n  navigator.clipboard.writeText(link).then(function () {\n    (0,_common__WEBPACK_IMPORTED_MODULE_1__.notify_success)('File link copied');\n  }, function (err) {\n    (0,_common__WEBPACK_IMPORTED_MODULE_1__.notify_error)('Unable to copy link. Error ' + err);\n    console.error('File link link', err);\n  });\n}\nfunction build_dsfile_view_link(file_id) {\n  file_id = file_id.replace('f-', '');\n  var link = '/datastore/file/view/' + file_id;\n  link = link + (0,_common__WEBPACK_IMPORTED_MODULE_1__.case_param)();\n  return link;\n}\nfunction get_mk_link_ds_file(file_id, filename, file_icon, has_password) {\n  var link = build_dsfile_view_link(file_id);\n  file_icon = atob(file_icon);\n  var mk_link = \"[\".concat(file_icon, \" [DS] \").concat(filename, \"](\").concat(link, \")\");\n  if (has_password == 'false' && ['png', 'svg', 'jpeg', 'jpg', 'webp', 'bmp', 'gif'].includes(filename.split('.').pop())) {\n    mk_link = \"![\".concat(filename, \"](\").concat(link, \" =40%x40%)\");\n  }\n  navigator.clipboard.writeText(mk_link).then(function () {\n    (0,_common__WEBPACK_IMPORTED_MODULE_1__.notify_success)('Markdown file link copied');\n  }, function (err) {\n    (0,_common__WEBPACK_IMPORTED_MODULE_1__.notify_error)('Unable to copy link. Error ' + err);\n    console.error(\"Markdown file link \".concat(mk_link), err);\n  });\n}\nfunction download_ds_file(file_id, filename) {\n  var link = build_dsfile_view_link(file_id);\n  (0,_common__WEBPACK_IMPORTED_MODULE_1__.downloadURI)(link, filename);\n}\nfunction reparse_activate_tree_selection() {\n  jquery__WEBPACK_IMPORTED_MODULE_0___default()('.tree li.parent_li > span').on('click', function (e) {\n    if (jquery__WEBPACK_IMPORTED_MODULE_0___default()(this).hasClass('node-selected')) {\n      jquery__WEBPACK_IMPORTED_MODULE_0___default()(this).removeClass('node-selected');\n      jquery__WEBPACK_IMPORTED_MODULE_0___default()('#msg_mv_dst_folder').text('unselected destination');\n      jquery__WEBPACK_IMPORTED_MODULE_0___default()('#msg_mv_dst_folder_folder').text('unselected destination');\n    } else {\n      jquery__WEBPACK_IMPORTED_MODULE_0___default()(\".node-selected\").removeClass(\"node-selected\");\n      jquery__WEBPACK_IMPORTED_MODULE_0___default()(this).addClass('node-selected');\n      jquery__WEBPACK_IMPORTED_MODULE_0___default()('#msg_mv_dst_folder').text(jquery__WEBPACK_IMPORTED_MODULE_0___default()(\".node-selected\").text());\n      jquery__WEBPACK_IMPORTED_MODULE_0___default()('#msg_mv_dst_folder_folder').text(jquery__WEBPACK_IMPORTED_MODULE_0___default()(\".node-selected\").text());\n    }\n  });\n}\nvar parsed_filter_ds = {};\nfunction parse_filter(str_filter, keywords) {\n  for (var k = 0; k < keywords.length; k++) {\n    var keyword = keywords[k];\n    var items = str_filter.split(keyword + ':');\n    var ita = items[1];\n    if (ita === undefined) {\n      continue;\n    }\n    var item = (0,_common__WEBPACK_IMPORTED_MODULE_1__.split_bool)(ita);\n    if (item != null) {\n      if (!(keyword in parsed_filter_ds)) {\n        parsed_filter_ds[keyword] = [];\n      }\n      if (!parsed_filter_ds[keyword].includes(item)) {\n        parsed_filter_ds[keyword].push(item.trim());\n      }\n      if (items[1] != undefined) {\n        str_filter = str_filter.replace(keyword + ':' + item, '');\n        if (parse_filter(str_filter, keywords)) {\n          keywords.shift();\n        }\n      }\n    }\n  }\n  return true;\n}\nfunction filter_ds_files() {\n  var ds_keywords = ['storage_name', 'name', 'tag', 'description', 'is_ioc', 'is_evidence', 'has_password', 'uuid', 'id', 'sha256'];\n  var parsed_filter_ds = {};\n  parse_filter(ds_filter.getValue(), ds_keywords);\n  var filter_query = encodeURIComponent(JSON.stringify(parsed_filter_ds));\n  jquery__WEBPACK_IMPORTED_MODULE_0___default()('#dsFilterDSFile').text('Searching..');\n  (0,_common__WEBPACK_IMPORTED_MODULE_1__.get_request_data_api)(\"/datastore/list/filter\", {\n    'q': filter_query\n  }).done(function (data) {\n    if ((0,_common__WEBPACK_IMPORTED_MODULE_1__.notify_auto_api)(data, true)) {\n      jquery__WEBPACK_IMPORTED_MODULE_0___default()('#ds-tree-root').empty();\n      build_ds_tree(data.data, 'ds-tree-root');\n      reparse_activate_tree();\n      show_datastore();\n    }\n  }).always(function () {\n    jquery__WEBPACK_IMPORTED_MODULE_0___default()('#dsFilterDSFile').text('Search');\n  });\n}\nfunction reset_ds_files_filter() {\n  ds_filter.setValue(\"\");\n  load_datastore();\n}\nfunction show_ds_filter_help() {\n  jquery__WEBPACK_IMPORTED_MODULE_0___default()('#modal_help').load('/datastore/filter-help/modal' + (0,_common__WEBPACK_IMPORTED_MODULE_1__.case_param)(), function (response, status, xhr) {\n    if (status !== \"success\") {\n      (0,_common__WEBPACK_IMPORTED_MODULE_1__.ajax_notify_error)(xhr, '/datastore/filter-help/modal');\n      return false;\n    }\n    jquery__WEBPACK_IMPORTED_MODULE_0___default()('#modal_help').modal('show');\n  });\n}\njquery__WEBPACK_IMPORTED_MODULE_0___default()(function () {\n  jquery__WEBPACK_IMPORTED_MODULE_0___default()('.ds-sidebar-toggler').on('click', function () {\n    load_datastore();\n  });\n  jquery__WEBPACK_IMPORTED_MODULE_0___default()('.close-ds-sidebar').on('click', function () {\n    hide_datastore();\n  });\n  jquery__WEBPACK_IMPORTED_MODULE_0___default()('#dsRefreshDatastore').on('click', function () {\n    refresh_ds();\n  });\n  jquery__WEBPACK_IMPORTED_MODULE_0___default()('#dsToggleSelectFiles').on('click', function () {\n    toggle_select_file();\n  });\n  jquery__WEBPACK_IMPORTED_MODULE_0___default()('#dsDeleteBulkFiles').on('click', function () {\n    delete_bulk_ds_file();\n  });\n  jquery__WEBPACK_IMPORTED_MODULE_0___default()('#dsMoveFiles').on('click', function () {\n    move_ds_file();\n  });\n  jquery__WEBPACK_IMPORTED_MODULE_0___default()('.ds-reset-file-view').on('click', function () {\n    reset_ds_file_view();\n    load_datastore();\n  });\n  jquery__WEBPACK_IMPORTED_MODULE_0___default()('#dsValidateDsFileMove').on('click', function () {\n    validate_ds_file_move();\n  });\n  jquery__WEBPACK_IMPORTED_MODULE_0___default()('#dsValidateDSFolderMove').on('click', function () {\n    validate_ds_folder_move();\n  });\n  jquery__WEBPACK_IMPORTED_MODULE_0___default()('#dsFilterDSFile').on('click', function () {\n    filter_ds_files();\n  });\n  jquery__WEBPACK_IMPORTED_MODULE_0___default()('#dsResetSearchFilter').on('click', function () {\n    reset_ds_files_filter();\n  });\n  jquery__WEBPACK_IMPORTED_MODULE_0___default()('#dsFilterHelpWindow').on('click', function () {\n    show_ds_filter_help();\n  });\n});\n\n//# sourceURL=webpack://iris-web/./app/static/assets/js/iris/datastore.js?");
 
 /***/ }),
 
@@ -235,6 +275,4486 @@ eval("/* provided dependency */ var jQuery = __webpack_require__(/*! jquery */ \
 /***/ ((module, exports, __webpack_require__) => {
 
 eval("var __WEBPACK_AMD_DEFINE_ARRAY__, __WEBPACK_AMD_DEFINE_RESULT__;/*!\n * HTML5 export buttons for Buttons and DataTables.\n * 2016 SpryMedia Ltd - datatables.net/license\n *\n * FileSaver.js (1.3.3) - MIT license\n * Copyright © 2016 Eli Grey - http://eligrey.com\n */\n\n(function( factory ){\n\tif ( true ) {\n\t\t// AMD\n\t\t!(__WEBPACK_AMD_DEFINE_ARRAY__ = [__webpack_require__(/*! jquery */ \"./node_modules/jquery/dist/jquery.js\"), __webpack_require__(/*! datatables.net */ \"./node_modules/datatables.net/js/jquery.dataTables.mjs\"), __webpack_require__(/*! datatables.net-buttons */ \"./node_modules/datatables.net-buttons/js/dataTables.buttons.mjs\")], __WEBPACK_AMD_DEFINE_RESULT__ = (function ( $ ) {\n\t\t\treturn factory( $, window, document );\n\t\t}).apply(exports, __WEBPACK_AMD_DEFINE_ARRAY__),\n\t\t__WEBPACK_AMD_DEFINE_RESULT__ !== undefined && (module.exports = __WEBPACK_AMD_DEFINE_RESULT__));\n\t}\n\telse { var cjsRequires, jq; }\n}(function( $, window, document, jszip, pdfmake, undefined ) {\n'use strict';\nvar DataTable = $.fn.dataTable;\n\n\n\n// Allow the constructor to pass in JSZip and PDFMake from external requires.\n// Otherwise, use globally defined variables, if they are available.\nvar useJszip;\nvar usePdfmake;\n\nfunction _jsZip () {\n\treturn useJszip || window.JSZip;\n}\nfunction _pdfMake () {\n\treturn usePdfmake || window.pdfMake;\n}\n\nDataTable.Buttons.pdfMake = function (_) {\n\tif ( ! _ ) {\n\t\treturn _pdfMake();\n\t}\n\tusePdfmake = _;\n}\n\nDataTable.Buttons.jszip = function (_) {\n\tif ( ! _ ) {\n\t\treturn _jsZip();\n\t}\n\tuseJszip = _;\n}\n\n\n/* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *\n * FileSaver.js dependency\n */\n\n/*jslint bitwise: true, indent: 4, laxbreak: true, laxcomma: true, smarttabs: true, plusplus: true */\n\nvar _saveAs = (function(view) {\n\t\"use strict\";\n\t// IE <10 is explicitly unsupported\n\tif (typeof view === \"undefined\" || typeof navigator !== \"undefined\" && /MSIE [1-9]\\./.test(navigator.userAgent)) {\n\t\treturn;\n\t}\n\tvar\n\t\t  doc = view.document\n\t\t  // only get URL when necessary in case Blob.js hasn't overridden it yet\n\t\t, get_URL = function() {\n\t\t\treturn view.URL || view.webkitURL || view;\n\t\t}\n\t\t, save_link = doc.createElementNS(\"http://www.w3.org/1999/xhtml\", \"a\")\n\t\t, can_use_save_link = \"download\" in save_link\n\t\t, click = function(node) {\n\t\t\tvar event = new MouseEvent(\"click\");\n\t\t\tnode.dispatchEvent(event);\n\t\t}\n\t\t, is_safari = /constructor/i.test(view.HTMLElement) || view.safari\n\t\t, is_chrome_ios =/CriOS\\/[\\d]+/.test(navigator.userAgent)\n\t\t, throw_outside = function(ex) {\n\t\t\t(view.setImmediate || view.setTimeout)(function() {\n\t\t\t\tthrow ex;\n\t\t\t}, 0);\n\t\t}\n\t\t, force_saveable_type = \"application/octet-stream\"\n\t\t// the Blob API is fundamentally broken as there is no \"downloadfinished\" event to subscribe to\n\t\t, arbitrary_revoke_timeout = 1000 * 40 // in ms\n\t\t, revoke = function(file) {\n\t\t\tvar revoker = function() {\n\t\t\t\tif (typeof file === \"string\") { // file is an object URL\n\t\t\t\t\tget_URL().revokeObjectURL(file);\n\t\t\t\t} else { // file is a File\n\t\t\t\t\tfile.remove();\n\t\t\t\t}\n\t\t\t};\n\t\t\tsetTimeout(revoker, arbitrary_revoke_timeout);\n\t\t}\n\t\t, dispatch = function(filesaver, event_types, event) {\n\t\t\tevent_types = [].concat(event_types);\n\t\t\tvar i = event_types.length;\n\t\t\twhile (i--) {\n\t\t\t\tvar listener = filesaver[\"on\" + event_types[i]];\n\t\t\t\tif (typeof listener === \"function\") {\n\t\t\t\t\ttry {\n\t\t\t\t\t\tlistener.call(filesaver, event || filesaver);\n\t\t\t\t\t} catch (ex) {\n\t\t\t\t\t\tthrow_outside(ex);\n\t\t\t\t\t}\n\t\t\t\t}\n\t\t\t}\n\t\t}\n\t\t, auto_bom = function(blob) {\n\t\t\t// prepend BOM for UTF-8 XML and text/* types (including HTML)\n\t\t\t// note: your browser will automatically convert UTF-16 U+FEFF to EF BB BF\n\t\t\tif (/^\\s*(?:text\\/\\S*|application\\/xml|\\S*\\/\\S*\\+xml)\\s*;.*charset\\s*=\\s*utf-8/i.test(blob.type)) {\n\t\t\t\treturn new Blob([String.fromCharCode(0xFEFF), blob], {type: blob.type});\n\t\t\t}\n\t\t\treturn blob;\n\t\t}\n\t\t, FileSaver = function(blob, name, no_auto_bom) {\n\t\t\tif (!no_auto_bom) {\n\t\t\t\tblob = auto_bom(blob);\n\t\t\t}\n\t\t\t// First try a.download, then web filesystem, then object URLs\n\t\t\tvar\n\t\t\t\t  filesaver = this\n\t\t\t\t, type = blob.type\n\t\t\t\t, force = type === force_saveable_type\n\t\t\t\t, object_url\n\t\t\t\t, dispatch_all = function() {\n\t\t\t\t\tdispatch(filesaver, \"writestart progress write writeend\".split(\" \"));\n\t\t\t\t}\n\t\t\t\t// on any filesys errors revert to saving with object URLs\n\t\t\t\t, fs_error = function() {\n\t\t\t\t\tif ((is_chrome_ios || (force && is_safari)) && view.FileReader) {\n\t\t\t\t\t\t// Safari doesn't allow downloading of blob urls\n\t\t\t\t\t\tvar reader = new FileReader();\n\t\t\t\t\t\treader.onloadend = function() {\n\t\t\t\t\t\t\tvar url = is_chrome_ios ? reader.result : reader.result.replace(/^data:[^;]*;/, 'data:attachment/file;');\n\t\t\t\t\t\t\tvar popup = view.open(url, '_blank');\n\t\t\t\t\t\t\tif(!popup) view.location.href = url;\n\t\t\t\t\t\t\turl=undefined; // release reference before dispatching\n\t\t\t\t\t\t\tfilesaver.readyState = filesaver.DONE;\n\t\t\t\t\t\t\tdispatch_all();\n\t\t\t\t\t\t};\n\t\t\t\t\t\treader.readAsDataURL(blob);\n\t\t\t\t\t\tfilesaver.readyState = filesaver.INIT;\n\t\t\t\t\t\treturn;\n\t\t\t\t\t}\n\t\t\t\t\t// don't create more object URLs than needed\n\t\t\t\t\tif (!object_url) {\n\t\t\t\t\t\tobject_url = get_URL().createObjectURL(blob);\n\t\t\t\t\t}\n\t\t\t\t\tif (force) {\n\t\t\t\t\t\tview.location.href = object_url;\n\t\t\t\t\t} else {\n\t\t\t\t\t\tvar opened = view.open(object_url, \"_blank\");\n\t\t\t\t\t\tif (!opened) {\n\t\t\t\t\t\t\t// Apple does not allow window.open, see https://developer.apple.com/library/safari/documentation/Tools/Conceptual/SafariExtensionGuide/WorkingwithWindowsandTabs/WorkingwithWindowsandTabs.html\n\t\t\t\t\t\t\tview.location.href = object_url;\n\t\t\t\t\t\t}\n\t\t\t\t\t}\n\t\t\t\t\tfilesaver.readyState = filesaver.DONE;\n\t\t\t\t\tdispatch_all();\n\t\t\t\t\trevoke(object_url);\n\t\t\t\t}\n\t\t\t;\n\t\t\tfilesaver.readyState = filesaver.INIT;\n\n\t\t\tif (can_use_save_link) {\n\t\t\t\tobject_url = get_URL().createObjectURL(blob);\n\t\t\t\tsetTimeout(function() {\n\t\t\t\t\tsave_link.href = object_url;\n\t\t\t\t\tsave_link.download = name;\n\t\t\t\t\tclick(save_link);\n\t\t\t\t\tdispatch_all();\n\t\t\t\t\trevoke(object_url);\n\t\t\t\t\tfilesaver.readyState = filesaver.DONE;\n\t\t\t\t});\n\t\t\t\treturn;\n\t\t\t}\n\n\t\t\tfs_error();\n\t\t}\n\t\t, FS_proto = FileSaver.prototype\n\t\t, saveAs = function(blob, name, no_auto_bom) {\n\t\t\treturn new FileSaver(blob, name || blob.name || \"download\", no_auto_bom);\n\t\t}\n\t;\n\t// IE 10+ (native saveAs)\n\tif (typeof navigator !== \"undefined\" && navigator.msSaveOrOpenBlob) {\n\t\treturn function(blob, name, no_auto_bom) {\n\t\t\tname = name || blob.name || \"download\";\n\n\t\t\tif (!no_auto_bom) {\n\t\t\t\tblob = auto_bom(blob);\n\t\t\t}\n\t\t\treturn navigator.msSaveOrOpenBlob(blob, name);\n\t\t};\n\t}\n\n\tFS_proto.abort = function(){};\n\tFS_proto.readyState = FS_proto.INIT = 0;\n\tFS_proto.WRITING = 1;\n\tFS_proto.DONE = 2;\n\n\tFS_proto.error =\n\tFS_proto.onwritestart =\n\tFS_proto.onprogress =\n\tFS_proto.onwrite =\n\tFS_proto.onabort =\n\tFS_proto.onerror =\n\tFS_proto.onwriteend =\n\t\tnull;\n\n\treturn saveAs;\n}(\n\t   typeof self !== \"undefined\" && self\n\t|| typeof window !== \"undefined\" && window\n\t|| this.content\n));\n\n\n// Expose file saver on the DataTables API. Can't attach to `DataTables.Buttons`\n// since this file can be loaded before Button's core!\nDataTable.fileSave = _saveAs;\n\n\n/* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *\n * Local (private) functions\n */\n\n/**\n * Get the sheet name for Excel exports.\n *\n * @param {object}\tconfig Button configuration\n */\nvar _sheetname = function ( config )\n{\n\tvar sheetName = 'Sheet1';\n\n\tif ( config.sheetName ) {\n\t\tsheetName = config.sheetName.replace(/[\\[\\]\\*\\/\\\\\\?\\:]/g, '');\n\t}\n\n\treturn sheetName;\n};\n\n/**\n * Get the newline character(s)\n *\n * @param {object}\tconfig Button configuration\n * @return {string}\t\t\t\tNewline character\n */\nvar _newLine = function ( config )\n{\n\treturn config.newline ?\n\t\tconfig.newline :\n\t\tnavigator.userAgent.match(/Windows/) ?\n\t\t\t'\\r\\n' :\n\t\t\t'\\n';\n};\n\n/**\n * Combine the data from the `buttons.exportData` method into a string that\n * will be used in the export file.\n *\n * @param\t{DataTable.Api} dt\t\t DataTables API instance\n * @param\t{object}\t\t\t\tconfig Button configuration\n * @return {object}\t\t\t\t\t\t\t The data to export\n */\nvar _exportData = function ( dt, config )\n{\n\tvar newLine = _newLine( config );\n\tvar data = dt.buttons.exportData( config.exportOptions );\n\tvar boundary = config.fieldBoundary;\n\tvar separator = config.fieldSeparator;\n\tvar reBoundary = new RegExp( boundary, 'g' );\n\tvar escapeChar = config.escapeChar !== undefined ?\n\t\tconfig.escapeChar :\n\t\t'\\\\';\n\tvar join = function ( a ) {\n\t\tvar s = '';\n\n\t\t// If there is a field boundary, then we might need to escape it in\n\t\t// the source data\n\t\tfor ( var i=0, ien=a.length ; i<ien ; i++ ) {\n\t\t\tif ( i > 0 ) {\n\t\t\t\ts += separator;\n\t\t\t}\n\n\t\t\ts += boundary ?\n\t\t\t\tboundary + ('' + a[i]).replace( reBoundary, escapeChar+boundary ) + boundary :\n\t\t\t\ta[i];\n\t\t}\n\n\t\treturn s;\n\t};\n\n\tvar header = config.header ? join( data.header )+newLine : '';\n\tvar footer = config.footer && data.footer ? newLine+join( data.footer ) : '';\n\tvar body = [];\n\n\tfor ( var i=0, ien=data.body.length ; i<ien ; i++ ) {\n\t\tbody.push( join( data.body[i] ) );\n\t}\n\n\treturn {\n\t\tstr: header + body.join( newLine ) + footer,\n\t\trows: body.length\n\t};\n};\n\n/**\n * Older versions of Safari (prior to tech preview 18) don't support the\n * download option required.\n *\n * @return {Boolean} `true` if old Safari\n */\nvar _isDuffSafari = function ()\n{\n\tvar safari = navigator.userAgent.indexOf('Safari') !== -1 &&\n\t\tnavigator.userAgent.indexOf('Chrome') === -1 &&\n\t\tnavigator.userAgent.indexOf('Opera') === -1;\n\n\tif ( ! safari ) {\n\t\treturn false;\n\t}\n\n\tvar version = navigator.userAgent.match( /AppleWebKit\\/(\\d+\\.\\d+)/ );\n\tif ( version && version.length > 1 && version[1]*1 < 603.1 ) {\n\t\treturn true;\n\t}\n\n\treturn false;\n};\n\n/**\n * Convert from numeric position to letter for column names in Excel\n * @param  {int} n Column number\n * @return {string} Column letter(s) name\n */\nfunction createCellPos( n ){\n\tvar ordA = 'A'.charCodeAt(0);\n\tvar ordZ = 'Z'.charCodeAt(0);\n\tvar len = ordZ - ordA + 1;\n\tvar s = \"\";\n\n\twhile( n >= 0 ) {\n\t\ts = String.fromCharCode(n % len + ordA) + s;\n\t\tn = Math.floor(n / len) - 1;\n\t}\n\n\treturn s;\n}\n\ntry {\n\tvar _serialiser = new XMLSerializer();\n\tvar _ieExcel;\n}\ncatch (t) {}\n\n/**\n * Recursively add XML files from an object's structure to a ZIP file. This\n * allows the XSLX file to be easily defined with an object's structure matching\n * the files structure.\n *\n * @param {JSZip} zip ZIP package\n * @param {object} obj Object to add (recursive)\n */\nfunction _addToZip( zip, obj ) {\n\tif ( _ieExcel === undefined ) {\n\t\t// Detect if we are dealing with IE's _awful_ serialiser by seeing if it\n\t\t// drop attributes\n\t\t_ieExcel = _serialiser\n\t\t\t.serializeToString(\n\t\t\t\t( new window.DOMParser() ).parseFromString( excelStrings['xl/worksheets/sheet1.xml'], 'text/xml' )\n\t\t\t)\n\t\t\t.indexOf( 'xmlns:r' ) === -1;\n\t}\n\n\t$.each( obj, function ( name, val ) {\n\t\tif ( $.isPlainObject( val ) ) {\n\t\t\tvar newDir = zip.folder( name );\n\t\t\t_addToZip( newDir, val );\n\t\t}\n\t\telse {\n\t\t\tif ( _ieExcel ) {\n\t\t\t\t// IE's XML serialiser will drop some name space attributes from\n\t\t\t\t// from the root node, so we need to save them. Do this by\n\t\t\t\t// replacing the namespace nodes with a regular attribute that\n\t\t\t\t// we convert back when serialised. Edge does not have this\n\t\t\t\t// issue\n\t\t\t\tvar worksheet = val.childNodes[0];\n\t\t\t\tvar i, ien;\n\t\t\t\tvar attrs = [];\n\n\t\t\t\tfor ( i=worksheet.attributes.length-1 ; i>=0 ; i-- ) {\n\t\t\t\t\tvar attrName = worksheet.attributes[i].nodeName;\n\t\t\t\t\tvar attrValue = worksheet.attributes[i].nodeValue;\n\n\t\t\t\t\tif ( attrName.indexOf( ':' ) !== -1 ) {\n\t\t\t\t\t\tattrs.push( { name: attrName, value: attrValue } );\n\n\t\t\t\t\t\tworksheet.removeAttribute( attrName );\n\t\t\t\t\t}\n\t\t\t\t}\n\n\t\t\t\tfor ( i=0, ien=attrs.length ; i<ien ; i++ ) {\n\t\t\t\t\tvar attr = val.createAttribute( attrs[i].name.replace( ':', '_dt_b_namespace_token_' ) );\n\t\t\t\t\tattr.value = attrs[i].value;\n\t\t\t\t\tworksheet.setAttributeNode( attr );\n\t\t\t\t}\n\t\t\t}\n\n\t\t\tvar str = _serialiser.serializeToString(val);\n\n\t\t\t// Fix IE's XML\n\t\t\tif ( _ieExcel ) {\n\t\t\t\t// IE doesn't include the XML declaration\n\t\t\t\tif ( str.indexOf( '<?xml' ) === -1 ) {\n\t\t\t\t\tstr = '<?xml version=\"1.0\" encoding=\"UTF-8\" standalone=\"yes\"?>'+str;\n\t\t\t\t}\n\n\t\t\t\t// Return namespace attributes to being as such\n\t\t\t\tstr = str.replace( /_dt_b_namespace_token_/g, ':' );\n\n\t\t\t\t// Remove testing name space that IE puts into the space preserve attr\n\t\t\t\tstr = str.replace( /xmlns:NS[\\d]+=\"\" NS[\\d]+:/g, '' );\n\t\t\t}\n\n\t\t\t// Safari, IE and Edge will put empty name space attributes onto\n\t\t\t// various elements making them useless. This strips them out\n\t\t\tstr = str.replace( /<([^<>]*?) xmlns=\"\"([^<>]*?)>/g, '<$1 $2>' );\n\n\t\t\tzip.file( name, str );\n\t\t}\n\t} );\n}\n\n/**\n * Create an XML node and add any children, attributes, etc without needing to\n * be verbose in the DOM.\n *\n * @param  {object} doc      XML document\n * @param  {string} nodeName Node name\n * @param  {object} opts     Options - can be `attr` (attributes), `children`\n *   (child nodes) and `text` (text content)\n * @return {node}            Created node\n */\nfunction _createNode( doc, nodeName, opts ) {\n\tvar tempNode = doc.createElement( nodeName );\n\n\tif ( opts ) {\n\t\tif ( opts.attr ) {\n\t\t\t$(tempNode).attr( opts.attr );\n\t\t}\n\n\t\tif ( opts.children ) {\n\t\t\t$.each( opts.children, function ( key, value ) {\n\t\t\t\ttempNode.appendChild( value );\n\t\t\t} );\n\t\t}\n\n\t\tif ( opts.text !== null && opts.text !== undefined ) {\n\t\t\ttempNode.appendChild( doc.createTextNode( opts.text ) );\n\t\t}\n\t}\n\n\treturn tempNode;\n}\n\n/**\n * Get the width for an Excel column based on the contents of that column\n * @param  {object} data Data for export\n * @param  {int}    col  Column index\n * @return {int}         Column width\n */\nfunction _excelColWidth( data, col ) {\n\tvar max = data.header[col].length;\n\tvar len, lineSplit, str;\n\n\tif ( data.footer && data.footer[col].length > max ) {\n\t\tmax = data.footer[col].length;\n\t}\n\n\tfor ( var i=0, ien=data.body.length ; i<ien ; i++ ) {\n\t\tvar point = data.body[i][col];\n\t\tstr = point !== null && point !== undefined ?\n\t\t\tpoint.toString() :\n\t\t\t'';\n\n\t\t// If there is a newline character, workout the width of the column\n\t\t// based on the longest line in the string\n\t\tif ( str.indexOf('\\n') !== -1 ) {\n\t\t\tlineSplit = str.split('\\n');\n\t\t\tlineSplit.sort( function (a, b) {\n\t\t\t\treturn b.length - a.length;\n\t\t\t} );\n\n\t\t\tlen = lineSplit[0].length;\n\t\t}\n\t\telse {\n\t\t\tlen = str.length;\n\t\t}\n\n\t\tif ( len > max ) {\n\t\t\tmax = len;\n\t\t}\n\n\t\t// Max width rather than having potentially massive column widths\n\t\tif ( max > 40 ) {\n\t\t\treturn 54; // 40 * 1.35\n\t\t}\n\t}\n\n\tmax *= 1.35;\n\n\t// And a min width\n\treturn max > 6 ? max : 6;\n}\n\n// Excel - Pre-defined strings to build a basic XLSX file\nvar excelStrings = {\n\t\"_rels/.rels\":\n\t\t'<?xml version=\"1.0\" encoding=\"UTF-8\" standalone=\"yes\"?>'+\n\t\t'<Relationships xmlns=\"http://schemas.openxmlformats.org/package/2006/relationships\">'+\n\t\t\t'<Relationship Id=\"rId1\" Type=\"http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument\" Target=\"xl/workbook.xml\"/>'+\n\t\t'</Relationships>',\n\n\t\"xl/_rels/workbook.xml.rels\":\n\t\t'<?xml version=\"1.0\" encoding=\"UTF-8\" standalone=\"yes\"?>'+\n\t\t'<Relationships xmlns=\"http://schemas.openxmlformats.org/package/2006/relationships\">'+\n\t\t\t'<Relationship Id=\"rId1\" Type=\"http://schemas.openxmlformats.org/officeDocument/2006/relationships/worksheet\" Target=\"worksheets/sheet1.xml\"/>'+\n\t\t\t'<Relationship Id=\"rId2\" Type=\"http://schemas.openxmlformats.org/officeDocument/2006/relationships/styles\" Target=\"styles.xml\"/>'+\n\t\t'</Relationships>',\n\n\t\"[Content_Types].xml\":\n\t\t'<?xml version=\"1.0\" encoding=\"UTF-8\" standalone=\"yes\"?>'+\n\t\t'<Types xmlns=\"http://schemas.openxmlformats.org/package/2006/content-types\">'+\n\t\t\t'<Default Extension=\"xml\" ContentType=\"application/xml\" />'+\n\t\t\t'<Default Extension=\"rels\" ContentType=\"application/vnd.openxmlformats-package.relationships+xml\" />'+\n\t\t\t'<Default Extension=\"jpeg\" ContentType=\"image/jpeg\" />'+\n\t\t\t'<Override PartName=\"/xl/workbook.xml\" ContentType=\"application/vnd.openxmlformats-officedocument.spreadsheetml.sheet.main+xml\" />'+\n\t\t\t'<Override PartName=\"/xl/worksheets/sheet1.xml\" ContentType=\"application/vnd.openxmlformats-officedocument.spreadsheetml.worksheet+xml\" />'+\n\t\t\t'<Override PartName=\"/xl/styles.xml\" ContentType=\"application/vnd.openxmlformats-officedocument.spreadsheetml.styles+xml\" />'+\n\t\t'</Types>',\n\n\t\"xl/workbook.xml\":\n\t\t'<?xml version=\"1.0\" encoding=\"UTF-8\" standalone=\"yes\"?>'+\n\t\t'<workbook xmlns=\"http://schemas.openxmlformats.org/spreadsheetml/2006/main\" xmlns:r=\"http://schemas.openxmlformats.org/officeDocument/2006/relationships\">'+\n\t\t\t'<fileVersion appName=\"xl\" lastEdited=\"5\" lowestEdited=\"5\" rupBuild=\"24816\"/>'+\n\t\t\t'<workbookPr showInkAnnotation=\"0\" autoCompressPictures=\"0\"/>'+\n\t\t\t'<bookViews>'+\n\t\t\t\t'<workbookView xWindow=\"0\" yWindow=\"0\" windowWidth=\"25600\" windowHeight=\"19020\" tabRatio=\"500\"/>'+\n\t\t\t'</bookViews>'+\n\t\t\t'<sheets>'+\n\t\t\t\t'<sheet name=\"Sheet1\" sheetId=\"1\" r:id=\"rId1\"/>'+\n\t\t\t'</sheets>'+\n\t\t\t'<definedNames/>'+\n\t\t'</workbook>',\n\n\t\"xl/worksheets/sheet1.xml\":\n\t\t'<?xml version=\"1.0\" encoding=\"UTF-8\" standalone=\"yes\"?>'+\n\t\t'<worksheet xmlns=\"http://schemas.openxmlformats.org/spreadsheetml/2006/main\" xmlns:r=\"http://schemas.openxmlformats.org/officeDocument/2006/relationships\" xmlns:mc=\"http://schemas.openxmlformats.org/markup-compatibility/2006\" mc:Ignorable=\"x14ac\" xmlns:x14ac=\"http://schemas.microsoft.com/office/spreadsheetml/2009/9/ac\">'+\n\t\t\t'<sheetData/>'+\n\t\t\t'<mergeCells count=\"0\"/>'+\n\t\t'</worksheet>',\n\n\t\"xl/styles.xml\":\n\t\t'<?xml version=\"1.0\" encoding=\"UTF-8\"?>'+\n\t\t'<styleSheet xmlns=\"http://schemas.openxmlformats.org/spreadsheetml/2006/main\" xmlns:mc=\"http://schemas.openxmlformats.org/markup-compatibility/2006\" mc:Ignorable=\"x14ac\" xmlns:x14ac=\"http://schemas.microsoft.com/office/spreadsheetml/2009/9/ac\">'+\n\t\t\t'<numFmts count=\"6\">'+\n\t\t\t\t'<numFmt numFmtId=\"164\" formatCode=\"#,##0.00_-\\ [$$-45C]\"/>'+\n\t\t\t\t'<numFmt numFmtId=\"165\" formatCode=\"&quot;£&quot;#,##0.00\"/>'+\n\t\t\t\t'<numFmt numFmtId=\"166\" formatCode=\"[$€-2]\\ #,##0.00\"/>'+\n\t\t\t\t'<numFmt numFmtId=\"167\" formatCode=\"0.0%\"/>'+\n\t\t\t\t'<numFmt numFmtId=\"168\" formatCode=\"#,##0;(#,##0)\"/>'+\n\t\t\t\t'<numFmt numFmtId=\"169\" formatCode=\"#,##0.00;(#,##0.00)\"/>'+\n\t\t\t'</numFmts>'+\n\t\t\t'<fonts count=\"5\" x14ac:knownFonts=\"1\">'+\n\t\t\t\t'<font>'+\n\t\t\t\t\t'<sz val=\"11\" />'+\n\t\t\t\t\t'<name val=\"Calibri\" />'+\n\t\t\t\t'</font>'+\n\t\t\t\t'<font>'+\n\t\t\t\t\t'<sz val=\"11\" />'+\n\t\t\t\t\t'<name val=\"Calibri\" />'+\n\t\t\t\t\t'<color rgb=\"FFFFFFFF\" />'+\n\t\t\t\t'</font>'+\n\t\t\t\t'<font>'+\n\t\t\t\t\t'<sz val=\"11\" />'+\n\t\t\t\t\t'<name val=\"Calibri\" />'+\n\t\t\t\t\t'<b />'+\n\t\t\t\t'</font>'+\n\t\t\t\t'<font>'+\n\t\t\t\t\t'<sz val=\"11\" />'+\n\t\t\t\t\t'<name val=\"Calibri\" />'+\n\t\t\t\t\t'<i />'+\n\t\t\t\t'</font>'+\n\t\t\t\t'<font>'+\n\t\t\t\t\t'<sz val=\"11\" />'+\n\t\t\t\t\t'<name val=\"Calibri\" />'+\n\t\t\t\t\t'<u />'+\n\t\t\t\t'</font>'+\n\t\t\t'</fonts>'+\n\t\t\t'<fills count=\"6\">'+\n\t\t\t\t'<fill>'+\n\t\t\t\t\t'<patternFill patternType=\"none\" />'+\n\t\t\t\t'</fill>'+\n\t\t\t\t'<fill>'+ // Excel appears to use this as a dotted background regardless of values but\n\t\t\t\t\t'<patternFill patternType=\"none\" />'+ // to be valid to the schema, use a patternFill\n\t\t\t\t'</fill>'+\n\t\t\t\t'<fill>'+\n\t\t\t\t\t'<patternFill patternType=\"solid\">'+\n\t\t\t\t\t\t'<fgColor rgb=\"FFD9D9D9\" />'+\n\t\t\t\t\t\t'<bgColor indexed=\"64\" />'+\n\t\t\t\t\t'</patternFill>'+\n\t\t\t\t'</fill>'+\n\t\t\t\t'<fill>'+\n\t\t\t\t\t'<patternFill patternType=\"solid\">'+\n\t\t\t\t\t\t'<fgColor rgb=\"FFD99795\" />'+\n\t\t\t\t\t\t'<bgColor indexed=\"64\" />'+\n\t\t\t\t\t'</patternFill>'+\n\t\t\t\t'</fill>'+\n\t\t\t\t'<fill>'+\n\t\t\t\t\t'<patternFill patternType=\"solid\">'+\n\t\t\t\t\t\t'<fgColor rgb=\"ffc6efce\" />'+\n\t\t\t\t\t\t'<bgColor indexed=\"64\" />'+\n\t\t\t\t\t'</patternFill>'+\n\t\t\t\t'</fill>'+\n\t\t\t\t'<fill>'+\n\t\t\t\t\t'<patternFill patternType=\"solid\">'+\n\t\t\t\t\t\t'<fgColor rgb=\"ffc6cfef\" />'+\n\t\t\t\t\t\t'<bgColor indexed=\"64\" />'+\n\t\t\t\t\t'</patternFill>'+\n\t\t\t\t'</fill>'+\n\t\t\t'</fills>'+\n\t\t\t'<borders count=\"2\">'+\n\t\t\t\t'<border>'+\n\t\t\t\t\t'<left />'+\n\t\t\t\t\t'<right />'+\n\t\t\t\t\t'<top />'+\n\t\t\t\t\t'<bottom />'+\n\t\t\t\t\t'<diagonal />'+\n\t\t\t\t'</border>'+\n\t\t\t\t'<border diagonalUp=\"false\" diagonalDown=\"false\">'+\n\t\t\t\t\t'<left style=\"thin\">'+\n\t\t\t\t\t\t'<color auto=\"1\" />'+\n\t\t\t\t\t'</left>'+\n\t\t\t\t\t'<right style=\"thin\">'+\n\t\t\t\t\t\t'<color auto=\"1\" />'+\n\t\t\t\t\t'</right>'+\n\t\t\t\t\t'<top style=\"thin\">'+\n\t\t\t\t\t\t'<color auto=\"1\" />'+\n\t\t\t\t\t'</top>'+\n\t\t\t\t\t'<bottom style=\"thin\">'+\n\t\t\t\t\t\t'<color auto=\"1\" />'+\n\t\t\t\t\t'</bottom>'+\n\t\t\t\t\t'<diagonal />'+\n\t\t\t\t'</border>'+\n\t\t\t'</borders>'+\n\t\t\t'<cellStyleXfs count=\"1\">'+\n\t\t\t\t'<xf numFmtId=\"0\" fontId=\"0\" fillId=\"0\" borderId=\"0\" />'+\n\t\t\t'</cellStyleXfs>'+\n\t\t\t'<cellXfs count=\"68\">'+\n\t\t\t\t'<xf numFmtId=\"0\" fontId=\"0\" fillId=\"0\" borderId=\"0\" applyFont=\"1\" applyFill=\"1\" applyBorder=\"1\"/>'+\n\t\t\t\t'<xf numFmtId=\"0\" fontId=\"1\" fillId=\"0\" borderId=\"0\" applyFont=\"1\" applyFill=\"1\" applyBorder=\"1\"/>'+\n\t\t\t\t'<xf numFmtId=\"0\" fontId=\"2\" fillId=\"0\" borderId=\"0\" applyFont=\"1\" applyFill=\"1\" applyBorder=\"1\"/>'+\n\t\t\t\t'<xf numFmtId=\"0\" fontId=\"3\" fillId=\"0\" borderId=\"0\" applyFont=\"1\" applyFill=\"1\" applyBorder=\"1\"/>'+\n\t\t\t\t'<xf numFmtId=\"0\" fontId=\"4\" fillId=\"0\" borderId=\"0\" applyFont=\"1\" applyFill=\"1\" applyBorder=\"1\"/>'+\n\t\t\t\t'<xf numFmtId=\"0\" fontId=\"0\" fillId=\"2\" borderId=\"0\" applyFont=\"1\" applyFill=\"1\" applyBorder=\"1\"/>'+\n\t\t\t\t'<xf numFmtId=\"0\" fontId=\"1\" fillId=\"2\" borderId=\"0\" applyFont=\"1\" applyFill=\"1\" applyBorder=\"1\"/>'+\n\t\t\t\t'<xf numFmtId=\"0\" fontId=\"2\" fillId=\"2\" borderId=\"0\" applyFont=\"1\" applyFill=\"1\" applyBorder=\"1\"/>'+\n\t\t\t\t'<xf numFmtId=\"0\" fontId=\"3\" fillId=\"2\" borderId=\"0\" applyFont=\"1\" applyFill=\"1\" applyBorder=\"1\"/>'+\n\t\t\t\t'<xf numFmtId=\"0\" fontId=\"4\" fillId=\"2\" borderId=\"0\" applyFont=\"1\" applyFill=\"1\" applyBorder=\"1\"/>'+\n\t\t\t\t'<xf numFmtId=\"0\" fontId=\"0\" fillId=\"3\" borderId=\"0\" applyFont=\"1\" applyFill=\"1\" applyBorder=\"1\"/>'+\n\t\t\t\t'<xf numFmtId=\"0\" fontId=\"1\" fillId=\"3\" borderId=\"0\" applyFont=\"1\" applyFill=\"1\" applyBorder=\"1\"/>'+\n\t\t\t\t'<xf numFmtId=\"0\" fontId=\"2\" fillId=\"3\" borderId=\"0\" applyFont=\"1\" applyFill=\"1\" applyBorder=\"1\"/>'+\n\t\t\t\t'<xf numFmtId=\"0\" fontId=\"3\" fillId=\"3\" borderId=\"0\" applyFont=\"1\" applyFill=\"1\" applyBorder=\"1\"/>'+\n\t\t\t\t'<xf numFmtId=\"0\" fontId=\"4\" fillId=\"3\" borderId=\"0\" applyFont=\"1\" applyFill=\"1\" applyBorder=\"1\"/>'+\n\t\t\t\t'<xf numFmtId=\"0\" fontId=\"0\" fillId=\"4\" borderId=\"0\" applyFont=\"1\" applyFill=\"1\" applyBorder=\"1\"/>'+\n\t\t\t\t'<xf numFmtId=\"0\" fontId=\"1\" fillId=\"4\" borderId=\"0\" applyFont=\"1\" applyFill=\"1\" applyBorder=\"1\"/>'+\n\t\t\t\t'<xf numFmtId=\"0\" fontId=\"2\" fillId=\"4\" borderId=\"0\" applyFont=\"1\" applyFill=\"1\" applyBorder=\"1\"/>'+\n\t\t\t\t'<xf numFmtId=\"0\" fontId=\"3\" fillId=\"4\" borderId=\"0\" applyFont=\"1\" applyFill=\"1\" applyBorder=\"1\"/>'+\n\t\t\t\t'<xf numFmtId=\"0\" fontId=\"4\" fillId=\"4\" borderId=\"0\" applyFont=\"1\" applyFill=\"1\" applyBorder=\"1\"/>'+\n\t\t\t\t'<xf numFmtId=\"0\" fontId=\"0\" fillId=\"5\" borderId=\"0\" applyFont=\"1\" applyFill=\"1\" applyBorder=\"1\"/>'+\n\t\t\t\t'<xf numFmtId=\"0\" fontId=\"1\" fillId=\"5\" borderId=\"0\" applyFont=\"1\" applyFill=\"1\" applyBorder=\"1\"/>'+\n\t\t\t\t'<xf numFmtId=\"0\" fontId=\"2\" fillId=\"5\" borderId=\"0\" applyFont=\"1\" applyFill=\"1\" applyBorder=\"1\"/>'+\n\t\t\t\t'<xf numFmtId=\"0\" fontId=\"3\" fillId=\"5\" borderId=\"0\" applyFont=\"1\" applyFill=\"1\" applyBorder=\"1\"/>'+\n\t\t\t\t'<xf numFmtId=\"0\" fontId=\"4\" fillId=\"5\" borderId=\"0\" applyFont=\"1\" applyFill=\"1\" applyBorder=\"1\"/>'+\n\t\t\t\t'<xf numFmtId=\"0\" fontId=\"0\" fillId=\"0\" borderId=\"1\" applyFont=\"1\" applyFill=\"1\" applyBorder=\"1\"/>'+\n\t\t\t\t'<xf numFmtId=\"0\" fontId=\"1\" fillId=\"0\" borderId=\"1\" applyFont=\"1\" applyFill=\"1\" applyBorder=\"1\"/>'+\n\t\t\t\t'<xf numFmtId=\"0\" fontId=\"2\" fillId=\"0\" borderId=\"1\" applyFont=\"1\" applyFill=\"1\" applyBorder=\"1\"/>'+\n\t\t\t\t'<xf numFmtId=\"0\" fontId=\"3\" fillId=\"0\" borderId=\"1\" applyFont=\"1\" applyFill=\"1\" applyBorder=\"1\"/>'+\n\t\t\t\t'<xf numFmtId=\"0\" fontId=\"4\" fillId=\"0\" borderId=\"1\" applyFont=\"1\" applyFill=\"1\" applyBorder=\"1\"/>'+\n\t\t\t\t'<xf numFmtId=\"0\" fontId=\"0\" fillId=\"2\" borderId=\"1\" applyFont=\"1\" applyFill=\"1\" applyBorder=\"1\"/>'+\n\t\t\t\t'<xf numFmtId=\"0\" fontId=\"1\" fillId=\"2\" borderId=\"1\" applyFont=\"1\" applyFill=\"1\" applyBorder=\"1\"/>'+\n\t\t\t\t'<xf numFmtId=\"0\" fontId=\"2\" fillId=\"2\" borderId=\"1\" applyFont=\"1\" applyFill=\"1\" applyBorder=\"1\"/>'+\n\t\t\t\t'<xf numFmtId=\"0\" fontId=\"3\" fillId=\"2\" borderId=\"1\" applyFont=\"1\" applyFill=\"1\" applyBorder=\"1\"/>'+\n\t\t\t\t'<xf numFmtId=\"0\" fontId=\"4\" fillId=\"2\" borderId=\"1\" applyFont=\"1\" applyFill=\"1\" applyBorder=\"1\"/>'+\n\t\t\t\t'<xf numFmtId=\"0\" fontId=\"0\" fillId=\"3\" borderId=\"1\" applyFont=\"1\" applyFill=\"1\" applyBorder=\"1\"/>'+\n\t\t\t\t'<xf numFmtId=\"0\" fontId=\"1\" fillId=\"3\" borderId=\"1\" applyFont=\"1\" applyFill=\"1\" applyBorder=\"1\"/>'+\n\t\t\t\t'<xf numFmtId=\"0\" fontId=\"2\" fillId=\"3\" borderId=\"1\" applyFont=\"1\" applyFill=\"1\" applyBorder=\"1\"/>'+\n\t\t\t\t'<xf numFmtId=\"0\" fontId=\"3\" fillId=\"3\" borderId=\"1\" applyFont=\"1\" applyFill=\"1\" applyBorder=\"1\"/>'+\n\t\t\t\t'<xf numFmtId=\"0\" fontId=\"4\" fillId=\"3\" borderId=\"1\" applyFont=\"1\" applyFill=\"1\" applyBorder=\"1\"/>'+\n\t\t\t\t'<xf numFmtId=\"0\" fontId=\"0\" fillId=\"4\" borderId=\"1\" applyFont=\"1\" applyFill=\"1\" applyBorder=\"1\"/>'+\n\t\t\t\t'<xf numFmtId=\"0\" fontId=\"1\" fillId=\"4\" borderId=\"1\" applyFont=\"1\" applyFill=\"1\" applyBorder=\"1\"/>'+\n\t\t\t\t'<xf numFmtId=\"0\" fontId=\"2\" fillId=\"4\" borderId=\"1\" applyFont=\"1\" applyFill=\"1\" applyBorder=\"1\"/>'+\n\t\t\t\t'<xf numFmtId=\"0\" fontId=\"3\" fillId=\"4\" borderId=\"1\" applyFont=\"1\" applyFill=\"1\" applyBorder=\"1\"/>'+\n\t\t\t\t'<xf numFmtId=\"0\" fontId=\"4\" fillId=\"4\" borderId=\"1\" applyFont=\"1\" applyFill=\"1\" applyBorder=\"1\"/>'+\n\t\t\t\t'<xf numFmtId=\"0\" fontId=\"0\" fillId=\"5\" borderId=\"1\" applyFont=\"1\" applyFill=\"1\" applyBorder=\"1\"/>'+\n\t\t\t\t'<xf numFmtId=\"0\" fontId=\"1\" fillId=\"5\" borderId=\"1\" applyFont=\"1\" applyFill=\"1\" applyBorder=\"1\"/>'+\n\t\t\t\t'<xf numFmtId=\"0\" fontId=\"2\" fillId=\"5\" borderId=\"1\" applyFont=\"1\" applyFill=\"1\" applyBorder=\"1\"/>'+\n\t\t\t\t'<xf numFmtId=\"0\" fontId=\"3\" fillId=\"5\" borderId=\"1\" applyFont=\"1\" applyFill=\"1\" applyBorder=\"1\"/>'+\n\t\t\t\t'<xf numFmtId=\"0\" fontId=\"4\" fillId=\"5\" borderId=\"1\" applyFont=\"1\" applyFill=\"1\" applyBorder=\"1\"/>'+\n\t\t\t\t'<xf numFmtId=\"0\" fontId=\"0\" fillId=\"0\" borderId=\"0\" applyFont=\"1\" applyFill=\"1\" applyBorder=\"1\" xfId=\"0\" applyAlignment=\"1\">'+\n\t\t\t\t\t'<alignment horizontal=\"left\"/>'+\n\t\t\t\t'</xf>'+\n\t\t\t\t'<xf numFmtId=\"0\" fontId=\"0\" fillId=\"0\" borderId=\"0\" applyFont=\"1\" applyFill=\"1\" applyBorder=\"1\" xfId=\"0\" applyAlignment=\"1\">'+\n\t\t\t\t\t'<alignment horizontal=\"center\"/>'+\n\t\t\t\t'</xf>'+\n\t\t\t\t'<xf numFmtId=\"0\" fontId=\"0\" fillId=\"0\" borderId=\"0\" applyFont=\"1\" applyFill=\"1\" applyBorder=\"1\" xfId=\"0\" applyAlignment=\"1\">'+\n\t\t\t\t\t'<alignment horizontal=\"right\"/>'+\n\t\t\t\t'</xf>'+\n\t\t\t\t'<xf numFmtId=\"0\" fontId=\"0\" fillId=\"0\" borderId=\"0\" applyFont=\"1\" applyFill=\"1\" applyBorder=\"1\" xfId=\"0\" applyAlignment=\"1\">'+\n\t\t\t\t\t'<alignment horizontal=\"fill\"/>'+\n\t\t\t\t'</xf>'+\n\t\t\t\t'<xf numFmtId=\"0\" fontId=\"0\" fillId=\"0\" borderId=\"0\" applyFont=\"1\" applyFill=\"1\" applyBorder=\"1\" xfId=\"0\" applyAlignment=\"1\">'+\n\t\t\t\t\t'<alignment textRotation=\"90\"/>'+\n\t\t\t\t'</xf>'+\n\t\t\t\t'<xf numFmtId=\"0\" fontId=\"0\" fillId=\"0\" borderId=\"0\" applyFont=\"1\" applyFill=\"1\" applyBorder=\"1\" xfId=\"0\" applyAlignment=\"1\">'+\n\t\t\t\t\t'<alignment wrapText=\"1\"/>'+\n\t\t\t\t'</xf>'+\n\t\t\t\t'<xf numFmtId=\"9\"   fontId=\"0\" fillId=\"0\" borderId=\"0\" applyFont=\"1\" applyFill=\"1\" applyBorder=\"1\" xfId=\"0\" applyNumberFormat=\"1\"/>'+\n\t\t\t\t'<xf numFmtId=\"164\" fontId=\"0\" fillId=\"0\" borderId=\"0\" applyFont=\"1\" applyFill=\"1\" applyBorder=\"1\" xfId=\"0\" applyNumberFormat=\"1\"/>'+\n\t\t\t\t'<xf numFmtId=\"165\" fontId=\"0\" fillId=\"0\" borderId=\"0\" applyFont=\"1\" applyFill=\"1\" applyBorder=\"1\" xfId=\"0\" applyNumberFormat=\"1\"/>'+\n\t\t\t\t'<xf numFmtId=\"166\" fontId=\"0\" fillId=\"0\" borderId=\"0\" applyFont=\"1\" applyFill=\"1\" applyBorder=\"1\" xfId=\"0\" applyNumberFormat=\"1\"/>'+\n\t\t\t\t'<xf numFmtId=\"167\" fontId=\"0\" fillId=\"0\" borderId=\"0\" applyFont=\"1\" applyFill=\"1\" applyBorder=\"1\" xfId=\"0\" applyNumberFormat=\"1\"/>'+\n\t\t\t\t'<xf numFmtId=\"168\" fontId=\"0\" fillId=\"0\" borderId=\"0\" applyFont=\"1\" applyFill=\"1\" applyBorder=\"1\" xfId=\"0\" applyNumberFormat=\"1\"/>'+\n\t\t\t\t'<xf numFmtId=\"169\" fontId=\"0\" fillId=\"0\" borderId=\"0\" applyFont=\"1\" applyFill=\"1\" applyBorder=\"1\" xfId=\"0\" applyNumberFormat=\"1\"/>'+\n\t\t\t\t'<xf numFmtId=\"3\" fontId=\"0\" fillId=\"0\" borderId=\"0\" applyFont=\"1\" applyFill=\"1\" applyBorder=\"1\" xfId=\"0\" applyNumberFormat=\"1\"/>'+\n\t\t\t\t'<xf numFmtId=\"4\" fontId=\"0\" fillId=\"0\" borderId=\"0\" applyFont=\"1\" applyFill=\"1\" applyBorder=\"1\" xfId=\"0\" applyNumberFormat=\"1\"/>'+\n\t\t\t\t'<xf numFmtId=\"1\" fontId=\"0\" fillId=\"0\" borderId=\"0\" applyFont=\"1\" applyFill=\"1\" applyBorder=\"1\" xfId=\"0\" applyNumberFormat=\"1\"/>'+\n\t\t\t\t'<xf numFmtId=\"2\" fontId=\"0\" fillId=\"0\" borderId=\"0\" applyFont=\"1\" applyFill=\"1\" applyBorder=\"1\" xfId=\"0\" applyNumberFormat=\"1\"/>'+\n\t\t\t\t'<xf numFmtId=\"14\" fontId=\"0\" fillId=\"0\" borderId=\"0\" applyFont=\"1\" applyFill=\"1\" applyBorder=\"1\" xfId=\"0\" applyNumberFormat=\"1\"/>'+\n\t\t\t'</cellXfs>'+\n\t\t\t'<cellStyles count=\"1\">'+\n\t\t\t\t'<cellStyle name=\"Normal\" xfId=\"0\" builtinId=\"0\" />'+\n\t\t\t'</cellStyles>'+\n\t\t\t'<dxfs count=\"0\" />'+\n\t\t\t'<tableStyles count=\"0\" defaultTableStyle=\"TableStyleMedium9\" defaultPivotStyle=\"PivotStyleMedium4\" />'+\n\t\t'</styleSheet>'\n};\n// Note we could use 3 `for` loops for the styles, but when gzipped there is\n// virtually no difference in size, since the above can be easily compressed\n\n// Pattern matching for special number formats. Perhaps this should be exposed\n// via an API in future?\n// Ref: section 3.8.30 - built in formatters in open spreadsheet\n//   https://www.ecma-international.org/news/TC45_current_work/Office%20Open%20XML%20Part%204%20-%20Markup%20Language%20Reference.pdf\nvar _excelSpecials = [\n\t{ match: /^\\-?\\d+\\.\\d%$/,               style: 60, fmt: function (d) { return d/100; } }, // Percent with d.p.\n\t{ match: /^\\-?\\d+\\.?\\d*%$/,             style: 56, fmt: function (d) { return d/100; } }, // Percent\n\t{ match: /^\\-?\\$[\\d,]+.?\\d*$/,          style: 57 }, // Dollars\n\t{ match: /^\\-?£[\\d,]+.?\\d*$/,           style: 58 }, // Pounds\n\t{ match: /^\\-?€[\\d,]+.?\\d*$/,           style: 59 }, // Euros\n\t{ match: /^\\-?\\d+$/,                    style: 65 }, // Numbers without thousand separators\n\t{ match: /^\\-?\\d+\\.\\d{2}$/,             style: 66 }, // Numbers 2 d.p. without thousands separators\n\t{ match: /^\\([\\d,]+\\)$/,                style: 61, fmt: function (d) { return -1 * d.replace(/[\\(\\)]/g, ''); } },  // Negative numbers indicated by brackets\n\t{ match: /^\\([\\d,]+\\.\\d{2}\\)$/,         style: 62, fmt: function (d) { return -1 * d.replace(/[\\(\\)]/g, ''); } },  // Negative numbers indicated by brackets - 2d.p.\n\t{ match: /^\\-?[\\d,]+$/,                 style: 63 }, // Numbers with thousand separators\n\t{ match: /^\\-?[\\d,]+\\.\\d{2}$/,          style: 64 },\n\t{ match: /^[\\d]{4}\\-[01][\\d]\\-[0123][\\d]$/, style: 67, fmt: function (d) {return Math.round(25569 + (Date.parse(d) / (86400 * 1000)));}} //Date yyyy-mm-dd\n];\n\n\n\n/* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *\n * Buttons\n */\n\n//\n// Copy to clipboard\n//\nDataTable.ext.buttons.copyHtml5 = {\n\tclassName: 'buttons-copy buttons-html5',\n\n\ttext: function ( dt ) {\n\t\treturn dt.i18n( 'buttons.copy', 'Copy' );\n\t},\n\n\taction: function ( e, dt, button, config ) {\n\t\tthis.processing( true );\n\n\t\tvar that = this;\n\t\tvar exportData = _exportData( dt, config );\n\t\tvar info = dt.buttons.exportInfo( config );\n\t\tvar newline = _newLine(config);\n\t\tvar output = exportData.str;\n\t\tvar hiddenDiv = $('<div/>')\n\t\t\t.css( {\n\t\t\t\theight: 1,\n\t\t\t\twidth: 1,\n\t\t\t\toverflow: 'hidden',\n\t\t\t\tposition: 'fixed',\n\t\t\t\ttop: 0,\n\t\t\t\tleft: 0\n\t\t\t} );\n\n\t\tif ( info.title ) {\n\t\t\toutput = info.title + newline + newline + output;\n\t\t}\n\n\t\tif ( info.messageTop ) {\n\t\t\toutput = info.messageTop + newline + newline + output;\n\t\t}\n\n\t\tif ( info.messageBottom ) {\n\t\t\toutput = output + newline + newline + info.messageBottom;\n\t\t}\n\n\t\tif ( config.customize ) {\n\t\t\toutput = config.customize( output, config, dt );\n\t\t}\n\n\t\tvar textarea = $('<textarea readonly/>')\n\t\t\t.val( output )\n\t\t\t.appendTo( hiddenDiv );\n\n\t\t// For browsers that support the copy execCommand, try to use it\n\t\tif ( document.queryCommandSupported('copy') ) {\n\t\t\thiddenDiv.appendTo( dt.table().container() );\n\t\t\ttextarea[0].focus();\n\t\t\ttextarea[0].select();\n\n\t\t\ttry {\n\t\t\t\tvar successful = document.execCommand( 'copy' );\n\t\t\t\thiddenDiv.remove();\n\n\t\t\t\tif (successful) {\n\t\t\t\t\tdt.buttons.info(\n\t\t\t\t\t\tdt.i18n( 'buttons.copyTitle', 'Copy to clipboard' ),\n\t\t\t\t\t\tdt.i18n( 'buttons.copySuccess', {\n\t\t\t\t\t\t\t1: 'Copied one row to clipboard',\n\t\t\t\t\t\t\t_: 'Copied %d rows to clipboard'\n\t\t\t\t\t\t}, exportData.rows ),\n\t\t\t\t\t\t2000\n\t\t\t\t\t);\n\n\t\t\t\t\tthis.processing( false );\n\t\t\t\t\treturn;\n\t\t\t\t}\n\t\t\t}\n\t\t\tcatch (t) {}\n\t\t}\n\n\t\t// Otherwise we show the text box and instruct the user to use it\n\t\tvar message = $('<span>'+dt.i18n( 'buttons.copyKeys',\n\t\t\t\t'Press <i>ctrl</i> or <i>\\u2318</i> + <i>C</i> to copy the table data<br>to your system clipboard.<br><br>'+\n\t\t\t\t'To cancel, click this message or press escape.' )+'</span>'\n\t\t\t)\n\t\t\t.append( hiddenDiv );\n\n\t\tdt.buttons.info( dt.i18n( 'buttons.copyTitle', 'Copy to clipboard' ), message, 0 );\n\n\t\t// Select the text so when the user activates their system clipboard\n\t\t// it will copy that text\n\t\ttextarea[0].focus();\n\t\ttextarea[0].select();\n\n\t\t// Event to hide the message when the user is done\n\t\tvar container = $(message).closest('.dt-button-info');\n\t\tvar close = function () {\n\t\t\tcontainer.off( 'click.buttons-copy' );\n\t\t\t$(document).off( '.buttons-copy' );\n\t\t\tdt.buttons.info( false );\n\t\t};\n\n\t\tcontainer.on( 'click.buttons-copy', close );\n\t\t$(document)\n\t\t\t.on( 'keydown.buttons-copy', function (e) {\n\t\t\t\tif ( e.keyCode === 27 ) { // esc\n\t\t\t\t\tclose();\n\t\t\t\t\tthat.processing( false );\n\t\t\t\t}\n\t\t\t} )\n\t\t\t.on( 'copy.buttons-copy cut.buttons-copy', function () {\n\t\t\t\tclose();\n\t\t\t\tthat.processing( false );\n\t\t\t} );\n\t},\n\n\texportOptions: {},\n\n\tfieldSeparator: '\\t',\n\n\tfieldBoundary: '',\n\n\theader: true,\n\n\tfooter: false,\n\n\ttitle: '*',\n\n\tmessageTop: '*',\n\n\tmessageBottom: '*'\n};\n\n//\n// CSV export\n//\nDataTable.ext.buttons.csvHtml5 = {\n\tbom: false,\n\n\tclassName: 'buttons-csv buttons-html5',\n\n\tavailable: function () {\n\t\treturn window.FileReader !== undefined && window.Blob;\n\t},\n\n\ttext: function ( dt ) {\n\t\treturn dt.i18n( 'buttons.csv', 'CSV' );\n\t},\n\n\taction: function ( e, dt, button, config ) {\n\t\tthis.processing( true );\n\n\t\t// Set the text\n\t\tvar output = _exportData( dt, config ).str;\n\t\tvar info = dt.buttons.exportInfo(config);\n\t\tvar charset = config.charset;\n\n\t\tif ( config.customize ) {\n\t\t\toutput = config.customize( output, config, dt );\n\t\t}\n\n\t\tif ( charset !== false ) {\n\t\t\tif ( ! charset ) {\n\t\t\t\tcharset = document.characterSet || document.charset;\n\t\t\t}\n\n\t\t\tif ( charset ) {\n\t\t\t\tcharset = ';charset='+charset;\n\t\t\t}\n\t\t}\n\t\telse {\n\t\t\tcharset = '';\n\t\t}\n\n\t\tif ( config.bom ) {\n\t\t\toutput = String.fromCharCode(0xFEFF) + output;\n\t\t}\n\n\t\t_saveAs(\n\t\t\tnew Blob( [output], {type: 'text/csv'+charset} ),\n\t\t\tinfo.filename,\n\t\t\ttrue\n\t\t);\n\n\t\tthis.processing( false );\n\t},\n\n\tfilename: '*',\n\n\textension: '.csv',\n\n\texportOptions: {},\n\n\tfieldSeparator: ',',\n\n\tfieldBoundary: '\"',\n\n\tescapeChar: '\"',\n\n\tcharset: null,\n\n\theader: true,\n\n\tfooter: false\n};\n\n//\n// Excel (xlsx) export\n//\nDataTable.ext.buttons.excelHtml5 = {\n\tclassName: 'buttons-excel buttons-html5',\n\n\tavailable: function () {\n\t\treturn window.FileReader !== undefined && _jsZip() !== undefined && ! _isDuffSafari() && _serialiser;\n\t},\n\n\ttext: function ( dt ) {\n\t\treturn dt.i18n( 'buttons.excel', 'Excel' );\n\t},\n\n\taction: function ( e, dt, button, config ) {\n\t\tthis.processing( true );\n\n\t\tvar that = this;\n\t\tvar rowPos = 0;\n\t\tvar dataStartRow, dataEndRow;\n\t\tvar getXml = function ( type ) {\n\t\t\tvar str = excelStrings[ type ];\n\n\t\t\t//str = str.replace( /xmlns:/g, 'xmlns_' ).replace( /mc:/g, 'mc_' );\n\n\t\t\treturn $.parseXML( str );\n\t\t};\n\t\tvar rels = getXml('xl/worksheets/sheet1.xml');\n\t\tvar relsGet = rels.getElementsByTagName( \"sheetData\" )[0];\n\n\t\tvar xlsx = {\n\t\t\t_rels: {\n\t\t\t\t\".rels\": getXml('_rels/.rels')\n\t\t\t},\n\t\t\txl: {\n\t\t\t\t_rels: {\n\t\t\t\t\t\"workbook.xml.rels\": getXml('xl/_rels/workbook.xml.rels')\n\t\t\t\t},\n\t\t\t\t\"workbook.xml\": getXml('xl/workbook.xml'),\n\t\t\t\t\"styles.xml\": getXml('xl/styles.xml'),\n\t\t\t\t\"worksheets\": {\n\t\t\t\t\t\"sheet1.xml\": rels\n\t\t\t\t}\n\n\t\t\t},\n\t\t\t\"[Content_Types].xml\": getXml('[Content_Types].xml')\n\t\t};\n\n\t\tvar data = dt.buttons.exportData( config.exportOptions );\n\t\tvar currentRow, rowNode;\n\t\tvar addRow = function ( row ) {\n\t\t\tcurrentRow = rowPos+1;\n\t\t\trowNode = _createNode( rels, \"row\", { attr: {r:currentRow} } );\n\n\t\t\tfor ( var i=0, ien=row.length ; i<ien ; i++ ) {\n\t\t\t\t// Concat both the Cell Columns as a letter and the Row of the cell.\n\t\t\t\tvar cellId = createCellPos(i) + '' + currentRow;\n\t\t\t\tvar cell = null;\n\n\t\t\t\t// For null, undefined of blank cell, continue so it doesn't create the _createNode\n\t\t\t\tif ( row[i] === null || row[i] === undefined || row[i] === '' ) {\n\t\t\t\t\tif ( config.createEmptyCells === true ) {\n\t\t\t\t\t\trow[i] = '';\n\t\t\t\t\t}\n\t\t\t\t\telse {\n\t\t\t\t\t\tcontinue;\n\t\t\t\t\t}\n\t\t\t\t}\n\n\t\t\t\tvar originalContent = row[i];\n\t\t\t\trow[i] = typeof row[i].trim === 'function'\n\t\t\t\t\t? row[i].trim()\n\t\t\t\t\t: row[i];\n\n\t\t\t\t// Special number formatting options\n\t\t\t\tfor ( var j=0, jen=_excelSpecials.length ; j<jen ; j++ ) {\n\t\t\t\t\tvar special = _excelSpecials[j];\n\n\t\t\t\t\t// TODO Need to provide the ability for the specials to say\n\t\t\t\t\t// if they are returning a string, since at the moment it is\n\t\t\t\t\t// assumed to be a number\n\t\t\t\t\tif ( row[i].match && ! row[i].match(/^0\\d+/) && row[i].match( special.match ) ) {\n\t\t\t\t\t\tvar val = row[i].replace(/[^\\d\\.\\-]/g, '');\n\n\t\t\t\t\t\tif ( special.fmt ) {\n\t\t\t\t\t\t\tval = special.fmt( val );\n\t\t\t\t\t\t}\n\n\t\t\t\t\t\tcell = _createNode( rels, 'c', {\n\t\t\t\t\t\t\tattr: {\n\t\t\t\t\t\t\t\tr: cellId,\n\t\t\t\t\t\t\t\ts: special.style\n\t\t\t\t\t\t\t},\n\t\t\t\t\t\t\tchildren: [\n\t\t\t\t\t\t\t\t_createNode( rels, 'v', { text: val } )\n\t\t\t\t\t\t\t]\n\t\t\t\t\t\t} );\n\n\t\t\t\t\t\tbreak;\n\t\t\t\t\t}\n\t\t\t\t}\n\n\t\t\t\tif ( ! cell ) {\n\t\t\t\t\tif ( typeof row[i] === 'number' || (\n\t\t\t\t\t\trow[i].match &&\n\t\t\t\t\t\trow[i].match(/^-?\\d+(\\.\\d+)?([eE]\\-?\\d+)?$/) && // Includes exponential format\n\t\t\t\t\t\t! row[i].match(/^0\\d+/) )\n\t\t\t\t\t) {\n\t\t\t\t\t\t// Detect numbers - don't match numbers with leading zeros\n\t\t\t\t\t\t// or a negative anywhere but the start\n\t\t\t\t\t\tcell = _createNode( rels, 'c', {\n\t\t\t\t\t\t\tattr: {\n\t\t\t\t\t\t\t\tt: 'n',\n\t\t\t\t\t\t\t\tr: cellId\n\t\t\t\t\t\t\t},\n\t\t\t\t\t\t\tchildren: [\n\t\t\t\t\t\t\t\t_createNode( rels, 'v', { text: row[i] } )\n\t\t\t\t\t\t\t]\n\t\t\t\t\t\t} );\n\t\t\t\t\t}\n\t\t\t\t\telse {\n\t\t\t\t\t\t// String output - replace non standard characters for text output\n\t\t\t\t\t\tvar text = ! originalContent.replace ?\n\t\t\t\t\t\t\toriginalContent :\n\t\t\t\t\t\t\toriginalContent.replace(/[\\x00-\\x09\\x0B\\x0C\\x0E-\\x1F\\x7F-\\x9F]/g, '');\n\n\t\t\t\t\t\tcell = _createNode( rels, 'c', {\n\t\t\t\t\t\t\tattr: {\n\t\t\t\t\t\t\t\tt: 'inlineStr',\n\t\t\t\t\t\t\t\tr: cellId\n\t\t\t\t\t\t\t},\n\t\t\t\t\t\t\tchildren:{\n\t\t\t\t\t\t\t\trow: _createNode( rels, 'is', {\n\t\t\t\t\t\t\t\t\tchildren: {\n\t\t\t\t\t\t\t\t\t\trow: _createNode( rels, 't', {\n\t\t\t\t\t\t\t\t\t\t\ttext: text,\n\t\t\t\t\t\t\t\t\t\t\tattr: {\n\t\t\t\t\t\t\t\t\t\t\t\t'xml:space': 'preserve'\n\t\t\t\t\t\t\t\t\t\t\t}\n\t\t\t\t\t\t\t\t\t\t} )\n\t\t\t\t\t\t\t\t\t}\n\t\t\t\t\t\t\t\t} )\n\t\t\t\t\t\t\t}\n\t\t\t\t\t\t} );\n\t\t\t\t\t}\n\t\t\t\t}\n\n\t\t\t\trowNode.appendChild( cell );\n\t\t\t}\n\n\t\t\trelsGet.appendChild(rowNode);\n\t\t\trowPos++;\n\t\t};\n\n\t\tif ( config.customizeData ) {\n\t\t\tconfig.customizeData( data );\n\t\t}\n\n\t\tvar mergeCells = function ( row, colspan ) {\n\t\t\tvar mergeCells = $('mergeCells', rels);\n\n\t\t\tmergeCells[0].appendChild( _createNode( rels, 'mergeCell', {\n\t\t\t\tattr: {\n\t\t\t\t\tref: 'A'+row+':'+createCellPos(colspan)+row\n\t\t\t\t}\n\t\t\t} ) );\n\t\t\tmergeCells.attr( 'count', parseFloat(mergeCells.attr( 'count' ))+1 );\n\t\t\t$('row:eq('+(row-1)+') c', rels).attr( 's', '51' ); // centre\n\t\t};\n\n\t\t// Title and top messages\n\t\tvar exportInfo = dt.buttons.exportInfo( config );\n\t\tif ( exportInfo.title ) {\n\t\t\taddRow( [exportInfo.title], rowPos );\n\t\t\tmergeCells( rowPos, data.header.length-1 );\n\t\t}\n\n\t\tif ( exportInfo.messageTop ) {\n\t\t\taddRow( [exportInfo.messageTop], rowPos );\n\t\t\tmergeCells( rowPos, data.header.length-1 );\n\t\t}\n\n\n\t\t// Table itself\n\t\tif ( config.header ) {\n\t\t\taddRow( data.header, rowPos );\n\t\t\t$('row:last c', rels).attr( 's', '2' ); // bold\n\t\t}\n\t\n\t\tdataStartRow = rowPos;\n\n\t\tfor ( var n=0, ie=data.body.length ; n<ie ; n++ ) {\n\t\t\taddRow( data.body[n], rowPos );\n\t\t}\n\t\n\t\tdataEndRow = rowPos;\n\n\t\tif ( config.footer && data.footer ) {\n\t\t\taddRow( data.footer, rowPos);\n\t\t\t$('row:last c', rels).attr( 's', '2' ); // bold\n\t\t}\n\n\t\t// Below the table\n\t\tif ( exportInfo.messageBottom ) {\n\t\t\taddRow( [exportInfo.messageBottom], rowPos );\n\t\t\tmergeCells( rowPos, data.header.length-1 );\n\t\t}\n\n\t\t// Set column widths\n\t\tvar cols = _createNode( rels, 'cols' );\n\t\t$('worksheet', rels).prepend( cols );\n\n\t\tfor ( var i=0, ien=data.header.length ; i<ien ; i++ ) {\n\t\t\tcols.appendChild( _createNode( rels, 'col', {\n\t\t\t\tattr: {\n\t\t\t\t\tmin: i+1,\n\t\t\t\t\tmax: i+1,\n\t\t\t\t\twidth: _excelColWidth( data, i ),\n\t\t\t\t\tcustomWidth: 1\n\t\t\t\t}\n\t\t\t} ) );\n\t\t}\n\n\t\t// Workbook modifications\n\t\tvar workbook = xlsx.xl['workbook.xml'];\n\n\t\t$( 'sheets sheet', workbook ).attr( 'name', _sheetname( config ) );\n\n\t\t// Auto filter for columns\n\t\tif ( config.autoFilter ) {\n\t\t\t$('mergeCells', rels).before( _createNode( rels, 'autoFilter', {\n\t\t\t\tattr: {\n\t\t\t\t\tref: 'A'+dataStartRow+':'+createCellPos(data.header.length-1)+dataEndRow\n\t\t\t\t}\n\t\t\t} ) );\n\n\t\t\t$('definedNames', workbook).append( _createNode( workbook, 'definedName', {\n\t\t\t\tattr: {\n\t\t\t\t\tname: '_xlnm._FilterDatabase',\n\t\t\t\t\tlocalSheetId: '0',\n\t\t\t\t\thidden: 1\n\t\t\t\t},\n\t\t\t\ttext: _sheetname(config)+'!$A$'+dataStartRow+':'+createCellPos(data.header.length-1)+dataEndRow\n\t\t\t} ) );\n\t\t}\n\n\t\t// Let the developer customise the document if they want to\n\t\tif ( config.customize ) {\n\t\t\tconfig.customize( xlsx, config, dt );\n\t\t}\n\n\t\t// Excel doesn't like an empty mergeCells tag\n\t\tif ( $('mergeCells', rels).children().length === 0 ) {\n\t\t\t$('mergeCells', rels).remove();\n\t\t}\n\n\t\tvar jszip = _jsZip();\n\t\tvar zip = new jszip();\n\t\tvar zipConfig = {\n\t\t\tcompression: \"DEFLATE\",\n\t\t\ttype: 'blob',\n\t\t\tmimeType: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'\n\t\t};\n\n\t\t_addToZip( zip, xlsx );\n\n\t\t// Modern Excel has a 218 character limit on the file name + path of the file (why!?)\n\t\t// https://support.microsoft.com/en-us/office/excel-specifications-and-limits-1672b34d-7043-467e-8e27-269d656771c3\n\t\t// So we truncate to allow for this.\n\t\tvar filename = exportInfo.filename;\n\n\t\tif (filename > 175) {\n\t\t\tfilename = filename.substr(0, 175);\n\t\t}\n\n\t\tif ( zip.generateAsync ) {\n\t\t\t// JSZip 3+\n\t\t\tzip\n\t\t\t\t.generateAsync( zipConfig )\n\t\t\t\t.then( function ( blob ) {\n\t\t\t\t\t_saveAs( blob, filename );\n\t\t\t\t\tthat.processing( false );\n\t\t\t\t} );\n\t\t}\n\t\telse {\n\t\t\t// JSZip 2.5\n\t\t\t_saveAs(\n\t\t\t\tzip.generate( zipConfig ),\n\t\t\t\tfilename\n\t\t\t);\n\t\t\tthis.processing( false );\n\t\t}\n\t},\n\n\tfilename: '*',\n\n\textension: '.xlsx',\n\n\texportOptions: {},\n\n\theader: true,\n\n\tfooter: false,\n\n\ttitle: '*',\n\n\tmessageTop: '*',\n\n\tmessageBottom: '*',\n\n\tcreateEmptyCells: false,\n\n\tautoFilter: false,\n\n\tsheetName: ''\n};\n\n//\n// PDF export - using pdfMake - http://pdfmake.org\n//\nDataTable.ext.buttons.pdfHtml5 = {\n\tclassName: 'buttons-pdf buttons-html5',\n\n\tavailable: function () {\n\t\treturn window.FileReader !== undefined && _pdfMake();\n\t},\n\n\ttext: function ( dt ) {\n\t\treturn dt.i18n( 'buttons.pdf', 'PDF' );\n\t},\n\n\taction: function ( e, dt, button, config ) {\n\t\tthis.processing( true );\n\n\t\tvar that = this;\n\t\tvar data = dt.buttons.exportData( config.exportOptions );\n\t\tvar info = dt.buttons.exportInfo( config );\n\t\tvar rows = [];\n\n\t\tif ( config.header ) {\n\t\t\trows.push( $.map( data.header, function ( d ) {\n\t\t\t\treturn {\n\t\t\t\t\ttext: typeof d === 'string' ? d : d+'',\n\t\t\t\t\tstyle: 'tableHeader'\n\t\t\t\t};\n\t\t\t} ) );\n\t\t}\n\n\t\tfor ( var i=0, ien=data.body.length ; i<ien ; i++ ) {\n\t\t\trows.push( $.map( data.body[i], function ( d ) {\n\t\t\t\tif ( d === null || d === undefined ) {\n\t\t\t\t\td = '';\n\t\t\t\t}\n\t\t\t\treturn {\n\t\t\t\t\ttext: typeof d === 'string' ? d : d+'',\n\t\t\t\t\tstyle: i % 2 ? 'tableBodyEven' : 'tableBodyOdd'\n\t\t\t\t};\n\t\t\t} ) );\n\t\t}\n\n\t\tif ( config.footer && data.footer) {\n\t\t\trows.push( $.map( data.footer, function ( d ) {\n\t\t\t\treturn {\n\t\t\t\t\ttext: typeof d === 'string' ? d : d+'',\n\t\t\t\t\tstyle: 'tableFooter'\n\t\t\t\t};\n\t\t\t} ) );\n\t\t}\n\n\t\tvar doc = {\n\t\t\tpageSize: config.pageSize,\n\t\t\tpageOrientation: config.orientation,\n\t\t\tcontent: [\n\t\t\t\t{\n\t\t\t\t\ttable: {\n\t\t\t\t\t\theaderRows: 1,\n\t\t\t\t\t\tbody: rows\n\t\t\t\t\t},\n\t\t\t\t\tlayout: 'noBorders'\n\t\t\t\t}\n\t\t\t],\n\t\t\tstyles: {\n\t\t\t\ttableHeader: {\n\t\t\t\t\tbold: true,\n\t\t\t\t\tfontSize: 11,\n\t\t\t\t\tcolor: 'white',\n\t\t\t\t\tfillColor: '#2d4154',\n\t\t\t\t\talignment: 'center'\n\t\t\t\t},\n\t\t\t\ttableBodyEven: {},\n\t\t\t\ttableBodyOdd: {\n\t\t\t\t\tfillColor: '#f3f3f3'\n\t\t\t\t},\n\t\t\t\ttableFooter: {\n\t\t\t\t\tbold: true,\n\t\t\t\t\tfontSize: 11,\n\t\t\t\t\tcolor: 'white',\n\t\t\t\t\tfillColor: '#2d4154'\n\t\t\t\t},\n\t\t\t\ttitle: {\n\t\t\t\t\talignment: 'center',\n\t\t\t\t\tfontSize: 15\n\t\t\t\t},\n\t\t\t\tmessage: {}\n\t\t\t},\n\t\t\tdefaultStyle: {\n\t\t\t\tfontSize: 10\n\t\t\t}\n\t\t};\n\n\t\tif ( info.messageTop ) {\n\t\t\tdoc.content.unshift( {\n\t\t\t\ttext: info.messageTop,\n\t\t\t\tstyle: 'message',\n\t\t\t\tmargin: [ 0, 0, 0, 12 ]\n\t\t\t} );\n\t\t}\n\n\t\tif ( info.messageBottom ) {\n\t\t\tdoc.content.push( {\n\t\t\t\ttext: info.messageBottom,\n\t\t\t\tstyle: 'message',\n\t\t\t\tmargin: [ 0, 0, 0, 12 ]\n\t\t\t} );\n\t\t}\n\n\t\tif ( info.title ) {\n\t\t\tdoc.content.unshift( {\n\t\t\t\ttext: info.title,\n\t\t\t\tstyle: 'title',\n\t\t\t\tmargin: [ 0, 0, 0, 12 ]\n\t\t\t} );\n\t\t}\n\n\t\tif ( config.customize ) {\n\t\t\tconfig.customize( doc, config, dt );\n\t\t}\n\n\t\tvar pdf = _pdfMake().createPdf( doc );\n\n\t\tif ( config.download === 'open' && ! _isDuffSafari() ) {\n\t\t\tpdf.open();\n\t\t}\n\t\telse {\n\t\t\tpdf.download( info.filename );\n\t\t}\n\n\t\tthis.processing( false );\n\t},\n\n\ttitle: '*',\n\n\tfilename: '*',\n\n\textension: '.pdf',\n\n\texportOptions: {},\n\n\torientation: 'portrait',\n\n\tpageSize: 'A4',\n\n\theader: true,\n\n\tfooter: false,\n\n\tmessageTop: '*',\n\n\tmessageBottom: '*',\n\n\tcustomize: null,\n\n\tdownload: 'download'\n};\n\n\nreturn DataTable;\n}));\n\n\n//# sourceURL=webpack://iris-web/./node_modules/datatables.net-buttons/js/buttons.html5.js?");
+
+/***/ }),
+
+/***/ "./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/ext-beautify.js":
+/*!**********************************************************************************************************************!*\
+  !*** ./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/ext-beautify.js ***!
+  \**********************************************************************************************************************/
+/***/ ((module, __unused_webpack_exports, __webpack_require__) => {
+
+eval("module.exports = __webpack_require__.p + \"852f0ecd7b17e3bfd700a821ff438f7e.js\";\n\n//# sourceURL=webpack://iris-web/./node_modules/ace-builds/src-noconflict/ext-beautify.js?./node_modules/file-loader/dist/cjs.js?esModule=false");
+
+/***/ }),
+
+/***/ "./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/ext-code_lens.js":
+/*!***********************************************************************************************************************!*\
+  !*** ./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/ext-code_lens.js ***!
+  \***********************************************************************************************************************/
+/***/ ((module, __unused_webpack_exports, __webpack_require__) => {
+
+eval("module.exports = __webpack_require__.p + \"7d64980faff5b041a461fd0ba3e2f3f5.js\";\n\n//# sourceURL=webpack://iris-web/./node_modules/ace-builds/src-noconflict/ext-code_lens.js?./node_modules/file-loader/dist/cjs.js?esModule=false");
+
+/***/ }),
+
+/***/ "./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/ext-command_bar.js":
+/*!*************************************************************************************************************************!*\
+  !*** ./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/ext-command_bar.js ***!
+  \*************************************************************************************************************************/
+/***/ ((module, __unused_webpack_exports, __webpack_require__) => {
+
+eval("module.exports = __webpack_require__.p + \"89db460731cfbe5b4f0f8bd43d726c20.js\";\n\n//# sourceURL=webpack://iris-web/./node_modules/ace-builds/src-noconflict/ext-command_bar.js?./node_modules/file-loader/dist/cjs.js?esModule=false");
+
+/***/ }),
+
+/***/ "./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/ext-elastic_tabstops_lite.js":
+/*!***********************************************************************************************************************************!*\
+  !*** ./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/ext-elastic_tabstops_lite.js ***!
+  \***********************************************************************************************************************************/
+/***/ ((module, __unused_webpack_exports, __webpack_require__) => {
+
+eval("module.exports = __webpack_require__.p + \"8b8336037f074d9dcbd20eab535b803f.js\";\n\n//# sourceURL=webpack://iris-web/./node_modules/ace-builds/src-noconflict/ext-elastic_tabstops_lite.js?./node_modules/file-loader/dist/cjs.js?esModule=false");
+
+/***/ }),
+
+/***/ "./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/ext-emmet.js":
+/*!*******************************************************************************************************************!*\
+  !*** ./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/ext-emmet.js ***!
+  \*******************************************************************************************************************/
+/***/ ((module, __unused_webpack_exports, __webpack_require__) => {
+
+eval("module.exports = __webpack_require__.p + \"b3343489d10969bc98165d93fc28b13b.js\";\n\n//# sourceURL=webpack://iris-web/./node_modules/ace-builds/src-noconflict/ext-emmet.js?./node_modules/file-loader/dist/cjs.js?esModule=false");
+
+/***/ }),
+
+/***/ "./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/ext-error_marker.js":
+/*!**************************************************************************************************************************!*\
+  !*** ./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/ext-error_marker.js ***!
+  \**************************************************************************************************************************/
+/***/ ((module, __unused_webpack_exports, __webpack_require__) => {
+
+eval("module.exports = __webpack_require__.p + \"c530988d2b1966fd10a4d99fa3877e1b.js\";\n\n//# sourceURL=webpack://iris-web/./node_modules/ace-builds/src-noconflict/ext-error_marker.js?./node_modules/file-loader/dist/cjs.js?esModule=false");
+
+/***/ }),
+
+/***/ "./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/ext-hardwrap.js":
+/*!**********************************************************************************************************************!*\
+  !*** ./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/ext-hardwrap.js ***!
+  \**********************************************************************************************************************/
+/***/ ((module, __unused_webpack_exports, __webpack_require__) => {
+
+eval("module.exports = __webpack_require__.p + \"2fe2904fc024afaf81732563cb83e547.js\";\n\n//# sourceURL=webpack://iris-web/./node_modules/ace-builds/src-noconflict/ext-hardwrap.js?./node_modules/file-loader/dist/cjs.js?esModule=false");
+
+/***/ }),
+
+/***/ "./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/ext-inline_autocomplete.js":
+/*!*********************************************************************************************************************************!*\
+  !*** ./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/ext-inline_autocomplete.js ***!
+  \*********************************************************************************************************************************/
+/***/ ((module, __unused_webpack_exports, __webpack_require__) => {
+
+eval("module.exports = __webpack_require__.p + \"2a45a359a8d87abe2ec9ec2ac188a081.js\";\n\n//# sourceURL=webpack://iris-web/./node_modules/ace-builds/src-noconflict/ext-inline_autocomplete.js?./node_modules/file-loader/dist/cjs.js?esModule=false");
+
+/***/ }),
+
+/***/ "./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/ext-keybinding_menu.js":
+/*!*****************************************************************************************************************************!*\
+  !*** ./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/ext-keybinding_menu.js ***!
+  \*****************************************************************************************************************************/
+/***/ ((module, __unused_webpack_exports, __webpack_require__) => {
+
+eval("module.exports = __webpack_require__.p + \"cfe1a9dd61dd943a574fc6c7157372f7.js\";\n\n//# sourceURL=webpack://iris-web/./node_modules/ace-builds/src-noconflict/ext-keybinding_menu.js?./node_modules/file-loader/dist/cjs.js?esModule=false");
+
+/***/ }),
+
+/***/ "./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/ext-language_tools.js":
+/*!****************************************************************************************************************************!*\
+  !*** ./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/ext-language_tools.js ***!
+  \****************************************************************************************************************************/
+/***/ ((module, __unused_webpack_exports, __webpack_require__) => {
+
+eval("module.exports = __webpack_require__.p + \"b97dc5004b295c27eabd271d758b00b0.js\";\n\n//# sourceURL=webpack://iris-web/./node_modules/ace-builds/src-noconflict/ext-language_tools.js?./node_modules/file-loader/dist/cjs.js?esModule=false");
+
+/***/ }),
+
+/***/ "./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/ext-linking.js":
+/*!*********************************************************************************************************************!*\
+  !*** ./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/ext-linking.js ***!
+  \*********************************************************************************************************************/
+/***/ ((module, __unused_webpack_exports, __webpack_require__) => {
+
+eval("module.exports = __webpack_require__.p + \"fec23c6964d6cf25681d1f3e24b076a4.js\";\n\n//# sourceURL=webpack://iris-web/./node_modules/ace-builds/src-noconflict/ext-linking.js?./node_modules/file-loader/dist/cjs.js?esModule=false");
+
+/***/ }),
+
+/***/ "./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/ext-modelist.js":
+/*!**********************************************************************************************************************!*\
+  !*** ./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/ext-modelist.js ***!
+  \**********************************************************************************************************************/
+/***/ ((module, __unused_webpack_exports, __webpack_require__) => {
+
+eval("module.exports = __webpack_require__.p + \"4135e96afff2a6a76773cd7ccd0ebd7f.js\";\n\n//# sourceURL=webpack://iris-web/./node_modules/ace-builds/src-noconflict/ext-modelist.js?./node_modules/file-loader/dist/cjs.js?esModule=false");
+
+/***/ }),
+
+/***/ "./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/ext-options.js":
+/*!*********************************************************************************************************************!*\
+  !*** ./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/ext-options.js ***!
+  \*********************************************************************************************************************/
+/***/ ((module, __unused_webpack_exports, __webpack_require__) => {
+
+eval("module.exports = __webpack_require__.p + \"f6d5a6d16132a7a11c57c310ef09f632.js\";\n\n//# sourceURL=webpack://iris-web/./node_modules/ace-builds/src-noconflict/ext-options.js?./node_modules/file-loader/dist/cjs.js?esModule=false");
+
+/***/ }),
+
+/***/ "./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/ext-prompt.js":
+/*!********************************************************************************************************************!*\
+  !*** ./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/ext-prompt.js ***!
+  \********************************************************************************************************************/
+/***/ ((module, __unused_webpack_exports, __webpack_require__) => {
+
+eval("module.exports = __webpack_require__.p + \"d6ee393a5a46394ffbdd80dc255ad2c5.js\";\n\n//# sourceURL=webpack://iris-web/./node_modules/ace-builds/src-noconflict/ext-prompt.js?./node_modules/file-loader/dist/cjs.js?esModule=false");
+
+/***/ }),
+
+/***/ "./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/ext-rtl.js":
+/*!*****************************************************************************************************************!*\
+  !*** ./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/ext-rtl.js ***!
+  \*****************************************************************************************************************/
+/***/ ((module, __unused_webpack_exports, __webpack_require__) => {
+
+eval("module.exports = __webpack_require__.p + \"07567125b93045706d81f17f7d04e262.js\";\n\n//# sourceURL=webpack://iris-web/./node_modules/ace-builds/src-noconflict/ext-rtl.js?./node_modules/file-loader/dist/cjs.js?esModule=false");
+
+/***/ }),
+
+/***/ "./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/ext-searchbox.js":
+/*!***********************************************************************************************************************!*\
+  !*** ./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/ext-searchbox.js ***!
+  \***********************************************************************************************************************/
+/***/ ((module, __unused_webpack_exports, __webpack_require__) => {
+
+eval("module.exports = __webpack_require__.p + \"4cb2dd7d066be4d8791ab38ccdc9c943.js\";\n\n//# sourceURL=webpack://iris-web/./node_modules/ace-builds/src-noconflict/ext-searchbox.js?./node_modules/file-loader/dist/cjs.js?esModule=false");
+
+/***/ }),
+
+/***/ "./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/ext-settings_menu.js":
+/*!***************************************************************************************************************************!*\
+  !*** ./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/ext-settings_menu.js ***!
+  \***************************************************************************************************************************/
+/***/ ((module, __unused_webpack_exports, __webpack_require__) => {
+
+eval("module.exports = __webpack_require__.p + \"11f6957562346bbf9b8338c5c00d8f35.js\";\n\n//# sourceURL=webpack://iris-web/./node_modules/ace-builds/src-noconflict/ext-settings_menu.js?./node_modules/file-loader/dist/cjs.js?esModule=false");
+
+/***/ }),
+
+/***/ "./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/ext-spellcheck.js":
+/*!************************************************************************************************************************!*\
+  !*** ./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/ext-spellcheck.js ***!
+  \************************************************************************************************************************/
+/***/ ((module, __unused_webpack_exports, __webpack_require__) => {
+
+eval("module.exports = __webpack_require__.p + \"2f55cddc8eb85b63ee5b4ce0e5488230.js\";\n\n//# sourceURL=webpack://iris-web/./node_modules/ace-builds/src-noconflict/ext-spellcheck.js?./node_modules/file-loader/dist/cjs.js?esModule=false");
+
+/***/ }),
+
+/***/ "./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/ext-split.js":
+/*!*******************************************************************************************************************!*\
+  !*** ./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/ext-split.js ***!
+  \*******************************************************************************************************************/
+/***/ ((module, __unused_webpack_exports, __webpack_require__) => {
+
+eval("module.exports = __webpack_require__.p + \"6f77d1c97d1c6937d21c4a1034be62b6.js\";\n\n//# sourceURL=webpack://iris-web/./node_modules/ace-builds/src-noconflict/ext-split.js?./node_modules/file-loader/dist/cjs.js?esModule=false");
+
+/***/ }),
+
+/***/ "./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/ext-static_highlight.js":
+/*!******************************************************************************************************************************!*\
+  !*** ./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/ext-static_highlight.js ***!
+  \******************************************************************************************************************************/
+/***/ ((module, __unused_webpack_exports, __webpack_require__) => {
+
+eval("module.exports = __webpack_require__.p + \"50f4ea8c16517e482db8d3d3588b99d6.js\";\n\n//# sourceURL=webpack://iris-web/./node_modules/ace-builds/src-noconflict/ext-static_highlight.js?./node_modules/file-loader/dist/cjs.js?esModule=false");
+
+/***/ }),
+
+/***/ "./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/ext-statusbar.js":
+/*!***********************************************************************************************************************!*\
+  !*** ./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/ext-statusbar.js ***!
+  \***********************************************************************************************************************/
+/***/ ((module, __unused_webpack_exports, __webpack_require__) => {
+
+eval("module.exports = __webpack_require__.p + \"d0415105402964718010284fcfa8b2ea.js\";\n\n//# sourceURL=webpack://iris-web/./node_modules/ace-builds/src-noconflict/ext-statusbar.js?./node_modules/file-loader/dist/cjs.js?esModule=false");
+
+/***/ }),
+
+/***/ "./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/ext-textarea.js":
+/*!**********************************************************************************************************************!*\
+  !*** ./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/ext-textarea.js ***!
+  \**********************************************************************************************************************/
+/***/ ((module, __unused_webpack_exports, __webpack_require__) => {
+
+eval("module.exports = __webpack_require__.p + \"645b74a0625033669c9d0440b32e3fd0.js\";\n\n//# sourceURL=webpack://iris-web/./node_modules/ace-builds/src-noconflict/ext-textarea.js?./node_modules/file-loader/dist/cjs.js?esModule=false");
+
+/***/ }),
+
+/***/ "./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/ext-themelist.js":
+/*!***********************************************************************************************************************!*\
+  !*** ./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/ext-themelist.js ***!
+  \***********************************************************************************************************************/
+/***/ ((module, __unused_webpack_exports, __webpack_require__) => {
+
+eval("module.exports = __webpack_require__.p + \"951ec8b90b81f007478a03f6f8337d29.js\";\n\n//# sourceURL=webpack://iris-web/./node_modules/ace-builds/src-noconflict/ext-themelist.js?./node_modules/file-loader/dist/cjs.js?esModule=false");
+
+/***/ }),
+
+/***/ "./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/ext-whitespace.js":
+/*!************************************************************************************************************************!*\
+  !*** ./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/ext-whitespace.js ***!
+  \************************************************************************************************************************/
+/***/ ((module, __unused_webpack_exports, __webpack_require__) => {
+
+eval("module.exports = __webpack_require__.p + \"2f25a4dc442bc9aebc58cae30c50c3e2.js\";\n\n//# sourceURL=webpack://iris-web/./node_modules/ace-builds/src-noconflict/ext-whitespace.js?./node_modules/file-loader/dist/cjs.js?esModule=false");
+
+/***/ }),
+
+/***/ "./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/keybinding-emacs.js":
+/*!**************************************************************************************************************************!*\
+  !*** ./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/keybinding-emacs.js ***!
+  \**************************************************************************************************************************/
+/***/ ((module, __unused_webpack_exports, __webpack_require__) => {
+
+eval("module.exports = __webpack_require__.p + \"93b5186e225380c3e006a764ad08c7f6.js\";\n\n//# sourceURL=webpack://iris-web/./node_modules/ace-builds/src-noconflict/keybinding-emacs.js?./node_modules/file-loader/dist/cjs.js?esModule=false");
+
+/***/ }),
+
+/***/ "./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/keybinding-sublime.js":
+/*!****************************************************************************************************************************!*\
+  !*** ./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/keybinding-sublime.js ***!
+  \****************************************************************************************************************************/
+/***/ ((module, __unused_webpack_exports, __webpack_require__) => {
+
+eval("module.exports = __webpack_require__.p + \"3b02cca9e95276a74f3ed2bbc7a64ce6.js\";\n\n//# sourceURL=webpack://iris-web/./node_modules/ace-builds/src-noconflict/keybinding-sublime.js?./node_modules/file-loader/dist/cjs.js?esModule=false");
+
+/***/ }),
+
+/***/ "./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/keybinding-vim.js":
+/*!************************************************************************************************************************!*\
+  !*** ./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/keybinding-vim.js ***!
+  \************************************************************************************************************************/
+/***/ ((module, __unused_webpack_exports, __webpack_require__) => {
+
+eval("module.exports = __webpack_require__.p + \"bfaea4527da3bca61fb24aac3e553ac2.js\";\n\n//# sourceURL=webpack://iris-web/./node_modules/ace-builds/src-noconflict/keybinding-vim.js?./node_modules/file-loader/dist/cjs.js?esModule=false");
+
+/***/ }),
+
+/***/ "./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/keybinding-vscode.js":
+/*!***************************************************************************************************************************!*\
+  !*** ./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/keybinding-vscode.js ***!
+  \***************************************************************************************************************************/
+/***/ ((module, __unused_webpack_exports, __webpack_require__) => {
+
+eval("module.exports = __webpack_require__.p + \"8fa2dead80e1f4956c4c5c868ebb0b81.js\";\n\n//# sourceURL=webpack://iris-web/./node_modules/ace-builds/src-noconflict/keybinding-vscode.js?./node_modules/file-loader/dist/cjs.js?esModule=false");
+
+/***/ }),
+
+/***/ "./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/mode-abap.js":
+/*!*******************************************************************************************************************!*\
+  !*** ./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/mode-abap.js ***!
+  \*******************************************************************************************************************/
+/***/ ((module, __unused_webpack_exports, __webpack_require__) => {
+
+eval("module.exports = __webpack_require__.p + \"fb08407a1b7ad7f9a2da2a7845f596c5.js\";\n\n//# sourceURL=webpack://iris-web/./node_modules/ace-builds/src-noconflict/mode-abap.js?./node_modules/file-loader/dist/cjs.js?esModule=false");
+
+/***/ }),
+
+/***/ "./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/mode-abc.js":
+/*!******************************************************************************************************************!*\
+  !*** ./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/mode-abc.js ***!
+  \******************************************************************************************************************/
+/***/ ((module, __unused_webpack_exports, __webpack_require__) => {
+
+eval("module.exports = __webpack_require__.p + \"bf37de323316c6ae5745fc11fd576b1c.js\";\n\n//# sourceURL=webpack://iris-web/./node_modules/ace-builds/src-noconflict/mode-abc.js?./node_modules/file-loader/dist/cjs.js?esModule=false");
+
+/***/ }),
+
+/***/ "./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/mode-actionscript.js":
+/*!***************************************************************************************************************************!*\
+  !*** ./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/mode-actionscript.js ***!
+  \***************************************************************************************************************************/
+/***/ ((module, __unused_webpack_exports, __webpack_require__) => {
+
+eval("module.exports = __webpack_require__.p + \"875ae58e8015a6d08dbc9d0c04e24638.js\";\n\n//# sourceURL=webpack://iris-web/./node_modules/ace-builds/src-noconflict/mode-actionscript.js?./node_modules/file-loader/dist/cjs.js?esModule=false");
+
+/***/ }),
+
+/***/ "./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/mode-ada.js":
+/*!******************************************************************************************************************!*\
+  !*** ./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/mode-ada.js ***!
+  \******************************************************************************************************************/
+/***/ ((module, __unused_webpack_exports, __webpack_require__) => {
+
+eval("module.exports = __webpack_require__.p + \"392e4c8d74cb1c9267a14eb0270ba2d6.js\";\n\n//# sourceURL=webpack://iris-web/./node_modules/ace-builds/src-noconflict/mode-ada.js?./node_modules/file-loader/dist/cjs.js?esModule=false");
+
+/***/ }),
+
+/***/ "./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/mode-alda.js":
+/*!*******************************************************************************************************************!*\
+  !*** ./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/mode-alda.js ***!
+  \*******************************************************************************************************************/
+/***/ ((module, __unused_webpack_exports, __webpack_require__) => {
+
+eval("module.exports = __webpack_require__.p + \"d4f1a314cb3668f8e17f24bccf0229b6.js\";\n\n//# sourceURL=webpack://iris-web/./node_modules/ace-builds/src-noconflict/mode-alda.js?./node_modules/file-loader/dist/cjs.js?esModule=false");
+
+/***/ }),
+
+/***/ "./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/mode-apache_conf.js":
+/*!**************************************************************************************************************************!*\
+  !*** ./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/mode-apache_conf.js ***!
+  \**************************************************************************************************************************/
+/***/ ((module, __unused_webpack_exports, __webpack_require__) => {
+
+eval("module.exports = __webpack_require__.p + \"39fea85ed7dd99d7c6c9e59b7040523f.js\";\n\n//# sourceURL=webpack://iris-web/./node_modules/ace-builds/src-noconflict/mode-apache_conf.js?./node_modules/file-loader/dist/cjs.js?esModule=false");
+
+/***/ }),
+
+/***/ "./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/mode-apex.js":
+/*!*******************************************************************************************************************!*\
+  !*** ./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/mode-apex.js ***!
+  \*******************************************************************************************************************/
+/***/ ((module, __unused_webpack_exports, __webpack_require__) => {
+
+eval("module.exports = __webpack_require__.p + \"f2b310d90ac13b96c0ccb2db1f846dfd.js\";\n\n//# sourceURL=webpack://iris-web/./node_modules/ace-builds/src-noconflict/mode-apex.js?./node_modules/file-loader/dist/cjs.js?esModule=false");
+
+/***/ }),
+
+/***/ "./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/mode-applescript.js":
+/*!**************************************************************************************************************************!*\
+  !*** ./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/mode-applescript.js ***!
+  \**************************************************************************************************************************/
+/***/ ((module, __unused_webpack_exports, __webpack_require__) => {
+
+eval("module.exports = __webpack_require__.p + \"2611b2dc99534665bf6734ddfa6b8de4.js\";\n\n//# sourceURL=webpack://iris-web/./node_modules/ace-builds/src-noconflict/mode-applescript.js?./node_modules/file-loader/dist/cjs.js?esModule=false");
+
+/***/ }),
+
+/***/ "./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/mode-aql.js":
+/*!******************************************************************************************************************!*\
+  !*** ./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/mode-aql.js ***!
+  \******************************************************************************************************************/
+/***/ ((module, __unused_webpack_exports, __webpack_require__) => {
+
+eval("module.exports = __webpack_require__.p + \"cd29b6e52c3ebcbaee8c7bb709fd1d8e.js\";\n\n//# sourceURL=webpack://iris-web/./node_modules/ace-builds/src-noconflict/mode-aql.js?./node_modules/file-loader/dist/cjs.js?esModule=false");
+
+/***/ }),
+
+/***/ "./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/mode-asciidoc.js":
+/*!***********************************************************************************************************************!*\
+  !*** ./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/mode-asciidoc.js ***!
+  \***********************************************************************************************************************/
+/***/ ((module, __unused_webpack_exports, __webpack_require__) => {
+
+eval("module.exports = __webpack_require__.p + \"0b06cbc7edf78b6f2810187262e7630b.js\";\n\n//# sourceURL=webpack://iris-web/./node_modules/ace-builds/src-noconflict/mode-asciidoc.js?./node_modules/file-loader/dist/cjs.js?esModule=false");
+
+/***/ }),
+
+/***/ "./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/mode-asl.js":
+/*!******************************************************************************************************************!*\
+  !*** ./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/mode-asl.js ***!
+  \******************************************************************************************************************/
+/***/ ((module, __unused_webpack_exports, __webpack_require__) => {
+
+eval("module.exports = __webpack_require__.p + \"1efd17765f6c83da640fd16882fcc641.js\";\n\n//# sourceURL=webpack://iris-web/./node_modules/ace-builds/src-noconflict/mode-asl.js?./node_modules/file-loader/dist/cjs.js?esModule=false");
+
+/***/ }),
+
+/***/ "./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/mode-assembly_x86.js":
+/*!***************************************************************************************************************************!*\
+  !*** ./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/mode-assembly_x86.js ***!
+  \***************************************************************************************************************************/
+/***/ ((module, __unused_webpack_exports, __webpack_require__) => {
+
+eval("module.exports = __webpack_require__.p + \"a6b8f5b8c9ce7808c5ca6baccdf1ad1e.js\";\n\n//# sourceURL=webpack://iris-web/./node_modules/ace-builds/src-noconflict/mode-assembly_x86.js?./node_modules/file-loader/dist/cjs.js?esModule=false");
+
+/***/ }),
+
+/***/ "./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/mode-autohotkey.js":
+/*!*************************************************************************************************************************!*\
+  !*** ./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/mode-autohotkey.js ***!
+  \*************************************************************************************************************************/
+/***/ ((module, __unused_webpack_exports, __webpack_require__) => {
+
+eval("module.exports = __webpack_require__.p + \"fa0c561bb37040fc8145e5c70ea64912.js\";\n\n//# sourceURL=webpack://iris-web/./node_modules/ace-builds/src-noconflict/mode-autohotkey.js?./node_modules/file-loader/dist/cjs.js?esModule=false");
+
+/***/ }),
+
+/***/ "./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/mode-batchfile.js":
+/*!************************************************************************************************************************!*\
+  !*** ./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/mode-batchfile.js ***!
+  \************************************************************************************************************************/
+/***/ ((module, __unused_webpack_exports, __webpack_require__) => {
+
+eval("module.exports = __webpack_require__.p + \"4b692785a8a6340a89e6067274a7583c.js\";\n\n//# sourceURL=webpack://iris-web/./node_modules/ace-builds/src-noconflict/mode-batchfile.js?./node_modules/file-loader/dist/cjs.js?esModule=false");
+
+/***/ }),
+
+/***/ "./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/mode-bibtex.js":
+/*!*********************************************************************************************************************!*\
+  !*** ./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/mode-bibtex.js ***!
+  \*********************************************************************************************************************/
+/***/ ((module, __unused_webpack_exports, __webpack_require__) => {
+
+eval("module.exports = __webpack_require__.p + \"5cab33610b8d9c1aee4db4672811cb5f.js\";\n\n//# sourceURL=webpack://iris-web/./node_modules/ace-builds/src-noconflict/mode-bibtex.js?./node_modules/file-loader/dist/cjs.js?esModule=false");
+
+/***/ }),
+
+/***/ "./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/mode-c9search.js":
+/*!***********************************************************************************************************************!*\
+  !*** ./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/mode-c9search.js ***!
+  \***********************************************************************************************************************/
+/***/ ((module, __unused_webpack_exports, __webpack_require__) => {
+
+eval("module.exports = __webpack_require__.p + \"02b97d3c4a7e895228beec69fb63e420.js\";\n\n//# sourceURL=webpack://iris-web/./node_modules/ace-builds/src-noconflict/mode-c9search.js?./node_modules/file-loader/dist/cjs.js?esModule=false");
+
+/***/ }),
+
+/***/ "./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/mode-c_cpp.js":
+/*!********************************************************************************************************************!*\
+  !*** ./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/mode-c_cpp.js ***!
+  \********************************************************************************************************************/
+/***/ ((module, __unused_webpack_exports, __webpack_require__) => {
+
+eval("module.exports = __webpack_require__.p + \"dfbab8a4398c55c81de0b99c274212ab.js\";\n\n//# sourceURL=webpack://iris-web/./node_modules/ace-builds/src-noconflict/mode-c_cpp.js?./node_modules/file-loader/dist/cjs.js?esModule=false");
+
+/***/ }),
+
+/***/ "./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/mode-cirru.js":
+/*!********************************************************************************************************************!*\
+  !*** ./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/mode-cirru.js ***!
+  \********************************************************************************************************************/
+/***/ ((module, __unused_webpack_exports, __webpack_require__) => {
+
+eval("module.exports = __webpack_require__.p + \"92164e5d714ab4cda2b91eede29bc191.js\";\n\n//# sourceURL=webpack://iris-web/./node_modules/ace-builds/src-noconflict/mode-cirru.js?./node_modules/file-loader/dist/cjs.js?esModule=false");
+
+/***/ }),
+
+/***/ "./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/mode-clojure.js":
+/*!**********************************************************************************************************************!*\
+  !*** ./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/mode-clojure.js ***!
+  \**********************************************************************************************************************/
+/***/ ((module, __unused_webpack_exports, __webpack_require__) => {
+
+eval("module.exports = __webpack_require__.p + \"297aa4b0e3bca17d1e97dae92886a563.js\";\n\n//# sourceURL=webpack://iris-web/./node_modules/ace-builds/src-noconflict/mode-clojure.js?./node_modules/file-loader/dist/cjs.js?esModule=false");
+
+/***/ }),
+
+/***/ "./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/mode-cobol.js":
+/*!********************************************************************************************************************!*\
+  !*** ./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/mode-cobol.js ***!
+  \********************************************************************************************************************/
+/***/ ((module, __unused_webpack_exports, __webpack_require__) => {
+
+eval("module.exports = __webpack_require__.p + \"a72ec8ab4a5bdfd6695dfa5fa86ef30d.js\";\n\n//# sourceURL=webpack://iris-web/./node_modules/ace-builds/src-noconflict/mode-cobol.js?./node_modules/file-loader/dist/cjs.js?esModule=false");
+
+/***/ }),
+
+/***/ "./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/mode-coffee.js":
+/*!*********************************************************************************************************************!*\
+  !*** ./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/mode-coffee.js ***!
+  \*********************************************************************************************************************/
+/***/ ((module, __unused_webpack_exports, __webpack_require__) => {
+
+eval("module.exports = __webpack_require__.p + \"3a3b2fef963d6c2c49c5b11b74a9ea81.js\";\n\n//# sourceURL=webpack://iris-web/./node_modules/ace-builds/src-noconflict/mode-coffee.js?./node_modules/file-loader/dist/cjs.js?esModule=false");
+
+/***/ }),
+
+/***/ "./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/mode-coldfusion.js":
+/*!*************************************************************************************************************************!*\
+  !*** ./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/mode-coldfusion.js ***!
+  \*************************************************************************************************************************/
+/***/ ((module, __unused_webpack_exports, __webpack_require__) => {
+
+eval("module.exports = __webpack_require__.p + \"93aba35bc63d503600790b710221bc12.js\";\n\n//# sourceURL=webpack://iris-web/./node_modules/ace-builds/src-noconflict/mode-coldfusion.js?./node_modules/file-loader/dist/cjs.js?esModule=false");
+
+/***/ }),
+
+/***/ "./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/mode-crystal.js":
+/*!**********************************************************************************************************************!*\
+  !*** ./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/mode-crystal.js ***!
+  \**********************************************************************************************************************/
+/***/ ((module, __unused_webpack_exports, __webpack_require__) => {
+
+eval("module.exports = __webpack_require__.p + \"32184b16d585b5aa9536a2dddbc0563e.js\";\n\n//# sourceURL=webpack://iris-web/./node_modules/ace-builds/src-noconflict/mode-crystal.js?./node_modules/file-loader/dist/cjs.js?esModule=false");
+
+/***/ }),
+
+/***/ "./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/mode-csharp.js":
+/*!*********************************************************************************************************************!*\
+  !*** ./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/mode-csharp.js ***!
+  \*********************************************************************************************************************/
+/***/ ((module, __unused_webpack_exports, __webpack_require__) => {
+
+eval("module.exports = __webpack_require__.p + \"476a9395afecb6d7621d82196d29fabc.js\";\n\n//# sourceURL=webpack://iris-web/./node_modules/ace-builds/src-noconflict/mode-csharp.js?./node_modules/file-loader/dist/cjs.js?esModule=false");
+
+/***/ }),
+
+/***/ "./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/mode-csound_document.js":
+/*!******************************************************************************************************************************!*\
+  !*** ./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/mode-csound_document.js ***!
+  \******************************************************************************************************************************/
+/***/ ((module, __unused_webpack_exports, __webpack_require__) => {
+
+eval("module.exports = __webpack_require__.p + \"50223186f7fdffc9ceeabafc95db60fe.js\";\n\n//# sourceURL=webpack://iris-web/./node_modules/ace-builds/src-noconflict/mode-csound_document.js?./node_modules/file-loader/dist/cjs.js?esModule=false");
+
+/***/ }),
+
+/***/ "./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/mode-csound_orchestra.js":
+/*!*******************************************************************************************************************************!*\
+  !*** ./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/mode-csound_orchestra.js ***!
+  \*******************************************************************************************************************************/
+/***/ ((module, __unused_webpack_exports, __webpack_require__) => {
+
+eval("module.exports = __webpack_require__.p + \"2184bcd361a0e38d249bc49439d994cb.js\";\n\n//# sourceURL=webpack://iris-web/./node_modules/ace-builds/src-noconflict/mode-csound_orchestra.js?./node_modules/file-loader/dist/cjs.js?esModule=false");
+
+/***/ }),
+
+/***/ "./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/mode-csound_score.js":
+/*!***************************************************************************************************************************!*\
+  !*** ./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/mode-csound_score.js ***!
+  \***************************************************************************************************************************/
+/***/ ((module, __unused_webpack_exports, __webpack_require__) => {
+
+eval("module.exports = __webpack_require__.p + \"b992b348ffb6453e4a02a60e71c5304e.js\";\n\n//# sourceURL=webpack://iris-web/./node_modules/ace-builds/src-noconflict/mode-csound_score.js?./node_modules/file-loader/dist/cjs.js?esModule=false");
+
+/***/ }),
+
+/***/ "./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/mode-csp.js":
+/*!******************************************************************************************************************!*\
+  !*** ./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/mode-csp.js ***!
+  \******************************************************************************************************************/
+/***/ ((module, __unused_webpack_exports, __webpack_require__) => {
+
+eval("module.exports = __webpack_require__.p + \"9b80d1a12acd18c90e41ca92073122a7.js\";\n\n//# sourceURL=webpack://iris-web/./node_modules/ace-builds/src-noconflict/mode-csp.js?./node_modules/file-loader/dist/cjs.js?esModule=false");
+
+/***/ }),
+
+/***/ "./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/mode-css.js":
+/*!******************************************************************************************************************!*\
+  !*** ./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/mode-css.js ***!
+  \******************************************************************************************************************/
+/***/ ((module, __unused_webpack_exports, __webpack_require__) => {
+
+eval("module.exports = __webpack_require__.p + \"3564e45dfb2ed064007f910db434889f.js\";\n\n//# sourceURL=webpack://iris-web/./node_modules/ace-builds/src-noconflict/mode-css.js?./node_modules/file-loader/dist/cjs.js?esModule=false");
+
+/***/ }),
+
+/***/ "./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/mode-curly.js":
+/*!********************************************************************************************************************!*\
+  !*** ./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/mode-curly.js ***!
+  \********************************************************************************************************************/
+/***/ ((module, __unused_webpack_exports, __webpack_require__) => {
+
+eval("module.exports = __webpack_require__.p + \"82e23eb0365ab1bea4ba31541a671df2.js\";\n\n//# sourceURL=webpack://iris-web/./node_modules/ace-builds/src-noconflict/mode-curly.js?./node_modules/file-loader/dist/cjs.js?esModule=false");
+
+/***/ }),
+
+/***/ "./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/mode-d.js":
+/*!****************************************************************************************************************!*\
+  !*** ./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/mode-d.js ***!
+  \****************************************************************************************************************/
+/***/ ((module, __unused_webpack_exports, __webpack_require__) => {
+
+eval("module.exports = __webpack_require__.p + \"66683af3dcbdb4c22d269ea63899eb62.js\";\n\n//# sourceURL=webpack://iris-web/./node_modules/ace-builds/src-noconflict/mode-d.js?./node_modules/file-loader/dist/cjs.js?esModule=false");
+
+/***/ }),
+
+/***/ "./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/mode-dart.js":
+/*!*******************************************************************************************************************!*\
+  !*** ./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/mode-dart.js ***!
+  \*******************************************************************************************************************/
+/***/ ((module, __unused_webpack_exports, __webpack_require__) => {
+
+eval("module.exports = __webpack_require__.p + \"44d60068ce7410faae8c3a05d9d247ce.js\";\n\n//# sourceURL=webpack://iris-web/./node_modules/ace-builds/src-noconflict/mode-dart.js?./node_modules/file-loader/dist/cjs.js?esModule=false");
+
+/***/ }),
+
+/***/ "./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/mode-diff.js":
+/*!*******************************************************************************************************************!*\
+  !*** ./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/mode-diff.js ***!
+  \*******************************************************************************************************************/
+/***/ ((module, __unused_webpack_exports, __webpack_require__) => {
+
+eval("module.exports = __webpack_require__.p + \"43139bfbcbce9de597b4985dc1e6a03b.js\";\n\n//# sourceURL=webpack://iris-web/./node_modules/ace-builds/src-noconflict/mode-diff.js?./node_modules/file-loader/dist/cjs.js?esModule=false");
+
+/***/ }),
+
+/***/ "./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/mode-django.js":
+/*!*********************************************************************************************************************!*\
+  !*** ./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/mode-django.js ***!
+  \*********************************************************************************************************************/
+/***/ ((module, __unused_webpack_exports, __webpack_require__) => {
+
+eval("module.exports = __webpack_require__.p + \"e23a8ca493d2ed4dd0ad103e930e2e08.js\";\n\n//# sourceURL=webpack://iris-web/./node_modules/ace-builds/src-noconflict/mode-django.js?./node_modules/file-loader/dist/cjs.js?esModule=false");
+
+/***/ }),
+
+/***/ "./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/mode-dockerfile.js":
+/*!*************************************************************************************************************************!*\
+  !*** ./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/mode-dockerfile.js ***!
+  \*************************************************************************************************************************/
+/***/ ((module, __unused_webpack_exports, __webpack_require__) => {
+
+eval("module.exports = __webpack_require__.p + \"4d2f57c77de95601a5e05343949e7d4b.js\";\n\n//# sourceURL=webpack://iris-web/./node_modules/ace-builds/src-noconflict/mode-dockerfile.js?./node_modules/file-loader/dist/cjs.js?esModule=false");
+
+/***/ }),
+
+/***/ "./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/mode-dot.js":
+/*!******************************************************************************************************************!*\
+  !*** ./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/mode-dot.js ***!
+  \******************************************************************************************************************/
+/***/ ((module, __unused_webpack_exports, __webpack_require__) => {
+
+eval("module.exports = __webpack_require__.p + \"8575dad893a0f6989fc39d6ecd712bdc.js\";\n\n//# sourceURL=webpack://iris-web/./node_modules/ace-builds/src-noconflict/mode-dot.js?./node_modules/file-loader/dist/cjs.js?esModule=false");
+
+/***/ }),
+
+/***/ "./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/mode-drools.js":
+/*!*********************************************************************************************************************!*\
+  !*** ./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/mode-drools.js ***!
+  \*********************************************************************************************************************/
+/***/ ((module, __unused_webpack_exports, __webpack_require__) => {
+
+eval("module.exports = __webpack_require__.p + \"9a288b9a75234de6d962f2be79de3c43.js\";\n\n//# sourceURL=webpack://iris-web/./node_modules/ace-builds/src-noconflict/mode-drools.js?./node_modules/file-loader/dist/cjs.js?esModule=false");
+
+/***/ }),
+
+/***/ "./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/mode-edifact.js":
+/*!**********************************************************************************************************************!*\
+  !*** ./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/mode-edifact.js ***!
+  \**********************************************************************************************************************/
+/***/ ((module, __unused_webpack_exports, __webpack_require__) => {
+
+eval("module.exports = __webpack_require__.p + \"18324d75a4d39f26b07a6e810f60287b.js\";\n\n//# sourceURL=webpack://iris-web/./node_modules/ace-builds/src-noconflict/mode-edifact.js?./node_modules/file-loader/dist/cjs.js?esModule=false");
+
+/***/ }),
+
+/***/ "./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/mode-eiffel.js":
+/*!*********************************************************************************************************************!*\
+  !*** ./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/mode-eiffel.js ***!
+  \*********************************************************************************************************************/
+/***/ ((module, __unused_webpack_exports, __webpack_require__) => {
+
+eval("module.exports = __webpack_require__.p + \"2adc6bc4a8a2bf35636e8fc7fe0df2dd.js\";\n\n//# sourceURL=webpack://iris-web/./node_modules/ace-builds/src-noconflict/mode-eiffel.js?./node_modules/file-loader/dist/cjs.js?esModule=false");
+
+/***/ }),
+
+/***/ "./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/mode-ejs.js":
+/*!******************************************************************************************************************!*\
+  !*** ./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/mode-ejs.js ***!
+  \******************************************************************************************************************/
+/***/ ((module, __unused_webpack_exports, __webpack_require__) => {
+
+eval("module.exports = __webpack_require__.p + \"43bdc13e8dcd4ac4285b610bc90c3643.js\";\n\n//# sourceURL=webpack://iris-web/./node_modules/ace-builds/src-noconflict/mode-ejs.js?./node_modules/file-loader/dist/cjs.js?esModule=false");
+
+/***/ }),
+
+/***/ "./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/mode-elixir.js":
+/*!*********************************************************************************************************************!*\
+  !*** ./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/mode-elixir.js ***!
+  \*********************************************************************************************************************/
+/***/ ((module, __unused_webpack_exports, __webpack_require__) => {
+
+eval("module.exports = __webpack_require__.p + \"277128dcbc226dfeb8fde9391fb24787.js\";\n\n//# sourceURL=webpack://iris-web/./node_modules/ace-builds/src-noconflict/mode-elixir.js?./node_modules/file-loader/dist/cjs.js?esModule=false");
+
+/***/ }),
+
+/***/ "./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/mode-elm.js":
+/*!******************************************************************************************************************!*\
+  !*** ./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/mode-elm.js ***!
+  \******************************************************************************************************************/
+/***/ ((module, __unused_webpack_exports, __webpack_require__) => {
+
+eval("module.exports = __webpack_require__.p + \"e0fa6a4fe8bff90d50ce812e666957ca.js\";\n\n//# sourceURL=webpack://iris-web/./node_modules/ace-builds/src-noconflict/mode-elm.js?./node_modules/file-loader/dist/cjs.js?esModule=false");
+
+/***/ }),
+
+/***/ "./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/mode-erlang.js":
+/*!*********************************************************************************************************************!*\
+  !*** ./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/mode-erlang.js ***!
+  \*********************************************************************************************************************/
+/***/ ((module, __unused_webpack_exports, __webpack_require__) => {
+
+eval("module.exports = __webpack_require__.p + \"262f489eb59166e1215642b60446d123.js\";\n\n//# sourceURL=webpack://iris-web/./node_modules/ace-builds/src-noconflict/mode-erlang.js?./node_modules/file-loader/dist/cjs.js?esModule=false");
+
+/***/ }),
+
+/***/ "./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/mode-forth.js":
+/*!********************************************************************************************************************!*\
+  !*** ./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/mode-forth.js ***!
+  \********************************************************************************************************************/
+/***/ ((module, __unused_webpack_exports, __webpack_require__) => {
+
+eval("module.exports = __webpack_require__.p + \"10c464f3f882bfeeefbc0934c2ee9fbe.js\";\n\n//# sourceURL=webpack://iris-web/./node_modules/ace-builds/src-noconflict/mode-forth.js?./node_modules/file-loader/dist/cjs.js?esModule=false");
+
+/***/ }),
+
+/***/ "./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/mode-fortran.js":
+/*!**********************************************************************************************************************!*\
+  !*** ./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/mode-fortran.js ***!
+  \**********************************************************************************************************************/
+/***/ ((module, __unused_webpack_exports, __webpack_require__) => {
+
+eval("module.exports = __webpack_require__.p + \"19017707f34649cae551ee9d5ea1edbf.js\";\n\n//# sourceURL=webpack://iris-web/./node_modules/ace-builds/src-noconflict/mode-fortran.js?./node_modules/file-loader/dist/cjs.js?esModule=false");
+
+/***/ }),
+
+/***/ "./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/mode-fsharp.js":
+/*!*********************************************************************************************************************!*\
+  !*** ./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/mode-fsharp.js ***!
+  \*********************************************************************************************************************/
+/***/ ((module, __unused_webpack_exports, __webpack_require__) => {
+
+eval("module.exports = __webpack_require__.p + \"135747176621bcc94e9edd0323a81d3c.js\";\n\n//# sourceURL=webpack://iris-web/./node_modules/ace-builds/src-noconflict/mode-fsharp.js?./node_modules/file-loader/dist/cjs.js?esModule=false");
+
+/***/ }),
+
+/***/ "./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/mode-fsl.js":
+/*!******************************************************************************************************************!*\
+  !*** ./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/mode-fsl.js ***!
+  \******************************************************************************************************************/
+/***/ ((module, __unused_webpack_exports, __webpack_require__) => {
+
+eval("module.exports = __webpack_require__.p + \"111d9fdb9864abba36298d1a0807fe6d.js\";\n\n//# sourceURL=webpack://iris-web/./node_modules/ace-builds/src-noconflict/mode-fsl.js?./node_modules/file-loader/dist/cjs.js?esModule=false");
+
+/***/ }),
+
+/***/ "./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/mode-ftl.js":
+/*!******************************************************************************************************************!*\
+  !*** ./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/mode-ftl.js ***!
+  \******************************************************************************************************************/
+/***/ ((module, __unused_webpack_exports, __webpack_require__) => {
+
+eval("module.exports = __webpack_require__.p + \"71275c2bb7f870b837b85de2b4bca98b.js\";\n\n//# sourceURL=webpack://iris-web/./node_modules/ace-builds/src-noconflict/mode-ftl.js?./node_modules/file-loader/dist/cjs.js?esModule=false");
+
+/***/ }),
+
+/***/ "./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/mode-gcode.js":
+/*!********************************************************************************************************************!*\
+  !*** ./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/mode-gcode.js ***!
+  \********************************************************************************************************************/
+/***/ ((module, __unused_webpack_exports, __webpack_require__) => {
+
+eval("module.exports = __webpack_require__.p + \"ac12519ccf3cc323b28f70e35f922e3f.js\";\n\n//# sourceURL=webpack://iris-web/./node_modules/ace-builds/src-noconflict/mode-gcode.js?./node_modules/file-loader/dist/cjs.js?esModule=false");
+
+/***/ }),
+
+/***/ "./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/mode-gherkin.js":
+/*!**********************************************************************************************************************!*\
+  !*** ./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/mode-gherkin.js ***!
+  \**********************************************************************************************************************/
+/***/ ((module, __unused_webpack_exports, __webpack_require__) => {
+
+eval("module.exports = __webpack_require__.p + \"410ecb602443afbd5908a14f39b40eb2.js\";\n\n//# sourceURL=webpack://iris-web/./node_modules/ace-builds/src-noconflict/mode-gherkin.js?./node_modules/file-loader/dist/cjs.js?esModule=false");
+
+/***/ }),
+
+/***/ "./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/mode-gitignore.js":
+/*!************************************************************************************************************************!*\
+  !*** ./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/mode-gitignore.js ***!
+  \************************************************************************************************************************/
+/***/ ((module, __unused_webpack_exports, __webpack_require__) => {
+
+eval("module.exports = __webpack_require__.p + \"73cdbb2580cd6a02d989c86e56bb83f3.js\";\n\n//# sourceURL=webpack://iris-web/./node_modules/ace-builds/src-noconflict/mode-gitignore.js?./node_modules/file-loader/dist/cjs.js?esModule=false");
+
+/***/ }),
+
+/***/ "./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/mode-glsl.js":
+/*!*******************************************************************************************************************!*\
+  !*** ./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/mode-glsl.js ***!
+  \*******************************************************************************************************************/
+/***/ ((module, __unused_webpack_exports, __webpack_require__) => {
+
+eval("module.exports = __webpack_require__.p + \"c5586fd01c07d3bc4b15eca22bc34f75.js\";\n\n//# sourceURL=webpack://iris-web/./node_modules/ace-builds/src-noconflict/mode-glsl.js?./node_modules/file-loader/dist/cjs.js?esModule=false");
+
+/***/ }),
+
+/***/ "./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/mode-gobstones.js":
+/*!************************************************************************************************************************!*\
+  !*** ./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/mode-gobstones.js ***!
+  \************************************************************************************************************************/
+/***/ ((module, __unused_webpack_exports, __webpack_require__) => {
+
+eval("module.exports = __webpack_require__.p + \"b03f310571b0442294ebe39c464b68b2.js\";\n\n//# sourceURL=webpack://iris-web/./node_modules/ace-builds/src-noconflict/mode-gobstones.js?./node_modules/file-loader/dist/cjs.js?esModule=false");
+
+/***/ }),
+
+/***/ "./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/mode-golang.js":
+/*!*********************************************************************************************************************!*\
+  !*** ./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/mode-golang.js ***!
+  \*********************************************************************************************************************/
+/***/ ((module, __unused_webpack_exports, __webpack_require__) => {
+
+eval("module.exports = __webpack_require__.p + \"a237067d2cf1a9f38281f7e715498f9e.js\";\n\n//# sourceURL=webpack://iris-web/./node_modules/ace-builds/src-noconflict/mode-golang.js?./node_modules/file-loader/dist/cjs.js?esModule=false");
+
+/***/ }),
+
+/***/ "./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/mode-graphqlschema.js":
+/*!****************************************************************************************************************************!*\
+  !*** ./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/mode-graphqlschema.js ***!
+  \****************************************************************************************************************************/
+/***/ ((module, __unused_webpack_exports, __webpack_require__) => {
+
+eval("module.exports = __webpack_require__.p + \"363d3bac8dcd9a83332c3758185ce080.js\";\n\n//# sourceURL=webpack://iris-web/./node_modules/ace-builds/src-noconflict/mode-graphqlschema.js?./node_modules/file-loader/dist/cjs.js?esModule=false");
+
+/***/ }),
+
+/***/ "./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/mode-groovy.js":
+/*!*********************************************************************************************************************!*\
+  !*** ./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/mode-groovy.js ***!
+  \*********************************************************************************************************************/
+/***/ ((module, __unused_webpack_exports, __webpack_require__) => {
+
+eval("module.exports = __webpack_require__.p + \"99bc7ea0100334b99d0c9bf778b9d0ed.js\";\n\n//# sourceURL=webpack://iris-web/./node_modules/ace-builds/src-noconflict/mode-groovy.js?./node_modules/file-loader/dist/cjs.js?esModule=false");
+
+/***/ }),
+
+/***/ "./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/mode-haml.js":
+/*!*******************************************************************************************************************!*\
+  !*** ./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/mode-haml.js ***!
+  \*******************************************************************************************************************/
+/***/ ((module, __unused_webpack_exports, __webpack_require__) => {
+
+eval("module.exports = __webpack_require__.p + \"c27b4fd8b442126fb8961d5f995bda72.js\";\n\n//# sourceURL=webpack://iris-web/./node_modules/ace-builds/src-noconflict/mode-haml.js?./node_modules/file-loader/dist/cjs.js?esModule=false");
+
+/***/ }),
+
+/***/ "./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/mode-handlebars.js":
+/*!*************************************************************************************************************************!*\
+  !*** ./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/mode-handlebars.js ***!
+  \*************************************************************************************************************************/
+/***/ ((module, __unused_webpack_exports, __webpack_require__) => {
+
+eval("module.exports = __webpack_require__.p + \"e186105cc8426fb3d4a06072250caf29.js\";\n\n//# sourceURL=webpack://iris-web/./node_modules/ace-builds/src-noconflict/mode-handlebars.js?./node_modules/file-loader/dist/cjs.js?esModule=false");
+
+/***/ }),
+
+/***/ "./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/mode-haskell.js":
+/*!**********************************************************************************************************************!*\
+  !*** ./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/mode-haskell.js ***!
+  \**********************************************************************************************************************/
+/***/ ((module, __unused_webpack_exports, __webpack_require__) => {
+
+eval("module.exports = __webpack_require__.p + \"5df362c9904925cdf574d9506e4be76d.js\";\n\n//# sourceURL=webpack://iris-web/./node_modules/ace-builds/src-noconflict/mode-haskell.js?./node_modules/file-loader/dist/cjs.js?esModule=false");
+
+/***/ }),
+
+/***/ "./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/mode-haskell_cabal.js":
+/*!****************************************************************************************************************************!*\
+  !*** ./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/mode-haskell_cabal.js ***!
+  \****************************************************************************************************************************/
+/***/ ((module, __unused_webpack_exports, __webpack_require__) => {
+
+eval("module.exports = __webpack_require__.p + \"5f8e9f09349e37425d6ef96bf1bf7a2d.js\";\n\n//# sourceURL=webpack://iris-web/./node_modules/ace-builds/src-noconflict/mode-haskell_cabal.js?./node_modules/file-loader/dist/cjs.js?esModule=false");
+
+/***/ }),
+
+/***/ "./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/mode-haxe.js":
+/*!*******************************************************************************************************************!*\
+  !*** ./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/mode-haxe.js ***!
+  \*******************************************************************************************************************/
+/***/ ((module, __unused_webpack_exports, __webpack_require__) => {
+
+eval("module.exports = __webpack_require__.p + \"b979e956b3e1542de6440aabd516b7d9.js\";\n\n//# sourceURL=webpack://iris-web/./node_modules/ace-builds/src-noconflict/mode-haxe.js?./node_modules/file-loader/dist/cjs.js?esModule=false");
+
+/***/ }),
+
+/***/ "./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/mode-hjson.js":
+/*!********************************************************************************************************************!*\
+  !*** ./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/mode-hjson.js ***!
+  \********************************************************************************************************************/
+/***/ ((module, __unused_webpack_exports, __webpack_require__) => {
+
+eval("module.exports = __webpack_require__.p + \"83bd353f98aa901411c82b8af58d1296.js\";\n\n//# sourceURL=webpack://iris-web/./node_modules/ace-builds/src-noconflict/mode-hjson.js?./node_modules/file-loader/dist/cjs.js?esModule=false");
+
+/***/ }),
+
+/***/ "./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/mode-html.js":
+/*!*******************************************************************************************************************!*\
+  !*** ./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/mode-html.js ***!
+  \*******************************************************************************************************************/
+/***/ ((module, __unused_webpack_exports, __webpack_require__) => {
+
+eval("module.exports = __webpack_require__.p + \"3e999bcd76ca834502e03862745c8b6f.js\";\n\n//# sourceURL=webpack://iris-web/./node_modules/ace-builds/src-noconflict/mode-html.js?./node_modules/file-loader/dist/cjs.js?esModule=false");
+
+/***/ }),
+
+/***/ "./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/mode-html_elixir.js":
+/*!**************************************************************************************************************************!*\
+  !*** ./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/mode-html_elixir.js ***!
+  \**************************************************************************************************************************/
+/***/ ((module, __unused_webpack_exports, __webpack_require__) => {
+
+eval("module.exports = __webpack_require__.p + \"5caa5c309f0eef99d8d84c2e67230e58.js\";\n\n//# sourceURL=webpack://iris-web/./node_modules/ace-builds/src-noconflict/mode-html_elixir.js?./node_modules/file-loader/dist/cjs.js?esModule=false");
+
+/***/ }),
+
+/***/ "./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/mode-html_ruby.js":
+/*!************************************************************************************************************************!*\
+  !*** ./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/mode-html_ruby.js ***!
+  \************************************************************************************************************************/
+/***/ ((module, __unused_webpack_exports, __webpack_require__) => {
+
+eval("module.exports = __webpack_require__.p + \"2e4dfbad36551198eb252ad74279f995.js\";\n\n//# sourceURL=webpack://iris-web/./node_modules/ace-builds/src-noconflict/mode-html_ruby.js?./node_modules/file-loader/dist/cjs.js?esModule=false");
+
+/***/ }),
+
+/***/ "./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/mode-ini.js":
+/*!******************************************************************************************************************!*\
+  !*** ./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/mode-ini.js ***!
+  \******************************************************************************************************************/
+/***/ ((module, __unused_webpack_exports, __webpack_require__) => {
+
+eval("module.exports = __webpack_require__.p + \"4d156ee0485ab4b40b090a3cd7b995a9.js\";\n\n//# sourceURL=webpack://iris-web/./node_modules/ace-builds/src-noconflict/mode-ini.js?./node_modules/file-loader/dist/cjs.js?esModule=false");
+
+/***/ }),
+
+/***/ "./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/mode-io.js":
+/*!*****************************************************************************************************************!*\
+  !*** ./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/mode-io.js ***!
+  \*****************************************************************************************************************/
+/***/ ((module, __unused_webpack_exports, __webpack_require__) => {
+
+eval("module.exports = __webpack_require__.p + \"3a6ca6958d003ae67bb7fefc8713ee93.js\";\n\n//# sourceURL=webpack://iris-web/./node_modules/ace-builds/src-noconflict/mode-io.js?./node_modules/file-loader/dist/cjs.js?esModule=false");
+
+/***/ }),
+
+/***/ "./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/mode-ion.js":
+/*!******************************************************************************************************************!*\
+  !*** ./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/mode-ion.js ***!
+  \******************************************************************************************************************/
+/***/ ((module, __unused_webpack_exports, __webpack_require__) => {
+
+eval("module.exports = __webpack_require__.p + \"0078b630bed2938ce03f618c2bcd1363.js\";\n\n//# sourceURL=webpack://iris-web/./node_modules/ace-builds/src-noconflict/mode-ion.js?./node_modules/file-loader/dist/cjs.js?esModule=false");
+
+/***/ }),
+
+/***/ "./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/mode-jack.js":
+/*!*******************************************************************************************************************!*\
+  !*** ./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/mode-jack.js ***!
+  \*******************************************************************************************************************/
+/***/ ((module, __unused_webpack_exports, __webpack_require__) => {
+
+eval("module.exports = __webpack_require__.p + \"f842f60b3527dcbad3174ee39e73e6d6.js\";\n\n//# sourceURL=webpack://iris-web/./node_modules/ace-builds/src-noconflict/mode-jack.js?./node_modules/file-loader/dist/cjs.js?esModule=false");
+
+/***/ }),
+
+/***/ "./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/mode-jade.js":
+/*!*******************************************************************************************************************!*\
+  !*** ./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/mode-jade.js ***!
+  \*******************************************************************************************************************/
+/***/ ((module, __unused_webpack_exports, __webpack_require__) => {
+
+eval("module.exports = __webpack_require__.p + \"7de34e6c2205071434e02d6e1e730c8a.js\";\n\n//# sourceURL=webpack://iris-web/./node_modules/ace-builds/src-noconflict/mode-jade.js?./node_modules/file-loader/dist/cjs.js?esModule=false");
+
+/***/ }),
+
+/***/ "./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/mode-java.js":
+/*!*******************************************************************************************************************!*\
+  !*** ./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/mode-java.js ***!
+  \*******************************************************************************************************************/
+/***/ ((module, __unused_webpack_exports, __webpack_require__) => {
+
+eval("module.exports = __webpack_require__.p + \"58fa709a36113aa85df5191c50673ce0.js\";\n\n//# sourceURL=webpack://iris-web/./node_modules/ace-builds/src-noconflict/mode-java.js?./node_modules/file-loader/dist/cjs.js?esModule=false");
+
+/***/ }),
+
+/***/ "./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/mode-javascript.js":
+/*!*************************************************************************************************************************!*\
+  !*** ./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/mode-javascript.js ***!
+  \*************************************************************************************************************************/
+/***/ ((module, __unused_webpack_exports, __webpack_require__) => {
+
+eval("module.exports = __webpack_require__.p + \"63e308a3bdab5893a555c30e96d82a53.js\";\n\n//# sourceURL=webpack://iris-web/./node_modules/ace-builds/src-noconflict/mode-javascript.js?./node_modules/file-loader/dist/cjs.js?esModule=false");
+
+/***/ }),
+
+/***/ "./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/mode-jexl.js":
+/*!*******************************************************************************************************************!*\
+  !*** ./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/mode-jexl.js ***!
+  \*******************************************************************************************************************/
+/***/ ((module, __unused_webpack_exports, __webpack_require__) => {
+
+eval("module.exports = __webpack_require__.p + \"92aed4ffd41d68e81a525377561b168e.js\";\n\n//# sourceURL=webpack://iris-web/./node_modules/ace-builds/src-noconflict/mode-jexl.js?./node_modules/file-loader/dist/cjs.js?esModule=false");
+
+/***/ }),
+
+/***/ "./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/mode-json.js":
+/*!*******************************************************************************************************************!*\
+  !*** ./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/mode-json.js ***!
+  \*******************************************************************************************************************/
+/***/ ((module, __unused_webpack_exports, __webpack_require__) => {
+
+eval("module.exports = __webpack_require__.p + \"109a021cf363699a5ca21699ebfc9ccb.js\";\n\n//# sourceURL=webpack://iris-web/./node_modules/ace-builds/src-noconflict/mode-json.js?./node_modules/file-loader/dist/cjs.js?esModule=false");
+
+/***/ }),
+
+/***/ "./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/mode-json5.js":
+/*!********************************************************************************************************************!*\
+  !*** ./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/mode-json5.js ***!
+  \********************************************************************************************************************/
+/***/ ((module, __unused_webpack_exports, __webpack_require__) => {
+
+eval("module.exports = __webpack_require__.p + \"7bc22fd00da2d41f3843160e78464ea6.js\";\n\n//# sourceURL=webpack://iris-web/./node_modules/ace-builds/src-noconflict/mode-json5.js?./node_modules/file-loader/dist/cjs.js?esModule=false");
+
+/***/ }),
+
+/***/ "./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/mode-jsoniq.js":
+/*!*********************************************************************************************************************!*\
+  !*** ./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/mode-jsoniq.js ***!
+  \*********************************************************************************************************************/
+/***/ ((module, __unused_webpack_exports, __webpack_require__) => {
+
+eval("module.exports = __webpack_require__.p + \"d8f7ecdd496f3caf14f5afbedfff1937.js\";\n\n//# sourceURL=webpack://iris-web/./node_modules/ace-builds/src-noconflict/mode-jsoniq.js?./node_modules/file-loader/dist/cjs.js?esModule=false");
+
+/***/ }),
+
+/***/ "./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/mode-jsp.js":
+/*!******************************************************************************************************************!*\
+  !*** ./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/mode-jsp.js ***!
+  \******************************************************************************************************************/
+/***/ ((module, __unused_webpack_exports, __webpack_require__) => {
+
+eval("module.exports = __webpack_require__.p + \"692a02573499a22de983d3351d4a7743.js\";\n\n//# sourceURL=webpack://iris-web/./node_modules/ace-builds/src-noconflict/mode-jsp.js?./node_modules/file-loader/dist/cjs.js?esModule=false");
+
+/***/ }),
+
+/***/ "./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/mode-jssm.js":
+/*!*******************************************************************************************************************!*\
+  !*** ./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/mode-jssm.js ***!
+  \*******************************************************************************************************************/
+/***/ ((module, __unused_webpack_exports, __webpack_require__) => {
+
+eval("module.exports = __webpack_require__.p + \"a4e021a4b5d5d65cc87fee17c1886c3f.js\";\n\n//# sourceURL=webpack://iris-web/./node_modules/ace-builds/src-noconflict/mode-jssm.js?./node_modules/file-loader/dist/cjs.js?esModule=false");
+
+/***/ }),
+
+/***/ "./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/mode-jsx.js":
+/*!******************************************************************************************************************!*\
+  !*** ./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/mode-jsx.js ***!
+  \******************************************************************************************************************/
+/***/ ((module, __unused_webpack_exports, __webpack_require__) => {
+
+eval("module.exports = __webpack_require__.p + \"9279b41aaa11e4e04c3a0d1c51dd0b02.js\";\n\n//# sourceURL=webpack://iris-web/./node_modules/ace-builds/src-noconflict/mode-jsx.js?./node_modules/file-loader/dist/cjs.js?esModule=false");
+
+/***/ }),
+
+/***/ "./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/mode-julia.js":
+/*!********************************************************************************************************************!*\
+  !*** ./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/mode-julia.js ***!
+  \********************************************************************************************************************/
+/***/ ((module, __unused_webpack_exports, __webpack_require__) => {
+
+eval("module.exports = __webpack_require__.p + \"349237ad9565dc823ce7bcb7527ba7ee.js\";\n\n//# sourceURL=webpack://iris-web/./node_modules/ace-builds/src-noconflict/mode-julia.js?./node_modules/file-loader/dist/cjs.js?esModule=false");
+
+/***/ }),
+
+/***/ "./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/mode-kotlin.js":
+/*!*********************************************************************************************************************!*\
+  !*** ./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/mode-kotlin.js ***!
+  \*********************************************************************************************************************/
+/***/ ((module, __unused_webpack_exports, __webpack_require__) => {
+
+eval("module.exports = __webpack_require__.p + \"622e27eec5f26148f51ccc30315a3deb.js\";\n\n//# sourceURL=webpack://iris-web/./node_modules/ace-builds/src-noconflict/mode-kotlin.js?./node_modules/file-loader/dist/cjs.js?esModule=false");
+
+/***/ }),
+
+/***/ "./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/mode-latex.js":
+/*!********************************************************************************************************************!*\
+  !*** ./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/mode-latex.js ***!
+  \********************************************************************************************************************/
+/***/ ((module, __unused_webpack_exports, __webpack_require__) => {
+
+eval("module.exports = __webpack_require__.p + \"a223748cd69094dd12b486353b22f479.js\";\n\n//# sourceURL=webpack://iris-web/./node_modules/ace-builds/src-noconflict/mode-latex.js?./node_modules/file-loader/dist/cjs.js?esModule=false");
+
+/***/ }),
+
+/***/ "./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/mode-latte.js":
+/*!********************************************************************************************************************!*\
+  !*** ./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/mode-latte.js ***!
+  \********************************************************************************************************************/
+/***/ ((module, __unused_webpack_exports, __webpack_require__) => {
+
+eval("module.exports = __webpack_require__.p + \"eb44d6b4937935a7189e8709667fde10.js\";\n\n//# sourceURL=webpack://iris-web/./node_modules/ace-builds/src-noconflict/mode-latte.js?./node_modules/file-loader/dist/cjs.js?esModule=false");
+
+/***/ }),
+
+/***/ "./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/mode-less.js":
+/*!*******************************************************************************************************************!*\
+  !*** ./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/mode-less.js ***!
+  \*******************************************************************************************************************/
+/***/ ((module, __unused_webpack_exports, __webpack_require__) => {
+
+eval("module.exports = __webpack_require__.p + \"bba393726b199f66d8b4314385c1f2f0.js\";\n\n//# sourceURL=webpack://iris-web/./node_modules/ace-builds/src-noconflict/mode-less.js?./node_modules/file-loader/dist/cjs.js?esModule=false");
+
+/***/ }),
+
+/***/ "./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/mode-liquid.js":
+/*!*********************************************************************************************************************!*\
+  !*** ./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/mode-liquid.js ***!
+  \*********************************************************************************************************************/
+/***/ ((module, __unused_webpack_exports, __webpack_require__) => {
+
+eval("module.exports = __webpack_require__.p + \"0fb0b22c17a8f0101f92c61628fa607e.js\";\n\n//# sourceURL=webpack://iris-web/./node_modules/ace-builds/src-noconflict/mode-liquid.js?./node_modules/file-loader/dist/cjs.js?esModule=false");
+
+/***/ }),
+
+/***/ "./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/mode-lisp.js":
+/*!*******************************************************************************************************************!*\
+  !*** ./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/mode-lisp.js ***!
+  \*******************************************************************************************************************/
+/***/ ((module, __unused_webpack_exports, __webpack_require__) => {
+
+eval("module.exports = __webpack_require__.p + \"c3174a46927bbec0fbd8946f97bd7170.js\";\n\n//# sourceURL=webpack://iris-web/./node_modules/ace-builds/src-noconflict/mode-lisp.js?./node_modules/file-loader/dist/cjs.js?esModule=false");
+
+/***/ }),
+
+/***/ "./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/mode-livescript.js":
+/*!*************************************************************************************************************************!*\
+  !*** ./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/mode-livescript.js ***!
+  \*************************************************************************************************************************/
+/***/ ((module, __unused_webpack_exports, __webpack_require__) => {
+
+eval("module.exports = __webpack_require__.p + \"2ad349208b3a727abb3c9f943865a27c.js\";\n\n//# sourceURL=webpack://iris-web/./node_modules/ace-builds/src-noconflict/mode-livescript.js?./node_modules/file-loader/dist/cjs.js?esModule=false");
+
+/***/ }),
+
+/***/ "./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/mode-logiql.js":
+/*!*********************************************************************************************************************!*\
+  !*** ./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/mode-logiql.js ***!
+  \*********************************************************************************************************************/
+/***/ ((module, __unused_webpack_exports, __webpack_require__) => {
+
+eval("module.exports = __webpack_require__.p + \"d67dee4f61289dd758757e9532bd3fde.js\";\n\n//# sourceURL=webpack://iris-web/./node_modules/ace-builds/src-noconflict/mode-logiql.js?./node_modules/file-loader/dist/cjs.js?esModule=false");
+
+/***/ }),
+
+/***/ "./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/mode-logtalk.js":
+/*!**********************************************************************************************************************!*\
+  !*** ./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/mode-logtalk.js ***!
+  \**********************************************************************************************************************/
+/***/ ((module, __unused_webpack_exports, __webpack_require__) => {
+
+eval("module.exports = __webpack_require__.p + \"d1f0ad8ca2a550bc292669b06a614f79.js\";\n\n//# sourceURL=webpack://iris-web/./node_modules/ace-builds/src-noconflict/mode-logtalk.js?./node_modules/file-loader/dist/cjs.js?esModule=false");
+
+/***/ }),
+
+/***/ "./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/mode-lsl.js":
+/*!******************************************************************************************************************!*\
+  !*** ./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/mode-lsl.js ***!
+  \******************************************************************************************************************/
+/***/ ((module, __unused_webpack_exports, __webpack_require__) => {
+
+eval("module.exports = __webpack_require__.p + \"c1a1f4ba29aa2d9a0b1a1abe5cfee0c6.js\";\n\n//# sourceURL=webpack://iris-web/./node_modules/ace-builds/src-noconflict/mode-lsl.js?./node_modules/file-loader/dist/cjs.js?esModule=false");
+
+/***/ }),
+
+/***/ "./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/mode-lua.js":
+/*!******************************************************************************************************************!*\
+  !*** ./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/mode-lua.js ***!
+  \******************************************************************************************************************/
+/***/ ((module, __unused_webpack_exports, __webpack_require__) => {
+
+eval("module.exports = __webpack_require__.p + \"e45a0dfd102b67ad7cdefe10500bf0d7.js\";\n\n//# sourceURL=webpack://iris-web/./node_modules/ace-builds/src-noconflict/mode-lua.js?./node_modules/file-loader/dist/cjs.js?esModule=false");
+
+/***/ }),
+
+/***/ "./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/mode-luapage.js":
+/*!**********************************************************************************************************************!*\
+  !*** ./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/mode-luapage.js ***!
+  \**********************************************************************************************************************/
+/***/ ((module, __unused_webpack_exports, __webpack_require__) => {
+
+eval("module.exports = __webpack_require__.p + \"80b4008a52f780b45018fe78dad9a077.js\";\n\n//# sourceURL=webpack://iris-web/./node_modules/ace-builds/src-noconflict/mode-luapage.js?./node_modules/file-loader/dist/cjs.js?esModule=false");
+
+/***/ }),
+
+/***/ "./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/mode-lucene.js":
+/*!*********************************************************************************************************************!*\
+  !*** ./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/mode-lucene.js ***!
+  \*********************************************************************************************************************/
+/***/ ((module, __unused_webpack_exports, __webpack_require__) => {
+
+eval("module.exports = __webpack_require__.p + \"de73b4d2a9ed4bcb851f9141e303636d.js\";\n\n//# sourceURL=webpack://iris-web/./node_modules/ace-builds/src-noconflict/mode-lucene.js?./node_modules/file-loader/dist/cjs.js?esModule=false");
+
+/***/ }),
+
+/***/ "./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/mode-makefile.js":
+/*!***********************************************************************************************************************!*\
+  !*** ./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/mode-makefile.js ***!
+  \***********************************************************************************************************************/
+/***/ ((module, __unused_webpack_exports, __webpack_require__) => {
+
+eval("module.exports = __webpack_require__.p + \"08d12eee2127dc573b757f69752c6704.js\";\n\n//# sourceURL=webpack://iris-web/./node_modules/ace-builds/src-noconflict/mode-makefile.js?./node_modules/file-loader/dist/cjs.js?esModule=false");
+
+/***/ }),
+
+/***/ "./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/mode-markdown.js":
+/*!***********************************************************************************************************************!*\
+  !*** ./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/mode-markdown.js ***!
+  \***********************************************************************************************************************/
+/***/ ((module, __unused_webpack_exports, __webpack_require__) => {
+
+eval("module.exports = __webpack_require__.p + \"7c5c94fbd4851ddc57447064fd395cd5.js\";\n\n//# sourceURL=webpack://iris-web/./node_modules/ace-builds/src-noconflict/mode-markdown.js?./node_modules/file-loader/dist/cjs.js?esModule=false");
+
+/***/ }),
+
+/***/ "./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/mode-mask.js":
+/*!*******************************************************************************************************************!*\
+  !*** ./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/mode-mask.js ***!
+  \*******************************************************************************************************************/
+/***/ ((module, __unused_webpack_exports, __webpack_require__) => {
+
+eval("module.exports = __webpack_require__.p + \"cbd60c33cfa6c7c3c7565d3cc22dc928.js\";\n\n//# sourceURL=webpack://iris-web/./node_modules/ace-builds/src-noconflict/mode-mask.js?./node_modules/file-loader/dist/cjs.js?esModule=false");
+
+/***/ }),
+
+/***/ "./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/mode-matlab.js":
+/*!*********************************************************************************************************************!*\
+  !*** ./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/mode-matlab.js ***!
+  \*********************************************************************************************************************/
+/***/ ((module, __unused_webpack_exports, __webpack_require__) => {
+
+eval("module.exports = __webpack_require__.p + \"b943c561d9e064f79f938275bad6e597.js\";\n\n//# sourceURL=webpack://iris-web/./node_modules/ace-builds/src-noconflict/mode-matlab.js?./node_modules/file-loader/dist/cjs.js?esModule=false");
+
+/***/ }),
+
+/***/ "./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/mode-maze.js":
+/*!*******************************************************************************************************************!*\
+  !*** ./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/mode-maze.js ***!
+  \*******************************************************************************************************************/
+/***/ ((module, __unused_webpack_exports, __webpack_require__) => {
+
+eval("module.exports = __webpack_require__.p + \"52fd09d1713345d9ee64dc7daea9fd6f.js\";\n\n//# sourceURL=webpack://iris-web/./node_modules/ace-builds/src-noconflict/mode-maze.js?./node_modules/file-loader/dist/cjs.js?esModule=false");
+
+/***/ }),
+
+/***/ "./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/mode-mediawiki.js":
+/*!************************************************************************************************************************!*\
+  !*** ./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/mode-mediawiki.js ***!
+  \************************************************************************************************************************/
+/***/ ((module, __unused_webpack_exports, __webpack_require__) => {
+
+eval("module.exports = __webpack_require__.p + \"d1db2c4677dd2ee7a0c690c58798a013.js\";\n\n//# sourceURL=webpack://iris-web/./node_modules/ace-builds/src-noconflict/mode-mediawiki.js?./node_modules/file-loader/dist/cjs.js?esModule=false");
+
+/***/ }),
+
+/***/ "./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/mode-mel.js":
+/*!******************************************************************************************************************!*\
+  !*** ./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/mode-mel.js ***!
+  \******************************************************************************************************************/
+/***/ ((module, __unused_webpack_exports, __webpack_require__) => {
+
+eval("module.exports = __webpack_require__.p + \"6a851f05f1f4a974e02fe23eac2bad4e.js\";\n\n//# sourceURL=webpack://iris-web/./node_modules/ace-builds/src-noconflict/mode-mel.js?./node_modules/file-loader/dist/cjs.js?esModule=false");
+
+/***/ }),
+
+/***/ "./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/mode-mips.js":
+/*!*******************************************************************************************************************!*\
+  !*** ./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/mode-mips.js ***!
+  \*******************************************************************************************************************/
+/***/ ((module, __unused_webpack_exports, __webpack_require__) => {
+
+eval("module.exports = __webpack_require__.p + \"55a1830305eaf8f525aad4c04c138483.js\";\n\n//# sourceURL=webpack://iris-web/./node_modules/ace-builds/src-noconflict/mode-mips.js?./node_modules/file-loader/dist/cjs.js?esModule=false");
+
+/***/ }),
+
+/***/ "./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/mode-mixal.js":
+/*!********************************************************************************************************************!*\
+  !*** ./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/mode-mixal.js ***!
+  \********************************************************************************************************************/
+/***/ ((module, __unused_webpack_exports, __webpack_require__) => {
+
+eval("module.exports = __webpack_require__.p + \"4f683c6881e9f8740f5516a85b9eb9da.js\";\n\n//# sourceURL=webpack://iris-web/./node_modules/ace-builds/src-noconflict/mode-mixal.js?./node_modules/file-loader/dist/cjs.js?esModule=false");
+
+/***/ }),
+
+/***/ "./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/mode-mushcode.js":
+/*!***********************************************************************************************************************!*\
+  !*** ./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/mode-mushcode.js ***!
+  \***********************************************************************************************************************/
+/***/ ((module, __unused_webpack_exports, __webpack_require__) => {
+
+eval("module.exports = __webpack_require__.p + \"6231f0100394f756aac18e8d972d8f2b.js\";\n\n//# sourceURL=webpack://iris-web/./node_modules/ace-builds/src-noconflict/mode-mushcode.js?./node_modules/file-loader/dist/cjs.js?esModule=false");
+
+/***/ }),
+
+/***/ "./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/mode-mysql.js":
+/*!********************************************************************************************************************!*\
+  !*** ./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/mode-mysql.js ***!
+  \********************************************************************************************************************/
+/***/ ((module, __unused_webpack_exports, __webpack_require__) => {
+
+eval("module.exports = __webpack_require__.p + \"fd2f86651fc0615d59b347260dce57d4.js\";\n\n//# sourceURL=webpack://iris-web/./node_modules/ace-builds/src-noconflict/mode-mysql.js?./node_modules/file-loader/dist/cjs.js?esModule=false");
+
+/***/ }),
+
+/***/ "./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/mode-nginx.js":
+/*!********************************************************************************************************************!*\
+  !*** ./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/mode-nginx.js ***!
+  \********************************************************************************************************************/
+/***/ ((module, __unused_webpack_exports, __webpack_require__) => {
+
+eval("module.exports = __webpack_require__.p + \"4d6d9020e7e5c8d8dee7a5e374355f05.js\";\n\n//# sourceURL=webpack://iris-web/./node_modules/ace-builds/src-noconflict/mode-nginx.js?./node_modules/file-loader/dist/cjs.js?esModule=false");
+
+/***/ }),
+
+/***/ "./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/mode-nim.js":
+/*!******************************************************************************************************************!*\
+  !*** ./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/mode-nim.js ***!
+  \******************************************************************************************************************/
+/***/ ((module, __unused_webpack_exports, __webpack_require__) => {
+
+eval("module.exports = __webpack_require__.p + \"4430c55f023b72fb5e389cee9351b38c.js\";\n\n//# sourceURL=webpack://iris-web/./node_modules/ace-builds/src-noconflict/mode-nim.js?./node_modules/file-loader/dist/cjs.js?esModule=false");
+
+/***/ }),
+
+/***/ "./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/mode-nix.js":
+/*!******************************************************************************************************************!*\
+  !*** ./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/mode-nix.js ***!
+  \******************************************************************************************************************/
+/***/ ((module, __unused_webpack_exports, __webpack_require__) => {
+
+eval("module.exports = __webpack_require__.p + \"60cd6bb38799dcd2da6a60e85a388b89.js\";\n\n//# sourceURL=webpack://iris-web/./node_modules/ace-builds/src-noconflict/mode-nix.js?./node_modules/file-loader/dist/cjs.js?esModule=false");
+
+/***/ }),
+
+/***/ "./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/mode-nsis.js":
+/*!*******************************************************************************************************************!*\
+  !*** ./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/mode-nsis.js ***!
+  \*******************************************************************************************************************/
+/***/ ((module, __unused_webpack_exports, __webpack_require__) => {
+
+eval("module.exports = __webpack_require__.p + \"9b3441051d8551264ac58b36253b9b10.js\";\n\n//# sourceURL=webpack://iris-web/./node_modules/ace-builds/src-noconflict/mode-nsis.js?./node_modules/file-loader/dist/cjs.js?esModule=false");
+
+/***/ }),
+
+/***/ "./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/mode-nunjucks.js":
+/*!***********************************************************************************************************************!*\
+  !*** ./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/mode-nunjucks.js ***!
+  \***********************************************************************************************************************/
+/***/ ((module, __unused_webpack_exports, __webpack_require__) => {
+
+eval("module.exports = __webpack_require__.p + \"7fedae7e0cede57bec07ef605f3ca2d9.js\";\n\n//# sourceURL=webpack://iris-web/./node_modules/ace-builds/src-noconflict/mode-nunjucks.js?./node_modules/file-loader/dist/cjs.js?esModule=false");
+
+/***/ }),
+
+/***/ "./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/mode-objectivec.js":
+/*!*************************************************************************************************************************!*\
+  !*** ./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/mode-objectivec.js ***!
+  \*************************************************************************************************************************/
+/***/ ((module, __unused_webpack_exports, __webpack_require__) => {
+
+eval("module.exports = __webpack_require__.p + \"4b49277f46203e69f4a7cb423bf4b263.js\";\n\n//# sourceURL=webpack://iris-web/./node_modules/ace-builds/src-noconflict/mode-objectivec.js?./node_modules/file-loader/dist/cjs.js?esModule=false");
+
+/***/ }),
+
+/***/ "./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/mode-ocaml.js":
+/*!********************************************************************************************************************!*\
+  !*** ./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/mode-ocaml.js ***!
+  \********************************************************************************************************************/
+/***/ ((module, __unused_webpack_exports, __webpack_require__) => {
+
+eval("module.exports = __webpack_require__.p + \"8de1f09307a99c5a8bb0a53d32fbaaa9.js\";\n\n//# sourceURL=webpack://iris-web/./node_modules/ace-builds/src-noconflict/mode-ocaml.js?./node_modules/file-loader/dist/cjs.js?esModule=false");
+
+/***/ }),
+
+/***/ "./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/mode-partiql.js":
+/*!**********************************************************************************************************************!*\
+  !*** ./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/mode-partiql.js ***!
+  \**********************************************************************************************************************/
+/***/ ((module, __unused_webpack_exports, __webpack_require__) => {
+
+eval("module.exports = __webpack_require__.p + \"e9382a0e67b22188c75e9418de1c9295.js\";\n\n//# sourceURL=webpack://iris-web/./node_modules/ace-builds/src-noconflict/mode-partiql.js?./node_modules/file-loader/dist/cjs.js?esModule=false");
+
+/***/ }),
+
+/***/ "./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/mode-pascal.js":
+/*!*********************************************************************************************************************!*\
+  !*** ./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/mode-pascal.js ***!
+  \*********************************************************************************************************************/
+/***/ ((module, __unused_webpack_exports, __webpack_require__) => {
+
+eval("module.exports = __webpack_require__.p + \"df350f726187b69bcededaaed6cf5f31.js\";\n\n//# sourceURL=webpack://iris-web/./node_modules/ace-builds/src-noconflict/mode-pascal.js?./node_modules/file-loader/dist/cjs.js?esModule=false");
+
+/***/ }),
+
+/***/ "./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/mode-perl.js":
+/*!*******************************************************************************************************************!*\
+  !*** ./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/mode-perl.js ***!
+  \*******************************************************************************************************************/
+/***/ ((module, __unused_webpack_exports, __webpack_require__) => {
+
+eval("module.exports = __webpack_require__.p + \"b8cb123e6c753c6031ab9c6a4acbbcd6.js\";\n\n//# sourceURL=webpack://iris-web/./node_modules/ace-builds/src-noconflict/mode-perl.js?./node_modules/file-loader/dist/cjs.js?esModule=false");
+
+/***/ }),
+
+/***/ "./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/mode-pgsql.js":
+/*!********************************************************************************************************************!*\
+  !*** ./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/mode-pgsql.js ***!
+  \********************************************************************************************************************/
+/***/ ((module, __unused_webpack_exports, __webpack_require__) => {
+
+eval("module.exports = __webpack_require__.p + \"88f7d94d274ecddb57a18f9b4bf5aea4.js\";\n\n//# sourceURL=webpack://iris-web/./node_modules/ace-builds/src-noconflict/mode-pgsql.js?./node_modules/file-loader/dist/cjs.js?esModule=false");
+
+/***/ }),
+
+/***/ "./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/mode-php.js":
+/*!******************************************************************************************************************!*\
+  !*** ./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/mode-php.js ***!
+  \******************************************************************************************************************/
+/***/ ((module, __unused_webpack_exports, __webpack_require__) => {
+
+eval("module.exports = __webpack_require__.p + \"6205bf27ec9ad035a0430012c1fcc94a.js\";\n\n//# sourceURL=webpack://iris-web/./node_modules/ace-builds/src-noconflict/mode-php.js?./node_modules/file-loader/dist/cjs.js?esModule=false");
+
+/***/ }),
+
+/***/ "./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/mode-php_laravel_blade.js":
+/*!********************************************************************************************************************************!*\
+  !*** ./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/mode-php_laravel_blade.js ***!
+  \********************************************************************************************************************************/
+/***/ ((module, __unused_webpack_exports, __webpack_require__) => {
+
+eval("module.exports = __webpack_require__.p + \"39ec70616ea1ae3239246fec2b10af81.js\";\n\n//# sourceURL=webpack://iris-web/./node_modules/ace-builds/src-noconflict/mode-php_laravel_blade.js?./node_modules/file-loader/dist/cjs.js?esModule=false");
+
+/***/ }),
+
+/***/ "./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/mode-pig.js":
+/*!******************************************************************************************************************!*\
+  !*** ./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/mode-pig.js ***!
+  \******************************************************************************************************************/
+/***/ ((module, __unused_webpack_exports, __webpack_require__) => {
+
+eval("module.exports = __webpack_require__.p + \"764b59bdd3a89e14f88c9d63020551a1.js\";\n\n//# sourceURL=webpack://iris-web/./node_modules/ace-builds/src-noconflict/mode-pig.js?./node_modules/file-loader/dist/cjs.js?esModule=false");
+
+/***/ }),
+
+/***/ "./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/mode-plain_text.js":
+/*!*************************************************************************************************************************!*\
+  !*** ./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/mode-plain_text.js ***!
+  \*************************************************************************************************************************/
+/***/ ((module, __unused_webpack_exports, __webpack_require__) => {
+
+eval("module.exports = __webpack_require__.p + \"843c762c24f7fac628d8c62519a7b308.js\";\n\n//# sourceURL=webpack://iris-web/./node_modules/ace-builds/src-noconflict/mode-plain_text.js?./node_modules/file-loader/dist/cjs.js?esModule=false");
+
+/***/ }),
+
+/***/ "./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/mode-plsql.js":
+/*!********************************************************************************************************************!*\
+  !*** ./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/mode-plsql.js ***!
+  \********************************************************************************************************************/
+/***/ ((module, __unused_webpack_exports, __webpack_require__) => {
+
+eval("module.exports = __webpack_require__.p + \"0d9ac3f6468082360311da967190e45f.js\";\n\n//# sourceURL=webpack://iris-web/./node_modules/ace-builds/src-noconflict/mode-plsql.js?./node_modules/file-loader/dist/cjs.js?esModule=false");
+
+/***/ }),
+
+/***/ "./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/mode-powershell.js":
+/*!*************************************************************************************************************************!*\
+  !*** ./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/mode-powershell.js ***!
+  \*************************************************************************************************************************/
+/***/ ((module, __unused_webpack_exports, __webpack_require__) => {
+
+eval("module.exports = __webpack_require__.p + \"5e3bcbac8779e9a28c104127f3c48528.js\";\n\n//# sourceURL=webpack://iris-web/./node_modules/ace-builds/src-noconflict/mode-powershell.js?./node_modules/file-loader/dist/cjs.js?esModule=false");
+
+/***/ }),
+
+/***/ "./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/mode-praat.js":
+/*!********************************************************************************************************************!*\
+  !*** ./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/mode-praat.js ***!
+  \********************************************************************************************************************/
+/***/ ((module, __unused_webpack_exports, __webpack_require__) => {
+
+eval("module.exports = __webpack_require__.p + \"7f9a9efc9ab681fcbf6400e2adb368a9.js\";\n\n//# sourceURL=webpack://iris-web/./node_modules/ace-builds/src-noconflict/mode-praat.js?./node_modules/file-loader/dist/cjs.js?esModule=false");
+
+/***/ }),
+
+/***/ "./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/mode-prisma.js":
+/*!*********************************************************************************************************************!*\
+  !*** ./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/mode-prisma.js ***!
+  \*********************************************************************************************************************/
+/***/ ((module, __unused_webpack_exports, __webpack_require__) => {
+
+eval("module.exports = __webpack_require__.p + \"23602ad4c88f0f19e7a0a12454ebf556.js\";\n\n//# sourceURL=webpack://iris-web/./node_modules/ace-builds/src-noconflict/mode-prisma.js?./node_modules/file-loader/dist/cjs.js?esModule=false");
+
+/***/ }),
+
+/***/ "./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/mode-prolog.js":
+/*!*********************************************************************************************************************!*\
+  !*** ./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/mode-prolog.js ***!
+  \*********************************************************************************************************************/
+/***/ ((module, __unused_webpack_exports, __webpack_require__) => {
+
+eval("module.exports = __webpack_require__.p + \"7f79d4bde67c8013b187889b63e25bce.js\";\n\n//# sourceURL=webpack://iris-web/./node_modules/ace-builds/src-noconflict/mode-prolog.js?./node_modules/file-loader/dist/cjs.js?esModule=false");
+
+/***/ }),
+
+/***/ "./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/mode-properties.js":
+/*!*************************************************************************************************************************!*\
+  !*** ./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/mode-properties.js ***!
+  \*************************************************************************************************************************/
+/***/ ((module, __unused_webpack_exports, __webpack_require__) => {
+
+eval("module.exports = __webpack_require__.p + \"0144de97a3c256f81447e7e7135780e5.js\";\n\n//# sourceURL=webpack://iris-web/./node_modules/ace-builds/src-noconflict/mode-properties.js?./node_modules/file-loader/dist/cjs.js?esModule=false");
+
+/***/ }),
+
+/***/ "./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/mode-protobuf.js":
+/*!***********************************************************************************************************************!*\
+  !*** ./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/mode-protobuf.js ***!
+  \***********************************************************************************************************************/
+/***/ ((module, __unused_webpack_exports, __webpack_require__) => {
+
+eval("module.exports = __webpack_require__.p + \"172e5c4cc0135873ca82f3687fdb8fd6.js\";\n\n//# sourceURL=webpack://iris-web/./node_modules/ace-builds/src-noconflict/mode-protobuf.js?./node_modules/file-loader/dist/cjs.js?esModule=false");
+
+/***/ }),
+
+/***/ "./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/mode-puppet.js":
+/*!*********************************************************************************************************************!*\
+  !*** ./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/mode-puppet.js ***!
+  \*********************************************************************************************************************/
+/***/ ((module, __unused_webpack_exports, __webpack_require__) => {
+
+eval("module.exports = __webpack_require__.p + \"269732f4c5f6e82ea3246548a9631b47.js\";\n\n//# sourceURL=webpack://iris-web/./node_modules/ace-builds/src-noconflict/mode-puppet.js?./node_modules/file-loader/dist/cjs.js?esModule=false");
+
+/***/ }),
+
+/***/ "./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/mode-python.js":
+/*!*********************************************************************************************************************!*\
+  !*** ./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/mode-python.js ***!
+  \*********************************************************************************************************************/
+/***/ ((module, __unused_webpack_exports, __webpack_require__) => {
+
+eval("module.exports = __webpack_require__.p + \"3feee6e20769581f2314934a02076628.js\";\n\n//# sourceURL=webpack://iris-web/./node_modules/ace-builds/src-noconflict/mode-python.js?./node_modules/file-loader/dist/cjs.js?esModule=false");
+
+/***/ }),
+
+/***/ "./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/mode-qml.js":
+/*!******************************************************************************************************************!*\
+  !*** ./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/mode-qml.js ***!
+  \******************************************************************************************************************/
+/***/ ((module, __unused_webpack_exports, __webpack_require__) => {
+
+eval("module.exports = __webpack_require__.p + \"250c230f9465d8affc02c67d41d7e067.js\";\n\n//# sourceURL=webpack://iris-web/./node_modules/ace-builds/src-noconflict/mode-qml.js?./node_modules/file-loader/dist/cjs.js?esModule=false");
+
+/***/ }),
+
+/***/ "./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/mode-r.js":
+/*!****************************************************************************************************************!*\
+  !*** ./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/mode-r.js ***!
+  \****************************************************************************************************************/
+/***/ ((module, __unused_webpack_exports, __webpack_require__) => {
+
+eval("module.exports = __webpack_require__.p + \"ff9176b28afa428194276840d85679ef.js\";\n\n//# sourceURL=webpack://iris-web/./node_modules/ace-builds/src-noconflict/mode-r.js?./node_modules/file-loader/dist/cjs.js?esModule=false");
+
+/***/ }),
+
+/***/ "./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/mode-raku.js":
+/*!*******************************************************************************************************************!*\
+  !*** ./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/mode-raku.js ***!
+  \*******************************************************************************************************************/
+/***/ ((module, __unused_webpack_exports, __webpack_require__) => {
+
+eval("module.exports = __webpack_require__.p + \"a0af54d58f59bc55427f1ca5be406875.js\";\n\n//# sourceURL=webpack://iris-web/./node_modules/ace-builds/src-noconflict/mode-raku.js?./node_modules/file-loader/dist/cjs.js?esModule=false");
+
+/***/ }),
+
+/***/ "./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/mode-razor.js":
+/*!********************************************************************************************************************!*\
+  !*** ./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/mode-razor.js ***!
+  \********************************************************************************************************************/
+/***/ ((module, __unused_webpack_exports, __webpack_require__) => {
+
+eval("module.exports = __webpack_require__.p + \"748bc9c5703ba01228153fcfaf32096c.js\";\n\n//# sourceURL=webpack://iris-web/./node_modules/ace-builds/src-noconflict/mode-razor.js?./node_modules/file-loader/dist/cjs.js?esModule=false");
+
+/***/ }),
+
+/***/ "./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/mode-rdoc.js":
+/*!*******************************************************************************************************************!*\
+  !*** ./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/mode-rdoc.js ***!
+  \*******************************************************************************************************************/
+/***/ ((module, __unused_webpack_exports, __webpack_require__) => {
+
+eval("module.exports = __webpack_require__.p + \"f59696ab0f6f26c339d7e6bb1d73a5c3.js\";\n\n//# sourceURL=webpack://iris-web/./node_modules/ace-builds/src-noconflict/mode-rdoc.js?./node_modules/file-loader/dist/cjs.js?esModule=false");
+
+/***/ }),
+
+/***/ "./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/mode-red.js":
+/*!******************************************************************************************************************!*\
+  !*** ./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/mode-red.js ***!
+  \******************************************************************************************************************/
+/***/ ((module, __unused_webpack_exports, __webpack_require__) => {
+
+eval("module.exports = __webpack_require__.p + \"5cd4e1282f4409600b942819b7aa4f21.js\";\n\n//# sourceURL=webpack://iris-web/./node_modules/ace-builds/src-noconflict/mode-red.js?./node_modules/file-loader/dist/cjs.js?esModule=false");
+
+/***/ }),
+
+/***/ "./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/mode-redshift.js":
+/*!***********************************************************************************************************************!*\
+  !*** ./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/mode-redshift.js ***!
+  \***********************************************************************************************************************/
+/***/ ((module, __unused_webpack_exports, __webpack_require__) => {
+
+eval("module.exports = __webpack_require__.p + \"0326f2213408b563877262b32f5b2568.js\";\n\n//# sourceURL=webpack://iris-web/./node_modules/ace-builds/src-noconflict/mode-redshift.js?./node_modules/file-loader/dist/cjs.js?esModule=false");
+
+/***/ }),
+
+/***/ "./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/mode-rhtml.js":
+/*!********************************************************************************************************************!*\
+  !*** ./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/mode-rhtml.js ***!
+  \********************************************************************************************************************/
+/***/ ((module, __unused_webpack_exports, __webpack_require__) => {
+
+eval("module.exports = __webpack_require__.p + \"1691d7abe9ebb3cee1b0d13a244bd0d0.js\";\n\n//# sourceURL=webpack://iris-web/./node_modules/ace-builds/src-noconflict/mode-rhtml.js?./node_modules/file-loader/dist/cjs.js?esModule=false");
+
+/***/ }),
+
+/***/ "./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/mode-robot.js":
+/*!********************************************************************************************************************!*\
+  !*** ./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/mode-robot.js ***!
+  \********************************************************************************************************************/
+/***/ ((module, __unused_webpack_exports, __webpack_require__) => {
+
+eval("module.exports = __webpack_require__.p + \"11e3a2a8fb5bcb9d19298a80cafd3f5a.js\";\n\n//# sourceURL=webpack://iris-web/./node_modules/ace-builds/src-noconflict/mode-robot.js?./node_modules/file-loader/dist/cjs.js?esModule=false");
+
+/***/ }),
+
+/***/ "./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/mode-rst.js":
+/*!******************************************************************************************************************!*\
+  !*** ./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/mode-rst.js ***!
+  \******************************************************************************************************************/
+/***/ ((module, __unused_webpack_exports, __webpack_require__) => {
+
+eval("module.exports = __webpack_require__.p + \"0973bb38b2e3efd2a879fd8e81d50fce.js\";\n\n//# sourceURL=webpack://iris-web/./node_modules/ace-builds/src-noconflict/mode-rst.js?./node_modules/file-loader/dist/cjs.js?esModule=false");
+
+/***/ }),
+
+/***/ "./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/mode-ruby.js":
+/*!*******************************************************************************************************************!*\
+  !*** ./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/mode-ruby.js ***!
+  \*******************************************************************************************************************/
+/***/ ((module, __unused_webpack_exports, __webpack_require__) => {
+
+eval("module.exports = __webpack_require__.p + \"883d69772fb787a872f1033aa1147250.js\";\n\n//# sourceURL=webpack://iris-web/./node_modules/ace-builds/src-noconflict/mode-ruby.js?./node_modules/file-loader/dist/cjs.js?esModule=false");
+
+/***/ }),
+
+/***/ "./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/mode-rust.js":
+/*!*******************************************************************************************************************!*\
+  !*** ./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/mode-rust.js ***!
+  \*******************************************************************************************************************/
+/***/ ((module, __unused_webpack_exports, __webpack_require__) => {
+
+eval("module.exports = __webpack_require__.p + \"c1f1988a4d4fbe58c7adba90b4303b24.js\";\n\n//# sourceURL=webpack://iris-web/./node_modules/ace-builds/src-noconflict/mode-rust.js?./node_modules/file-loader/dist/cjs.js?esModule=false");
+
+/***/ }),
+
+/***/ "./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/mode-sac.js":
+/*!******************************************************************************************************************!*\
+  !*** ./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/mode-sac.js ***!
+  \******************************************************************************************************************/
+/***/ ((module, __unused_webpack_exports, __webpack_require__) => {
+
+eval("module.exports = __webpack_require__.p + \"4587fb1277553c9351f6f0d9e0c6f474.js\";\n\n//# sourceURL=webpack://iris-web/./node_modules/ace-builds/src-noconflict/mode-sac.js?./node_modules/file-loader/dist/cjs.js?esModule=false");
+
+/***/ }),
+
+/***/ "./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/mode-sass.js":
+/*!*******************************************************************************************************************!*\
+  !*** ./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/mode-sass.js ***!
+  \*******************************************************************************************************************/
+/***/ ((module, __unused_webpack_exports, __webpack_require__) => {
+
+eval("module.exports = __webpack_require__.p + \"19df93bf1797b4caf8232cc4b544f865.js\";\n\n//# sourceURL=webpack://iris-web/./node_modules/ace-builds/src-noconflict/mode-sass.js?./node_modules/file-loader/dist/cjs.js?esModule=false");
+
+/***/ }),
+
+/***/ "./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/mode-scad.js":
+/*!*******************************************************************************************************************!*\
+  !*** ./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/mode-scad.js ***!
+  \*******************************************************************************************************************/
+/***/ ((module, __unused_webpack_exports, __webpack_require__) => {
+
+eval("module.exports = __webpack_require__.p + \"7e9ad0e666f3c158bc6d0040b6882ea6.js\";\n\n//# sourceURL=webpack://iris-web/./node_modules/ace-builds/src-noconflict/mode-scad.js?./node_modules/file-loader/dist/cjs.js?esModule=false");
+
+/***/ }),
+
+/***/ "./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/mode-scala.js":
+/*!********************************************************************************************************************!*\
+  !*** ./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/mode-scala.js ***!
+  \********************************************************************************************************************/
+/***/ ((module, __unused_webpack_exports, __webpack_require__) => {
+
+eval("module.exports = __webpack_require__.p + \"f85425f32cb0704ac15c718b0667b3b0.js\";\n\n//# sourceURL=webpack://iris-web/./node_modules/ace-builds/src-noconflict/mode-scala.js?./node_modules/file-loader/dist/cjs.js?esModule=false");
+
+/***/ }),
+
+/***/ "./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/mode-scheme.js":
+/*!*********************************************************************************************************************!*\
+  !*** ./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/mode-scheme.js ***!
+  \*********************************************************************************************************************/
+/***/ ((module, __unused_webpack_exports, __webpack_require__) => {
+
+eval("module.exports = __webpack_require__.p + \"951a8cbe4efaab1b1451ffd8904fc9dd.js\";\n\n//# sourceURL=webpack://iris-web/./node_modules/ace-builds/src-noconflict/mode-scheme.js?./node_modules/file-loader/dist/cjs.js?esModule=false");
+
+/***/ }),
+
+/***/ "./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/mode-scrypt.js":
+/*!*********************************************************************************************************************!*\
+  !*** ./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/mode-scrypt.js ***!
+  \*********************************************************************************************************************/
+/***/ ((module, __unused_webpack_exports, __webpack_require__) => {
+
+eval("module.exports = __webpack_require__.p + \"97a433685c8b906a0e09f0b976cf044c.js\";\n\n//# sourceURL=webpack://iris-web/./node_modules/ace-builds/src-noconflict/mode-scrypt.js?./node_modules/file-loader/dist/cjs.js?esModule=false");
+
+/***/ }),
+
+/***/ "./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/mode-scss.js":
+/*!*******************************************************************************************************************!*\
+  !*** ./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/mode-scss.js ***!
+  \*******************************************************************************************************************/
+/***/ ((module, __unused_webpack_exports, __webpack_require__) => {
+
+eval("module.exports = __webpack_require__.p + \"a58f90f6c8db84024327b4d9059c991e.js\";\n\n//# sourceURL=webpack://iris-web/./node_modules/ace-builds/src-noconflict/mode-scss.js?./node_modules/file-loader/dist/cjs.js?esModule=false");
+
+/***/ }),
+
+/***/ "./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/mode-sh.js":
+/*!*****************************************************************************************************************!*\
+  !*** ./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/mode-sh.js ***!
+  \*****************************************************************************************************************/
+/***/ ((module, __unused_webpack_exports, __webpack_require__) => {
+
+eval("module.exports = __webpack_require__.p + \"415b219139e8fd026bcf877eaa99e3ee.js\";\n\n//# sourceURL=webpack://iris-web/./node_modules/ace-builds/src-noconflict/mode-sh.js?./node_modules/file-loader/dist/cjs.js?esModule=false");
+
+/***/ }),
+
+/***/ "./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/mode-sjs.js":
+/*!******************************************************************************************************************!*\
+  !*** ./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/mode-sjs.js ***!
+  \******************************************************************************************************************/
+/***/ ((module, __unused_webpack_exports, __webpack_require__) => {
+
+eval("module.exports = __webpack_require__.p + \"cb2ef887ab43ac84bee6f6f1ad33639d.js\";\n\n//# sourceURL=webpack://iris-web/./node_modules/ace-builds/src-noconflict/mode-sjs.js?./node_modules/file-loader/dist/cjs.js?esModule=false");
+
+/***/ }),
+
+/***/ "./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/mode-slim.js":
+/*!*******************************************************************************************************************!*\
+  !*** ./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/mode-slim.js ***!
+  \*******************************************************************************************************************/
+/***/ ((module, __unused_webpack_exports, __webpack_require__) => {
+
+eval("module.exports = __webpack_require__.p + \"80af2800176cb9e4f0274f9b4e789a92.js\";\n\n//# sourceURL=webpack://iris-web/./node_modules/ace-builds/src-noconflict/mode-slim.js?./node_modules/file-loader/dist/cjs.js?esModule=false");
+
+/***/ }),
+
+/***/ "./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/mode-smarty.js":
+/*!*********************************************************************************************************************!*\
+  !*** ./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/mode-smarty.js ***!
+  \*********************************************************************************************************************/
+/***/ ((module, __unused_webpack_exports, __webpack_require__) => {
+
+eval("module.exports = __webpack_require__.p + \"93d3a232d45c52b5116ab813a99c4cb8.js\";\n\n//# sourceURL=webpack://iris-web/./node_modules/ace-builds/src-noconflict/mode-smarty.js?./node_modules/file-loader/dist/cjs.js?esModule=false");
+
+/***/ }),
+
+/***/ "./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/mode-smithy.js":
+/*!*********************************************************************************************************************!*\
+  !*** ./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/mode-smithy.js ***!
+  \*********************************************************************************************************************/
+/***/ ((module, __unused_webpack_exports, __webpack_require__) => {
+
+eval("module.exports = __webpack_require__.p + \"5d312b184c1f4565f51247d3c6dbba90.js\";\n\n//# sourceURL=webpack://iris-web/./node_modules/ace-builds/src-noconflict/mode-smithy.js?./node_modules/file-loader/dist/cjs.js?esModule=false");
+
+/***/ }),
+
+/***/ "./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/mode-snippets.js":
+/*!***********************************************************************************************************************!*\
+  !*** ./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/mode-snippets.js ***!
+  \***********************************************************************************************************************/
+/***/ ((module, __unused_webpack_exports, __webpack_require__) => {
+
+eval("module.exports = __webpack_require__.p + \"40f9100a898e3396df73051eb7c44cb8.js\";\n\n//# sourceURL=webpack://iris-web/./node_modules/ace-builds/src-noconflict/mode-snippets.js?./node_modules/file-loader/dist/cjs.js?esModule=false");
+
+/***/ }),
+
+/***/ "./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/mode-soy_template.js":
+/*!***************************************************************************************************************************!*\
+  !*** ./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/mode-soy_template.js ***!
+  \***************************************************************************************************************************/
+/***/ ((module, __unused_webpack_exports, __webpack_require__) => {
+
+eval("module.exports = __webpack_require__.p + \"64812b5185c13d36e6f31f47559d0ef7.js\";\n\n//# sourceURL=webpack://iris-web/./node_modules/ace-builds/src-noconflict/mode-soy_template.js?./node_modules/file-loader/dist/cjs.js?esModule=false");
+
+/***/ }),
+
+/***/ "./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/mode-space.js":
+/*!********************************************************************************************************************!*\
+  !*** ./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/mode-space.js ***!
+  \********************************************************************************************************************/
+/***/ ((module, __unused_webpack_exports, __webpack_require__) => {
+
+eval("module.exports = __webpack_require__.p + \"77c629df0ebf40b066d0ffeb34b7711b.js\";\n\n//# sourceURL=webpack://iris-web/./node_modules/ace-builds/src-noconflict/mode-space.js?./node_modules/file-loader/dist/cjs.js?esModule=false");
+
+/***/ }),
+
+/***/ "./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/mode-sparql.js":
+/*!*********************************************************************************************************************!*\
+  !*** ./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/mode-sparql.js ***!
+  \*********************************************************************************************************************/
+/***/ ((module, __unused_webpack_exports, __webpack_require__) => {
+
+eval("module.exports = __webpack_require__.p + \"069a0d6b093e73e820f6a60a91fa614b.js\";\n\n//# sourceURL=webpack://iris-web/./node_modules/ace-builds/src-noconflict/mode-sparql.js?./node_modules/file-loader/dist/cjs.js?esModule=false");
+
+/***/ }),
+
+/***/ "./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/mode-sql.js":
+/*!******************************************************************************************************************!*\
+  !*** ./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/mode-sql.js ***!
+  \******************************************************************************************************************/
+/***/ ((module, __unused_webpack_exports, __webpack_require__) => {
+
+eval("module.exports = __webpack_require__.p + \"f8ee12a5cfa6ff1d3550ef30a238d89a.js\";\n\n//# sourceURL=webpack://iris-web/./node_modules/ace-builds/src-noconflict/mode-sql.js?./node_modules/file-loader/dist/cjs.js?esModule=false");
+
+/***/ }),
+
+/***/ "./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/mode-sqlserver.js":
+/*!************************************************************************************************************************!*\
+  !*** ./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/mode-sqlserver.js ***!
+  \************************************************************************************************************************/
+/***/ ((module, __unused_webpack_exports, __webpack_require__) => {
+
+eval("module.exports = __webpack_require__.p + \"fb7eb7827fa43e61a09d93f053fa818f.js\";\n\n//# sourceURL=webpack://iris-web/./node_modules/ace-builds/src-noconflict/mode-sqlserver.js?./node_modules/file-loader/dist/cjs.js?esModule=false");
+
+/***/ }),
+
+/***/ "./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/mode-stylus.js":
+/*!*********************************************************************************************************************!*\
+  !*** ./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/mode-stylus.js ***!
+  \*********************************************************************************************************************/
+/***/ ((module, __unused_webpack_exports, __webpack_require__) => {
+
+eval("module.exports = __webpack_require__.p + \"8db9f93698f3eea94f936fcb5986f1a3.js\";\n\n//# sourceURL=webpack://iris-web/./node_modules/ace-builds/src-noconflict/mode-stylus.js?./node_modules/file-loader/dist/cjs.js?esModule=false");
+
+/***/ }),
+
+/***/ "./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/mode-svg.js":
+/*!******************************************************************************************************************!*\
+  !*** ./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/mode-svg.js ***!
+  \******************************************************************************************************************/
+/***/ ((module, __unused_webpack_exports, __webpack_require__) => {
+
+eval("module.exports = __webpack_require__.p + \"38d5967d64f6dfd3b11474fbb246cef2.js\";\n\n//# sourceURL=webpack://iris-web/./node_modules/ace-builds/src-noconflict/mode-svg.js?./node_modules/file-loader/dist/cjs.js?esModule=false");
+
+/***/ }),
+
+/***/ "./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/mode-swift.js":
+/*!********************************************************************************************************************!*\
+  !*** ./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/mode-swift.js ***!
+  \********************************************************************************************************************/
+/***/ ((module, __unused_webpack_exports, __webpack_require__) => {
+
+eval("module.exports = __webpack_require__.p + \"824415eb4168b5b915164c3b3b05d36f.js\";\n\n//# sourceURL=webpack://iris-web/./node_modules/ace-builds/src-noconflict/mode-swift.js?./node_modules/file-loader/dist/cjs.js?esModule=false");
+
+/***/ }),
+
+/***/ "./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/mode-tcl.js":
+/*!******************************************************************************************************************!*\
+  !*** ./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/mode-tcl.js ***!
+  \******************************************************************************************************************/
+/***/ ((module, __unused_webpack_exports, __webpack_require__) => {
+
+eval("module.exports = __webpack_require__.p + \"aefed4953ced506e20b934606ac083f3.js\";\n\n//# sourceURL=webpack://iris-web/./node_modules/ace-builds/src-noconflict/mode-tcl.js?./node_modules/file-loader/dist/cjs.js?esModule=false");
+
+/***/ }),
+
+/***/ "./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/mode-terraform.js":
+/*!************************************************************************************************************************!*\
+  !*** ./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/mode-terraform.js ***!
+  \************************************************************************************************************************/
+/***/ ((module, __unused_webpack_exports, __webpack_require__) => {
+
+eval("module.exports = __webpack_require__.p + \"1c24a68cb472146022d0806ea2505cfb.js\";\n\n//# sourceURL=webpack://iris-web/./node_modules/ace-builds/src-noconflict/mode-terraform.js?./node_modules/file-loader/dist/cjs.js?esModule=false");
+
+/***/ }),
+
+/***/ "./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/mode-tex.js":
+/*!******************************************************************************************************************!*\
+  !*** ./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/mode-tex.js ***!
+  \******************************************************************************************************************/
+/***/ ((module, __unused_webpack_exports, __webpack_require__) => {
+
+eval("module.exports = __webpack_require__.p + \"0c1e757d25446799bcab87a8607dee60.js\";\n\n//# sourceURL=webpack://iris-web/./node_modules/ace-builds/src-noconflict/mode-tex.js?./node_modules/file-loader/dist/cjs.js?esModule=false");
+
+/***/ }),
+
+/***/ "./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/mode-text.js":
+/*!*******************************************************************************************************************!*\
+  !*** ./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/mode-text.js ***!
+  \*******************************************************************************************************************/
+/***/ ((module, __unused_webpack_exports, __webpack_require__) => {
+
+eval("module.exports = __webpack_require__.p + \"25718a469574ade47e23567d8c543169.js\";\n\n//# sourceURL=webpack://iris-web/./node_modules/ace-builds/src-noconflict/mode-text.js?./node_modules/file-loader/dist/cjs.js?esModule=false");
+
+/***/ }),
+
+/***/ "./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/mode-textile.js":
+/*!**********************************************************************************************************************!*\
+  !*** ./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/mode-textile.js ***!
+  \**********************************************************************************************************************/
+/***/ ((module, __unused_webpack_exports, __webpack_require__) => {
+
+eval("module.exports = __webpack_require__.p + \"b934b22e8f8a8b1ba81dbc2cf058b0cd.js\";\n\n//# sourceURL=webpack://iris-web/./node_modules/ace-builds/src-noconflict/mode-textile.js?./node_modules/file-loader/dist/cjs.js?esModule=false");
+
+/***/ }),
+
+/***/ "./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/mode-toml.js":
+/*!*******************************************************************************************************************!*\
+  !*** ./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/mode-toml.js ***!
+  \*******************************************************************************************************************/
+/***/ ((module, __unused_webpack_exports, __webpack_require__) => {
+
+eval("module.exports = __webpack_require__.p + \"9fd3f255cfd09016ec7f4896bc51864c.js\";\n\n//# sourceURL=webpack://iris-web/./node_modules/ace-builds/src-noconflict/mode-toml.js?./node_modules/file-loader/dist/cjs.js?esModule=false");
+
+/***/ }),
+
+/***/ "./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/mode-tsx.js":
+/*!******************************************************************************************************************!*\
+  !*** ./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/mode-tsx.js ***!
+  \******************************************************************************************************************/
+/***/ ((module, __unused_webpack_exports, __webpack_require__) => {
+
+eval("module.exports = __webpack_require__.p + \"2d4efec00e935b127ab3f24797227ad7.js\";\n\n//# sourceURL=webpack://iris-web/./node_modules/ace-builds/src-noconflict/mode-tsx.js?./node_modules/file-loader/dist/cjs.js?esModule=false");
+
+/***/ }),
+
+/***/ "./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/mode-turtle.js":
+/*!*********************************************************************************************************************!*\
+  !*** ./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/mode-turtle.js ***!
+  \*********************************************************************************************************************/
+/***/ ((module, __unused_webpack_exports, __webpack_require__) => {
+
+eval("module.exports = __webpack_require__.p + \"84abf03cc94d264bb38020b4ac5f76e1.js\";\n\n//# sourceURL=webpack://iris-web/./node_modules/ace-builds/src-noconflict/mode-turtle.js?./node_modules/file-loader/dist/cjs.js?esModule=false");
+
+/***/ }),
+
+/***/ "./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/mode-twig.js":
+/*!*******************************************************************************************************************!*\
+  !*** ./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/mode-twig.js ***!
+  \*******************************************************************************************************************/
+/***/ ((module, __unused_webpack_exports, __webpack_require__) => {
+
+eval("module.exports = __webpack_require__.p + \"35482e6a66b47a4452b4a644b175ea62.js\";\n\n//# sourceURL=webpack://iris-web/./node_modules/ace-builds/src-noconflict/mode-twig.js?./node_modules/file-loader/dist/cjs.js?esModule=false");
+
+/***/ }),
+
+/***/ "./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/mode-typescript.js":
+/*!*************************************************************************************************************************!*\
+  !*** ./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/mode-typescript.js ***!
+  \*************************************************************************************************************************/
+/***/ ((module, __unused_webpack_exports, __webpack_require__) => {
+
+eval("module.exports = __webpack_require__.p + \"eda0135679e80ed4ab1f8287b3cf89d6.js\";\n\n//# sourceURL=webpack://iris-web/./node_modules/ace-builds/src-noconflict/mode-typescript.js?./node_modules/file-loader/dist/cjs.js?esModule=false");
+
+/***/ }),
+
+/***/ "./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/mode-vala.js":
+/*!*******************************************************************************************************************!*\
+  !*** ./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/mode-vala.js ***!
+  \*******************************************************************************************************************/
+/***/ ((module, __unused_webpack_exports, __webpack_require__) => {
+
+eval("module.exports = __webpack_require__.p + \"57e14488b13e50ebdb5fdfc7880da683.js\";\n\n//# sourceURL=webpack://iris-web/./node_modules/ace-builds/src-noconflict/mode-vala.js?./node_modules/file-loader/dist/cjs.js?esModule=false");
+
+/***/ }),
+
+/***/ "./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/mode-vbscript.js":
+/*!***********************************************************************************************************************!*\
+  !*** ./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/mode-vbscript.js ***!
+  \***********************************************************************************************************************/
+/***/ ((module, __unused_webpack_exports, __webpack_require__) => {
+
+eval("module.exports = __webpack_require__.p + \"ab237eed5fd16ab99c06f0d28d465edb.js\";\n\n//# sourceURL=webpack://iris-web/./node_modules/ace-builds/src-noconflict/mode-vbscript.js?./node_modules/file-loader/dist/cjs.js?esModule=false");
+
+/***/ }),
+
+/***/ "./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/mode-velocity.js":
+/*!***********************************************************************************************************************!*\
+  !*** ./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/mode-velocity.js ***!
+  \***********************************************************************************************************************/
+/***/ ((module, __unused_webpack_exports, __webpack_require__) => {
+
+eval("module.exports = __webpack_require__.p + \"666b810d07bdc1c541f608ee15f87faf.js\";\n\n//# sourceURL=webpack://iris-web/./node_modules/ace-builds/src-noconflict/mode-velocity.js?./node_modules/file-loader/dist/cjs.js?esModule=false");
+
+/***/ }),
+
+/***/ "./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/mode-verilog.js":
+/*!**********************************************************************************************************************!*\
+  !*** ./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/mode-verilog.js ***!
+  \**********************************************************************************************************************/
+/***/ ((module, __unused_webpack_exports, __webpack_require__) => {
+
+eval("module.exports = __webpack_require__.p + \"41469950e6a0ef73a57342235b44c55a.js\";\n\n//# sourceURL=webpack://iris-web/./node_modules/ace-builds/src-noconflict/mode-verilog.js?./node_modules/file-loader/dist/cjs.js?esModule=false");
+
+/***/ }),
+
+/***/ "./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/mode-vhdl.js":
+/*!*******************************************************************************************************************!*\
+  !*** ./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/mode-vhdl.js ***!
+  \*******************************************************************************************************************/
+/***/ ((module, __unused_webpack_exports, __webpack_require__) => {
+
+eval("module.exports = __webpack_require__.p + \"71f39fefd16025c224fe31cdb352ae01.js\";\n\n//# sourceURL=webpack://iris-web/./node_modules/ace-builds/src-noconflict/mode-vhdl.js?./node_modules/file-loader/dist/cjs.js?esModule=false");
+
+/***/ }),
+
+/***/ "./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/mode-visualforce.js":
+/*!**************************************************************************************************************************!*\
+  !*** ./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/mode-visualforce.js ***!
+  \**************************************************************************************************************************/
+/***/ ((module, __unused_webpack_exports, __webpack_require__) => {
+
+eval("module.exports = __webpack_require__.p + \"839050e36c74c350ac363034dcdeed0e.js\";\n\n//# sourceURL=webpack://iris-web/./node_modules/ace-builds/src-noconflict/mode-visualforce.js?./node_modules/file-loader/dist/cjs.js?esModule=false");
+
+/***/ }),
+
+/***/ "./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/mode-wollok.js":
+/*!*********************************************************************************************************************!*\
+  !*** ./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/mode-wollok.js ***!
+  \*********************************************************************************************************************/
+/***/ ((module, __unused_webpack_exports, __webpack_require__) => {
+
+eval("module.exports = __webpack_require__.p + \"c8ae31f7213db4a8eebd46736f47b546.js\";\n\n//# sourceURL=webpack://iris-web/./node_modules/ace-builds/src-noconflict/mode-wollok.js?./node_modules/file-loader/dist/cjs.js?esModule=false");
+
+/***/ }),
+
+/***/ "./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/mode-xml.js":
+/*!******************************************************************************************************************!*\
+  !*** ./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/mode-xml.js ***!
+  \******************************************************************************************************************/
+/***/ ((module, __unused_webpack_exports, __webpack_require__) => {
+
+eval("module.exports = __webpack_require__.p + \"e13fc7d468ab9b5797f2a44412ca2f00.js\";\n\n//# sourceURL=webpack://iris-web/./node_modules/ace-builds/src-noconflict/mode-xml.js?./node_modules/file-loader/dist/cjs.js?esModule=false");
+
+/***/ }),
+
+/***/ "./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/mode-xquery.js":
+/*!*********************************************************************************************************************!*\
+  !*** ./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/mode-xquery.js ***!
+  \*********************************************************************************************************************/
+/***/ ((module, __unused_webpack_exports, __webpack_require__) => {
+
+eval("module.exports = __webpack_require__.p + \"03452373324e7ceaf58e3830eafd1a28.js\";\n\n//# sourceURL=webpack://iris-web/./node_modules/ace-builds/src-noconflict/mode-xquery.js?./node_modules/file-loader/dist/cjs.js?esModule=false");
+
+/***/ }),
+
+/***/ "./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/mode-yaml.js":
+/*!*******************************************************************************************************************!*\
+  !*** ./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/mode-yaml.js ***!
+  \*******************************************************************************************************************/
+/***/ ((module, __unused_webpack_exports, __webpack_require__) => {
+
+eval("module.exports = __webpack_require__.p + \"1ab96c77da77918d9160c787732c68a6.js\";\n\n//# sourceURL=webpack://iris-web/./node_modules/ace-builds/src-noconflict/mode-yaml.js?./node_modules/file-loader/dist/cjs.js?esModule=false");
+
+/***/ }),
+
+/***/ "./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/mode-zeek.js":
+/*!*******************************************************************************************************************!*\
+  !*** ./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/mode-zeek.js ***!
+  \*******************************************************************************************************************/
+/***/ ((module, __unused_webpack_exports, __webpack_require__) => {
+
+eval("module.exports = __webpack_require__.p + \"da3a9dc1f8b62f2221f1040e8d207d0e.js\";\n\n//# sourceURL=webpack://iris-web/./node_modules/ace-builds/src-noconflict/mode-zeek.js?./node_modules/file-loader/dist/cjs.js?esModule=false");
+
+/***/ }),
+
+/***/ "./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/snippets/abap.js":
+/*!***********************************************************************************************************************!*\
+  !*** ./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/snippets/abap.js ***!
+  \***********************************************************************************************************************/
+/***/ ((module, __unused_webpack_exports, __webpack_require__) => {
+
+eval("module.exports = __webpack_require__.p + \"b02d982ccb1011197a5a24800b178a0a.js\";\n\n//# sourceURL=webpack://iris-web/./node_modules/ace-builds/src-noconflict/snippets/abap.js?./node_modules/file-loader/dist/cjs.js?esModule=false");
+
+/***/ }),
+
+/***/ "./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/snippets/abc.js":
+/*!**********************************************************************************************************************!*\
+  !*** ./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/snippets/abc.js ***!
+  \**********************************************************************************************************************/
+/***/ ((module, __unused_webpack_exports, __webpack_require__) => {
+
+eval("module.exports = __webpack_require__.p + \"879d6bc1ca1dde95a9a98dc7a2ab0d06.js\";\n\n//# sourceURL=webpack://iris-web/./node_modules/ace-builds/src-noconflict/snippets/abc.js?./node_modules/file-loader/dist/cjs.js?esModule=false");
+
+/***/ }),
+
+/***/ "./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/snippets/actionscript.js":
+/*!*******************************************************************************************************************************!*\
+  !*** ./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/snippets/actionscript.js ***!
+  \*******************************************************************************************************************************/
+/***/ ((module, __unused_webpack_exports, __webpack_require__) => {
+
+eval("module.exports = __webpack_require__.p + \"b8b6bd460e7da0ba8f3b2218327966ee.js\";\n\n//# sourceURL=webpack://iris-web/./node_modules/ace-builds/src-noconflict/snippets/actionscript.js?./node_modules/file-loader/dist/cjs.js?esModule=false");
+
+/***/ }),
+
+/***/ "./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/snippets/ada.js":
+/*!**********************************************************************************************************************!*\
+  !*** ./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/snippets/ada.js ***!
+  \**********************************************************************************************************************/
+/***/ ((module, __unused_webpack_exports, __webpack_require__) => {
+
+eval("module.exports = __webpack_require__.p + \"2f055ac4066041b9008dd6aebf9df34b.js\";\n\n//# sourceURL=webpack://iris-web/./node_modules/ace-builds/src-noconflict/snippets/ada.js?./node_modules/file-loader/dist/cjs.js?esModule=false");
+
+/***/ }),
+
+/***/ "./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/snippets/alda.js":
+/*!***********************************************************************************************************************!*\
+  !*** ./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/snippets/alda.js ***!
+  \***********************************************************************************************************************/
+/***/ ((module, __unused_webpack_exports, __webpack_require__) => {
+
+eval("module.exports = __webpack_require__.p + \"d542dda7308361c34af2afb9b70d755a.js\";\n\n//# sourceURL=webpack://iris-web/./node_modules/ace-builds/src-noconflict/snippets/alda.js?./node_modules/file-loader/dist/cjs.js?esModule=false");
+
+/***/ }),
+
+/***/ "./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/snippets/apache_conf.js":
+/*!******************************************************************************************************************************!*\
+  !*** ./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/snippets/apache_conf.js ***!
+  \******************************************************************************************************************************/
+/***/ ((module, __unused_webpack_exports, __webpack_require__) => {
+
+eval("module.exports = __webpack_require__.p + \"a4bedde07e392f8ebf64341b61f75df2.js\";\n\n//# sourceURL=webpack://iris-web/./node_modules/ace-builds/src-noconflict/snippets/apache_conf.js?./node_modules/file-loader/dist/cjs.js?esModule=false");
+
+/***/ }),
+
+/***/ "./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/snippets/apex.js":
+/*!***********************************************************************************************************************!*\
+  !*** ./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/snippets/apex.js ***!
+  \***********************************************************************************************************************/
+/***/ ((module, __unused_webpack_exports, __webpack_require__) => {
+
+eval("module.exports = __webpack_require__.p + \"77aaca51c1c32acaf32656d45f4dc017.js\";\n\n//# sourceURL=webpack://iris-web/./node_modules/ace-builds/src-noconflict/snippets/apex.js?./node_modules/file-loader/dist/cjs.js?esModule=false");
+
+/***/ }),
+
+/***/ "./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/snippets/applescript.js":
+/*!******************************************************************************************************************************!*\
+  !*** ./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/snippets/applescript.js ***!
+  \******************************************************************************************************************************/
+/***/ ((module, __unused_webpack_exports, __webpack_require__) => {
+
+eval("module.exports = __webpack_require__.p + \"725da29f1643c2263a437c08a1454aea.js\";\n\n//# sourceURL=webpack://iris-web/./node_modules/ace-builds/src-noconflict/snippets/applescript.js?./node_modules/file-loader/dist/cjs.js?esModule=false");
+
+/***/ }),
+
+/***/ "./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/snippets/aql.js":
+/*!**********************************************************************************************************************!*\
+  !*** ./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/snippets/aql.js ***!
+  \**********************************************************************************************************************/
+/***/ ((module, __unused_webpack_exports, __webpack_require__) => {
+
+eval("module.exports = __webpack_require__.p + \"efc14cdf19554635e477781704353ec2.js\";\n\n//# sourceURL=webpack://iris-web/./node_modules/ace-builds/src-noconflict/snippets/aql.js?./node_modules/file-loader/dist/cjs.js?esModule=false");
+
+/***/ }),
+
+/***/ "./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/snippets/asciidoc.js":
+/*!***************************************************************************************************************************!*\
+  !*** ./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/snippets/asciidoc.js ***!
+  \***************************************************************************************************************************/
+/***/ ((module, __unused_webpack_exports, __webpack_require__) => {
+
+eval("module.exports = __webpack_require__.p + \"eaa55a522fb2cb2f0287711f42344984.js\";\n\n//# sourceURL=webpack://iris-web/./node_modules/ace-builds/src-noconflict/snippets/asciidoc.js?./node_modules/file-loader/dist/cjs.js?esModule=false");
+
+/***/ }),
+
+/***/ "./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/snippets/asl.js":
+/*!**********************************************************************************************************************!*\
+  !*** ./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/snippets/asl.js ***!
+  \**********************************************************************************************************************/
+/***/ ((module, __unused_webpack_exports, __webpack_require__) => {
+
+eval("module.exports = __webpack_require__.p + \"b808fb222140a85b23ebbe0fffa906d9.js\";\n\n//# sourceURL=webpack://iris-web/./node_modules/ace-builds/src-noconflict/snippets/asl.js?./node_modules/file-loader/dist/cjs.js?esModule=false");
+
+/***/ }),
+
+/***/ "./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/snippets/assembly_x86.js":
+/*!*******************************************************************************************************************************!*\
+  !*** ./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/snippets/assembly_x86.js ***!
+  \*******************************************************************************************************************************/
+/***/ ((module, __unused_webpack_exports, __webpack_require__) => {
+
+eval("module.exports = __webpack_require__.p + \"e874d975c9128dc6eb9a513d088bed9f.js\";\n\n//# sourceURL=webpack://iris-web/./node_modules/ace-builds/src-noconflict/snippets/assembly_x86.js?./node_modules/file-loader/dist/cjs.js?esModule=false");
+
+/***/ }),
+
+/***/ "./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/snippets/autohotkey.js":
+/*!*****************************************************************************************************************************!*\
+  !*** ./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/snippets/autohotkey.js ***!
+  \*****************************************************************************************************************************/
+/***/ ((module, __unused_webpack_exports, __webpack_require__) => {
+
+eval("module.exports = __webpack_require__.p + \"e7e1a807af3160b342e0a3550cf8f7c5.js\";\n\n//# sourceURL=webpack://iris-web/./node_modules/ace-builds/src-noconflict/snippets/autohotkey.js?./node_modules/file-loader/dist/cjs.js?esModule=false");
+
+/***/ }),
+
+/***/ "./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/snippets/batchfile.js":
+/*!****************************************************************************************************************************!*\
+  !*** ./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/snippets/batchfile.js ***!
+  \****************************************************************************************************************************/
+/***/ ((module, __unused_webpack_exports, __webpack_require__) => {
+
+eval("module.exports = __webpack_require__.p + \"48e9351c5623d4da657ce7d5d0267ea6.js\";\n\n//# sourceURL=webpack://iris-web/./node_modules/ace-builds/src-noconflict/snippets/batchfile.js?./node_modules/file-loader/dist/cjs.js?esModule=false");
+
+/***/ }),
+
+/***/ "./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/snippets/bibtex.js":
+/*!*************************************************************************************************************************!*\
+  !*** ./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/snippets/bibtex.js ***!
+  \*************************************************************************************************************************/
+/***/ ((module, __unused_webpack_exports, __webpack_require__) => {
+
+eval("module.exports = __webpack_require__.p + \"9827973b533de05b338533a0211d97d9.js\";\n\n//# sourceURL=webpack://iris-web/./node_modules/ace-builds/src-noconflict/snippets/bibtex.js?./node_modules/file-loader/dist/cjs.js?esModule=false");
+
+/***/ }),
+
+/***/ "./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/snippets/c9search.js":
+/*!***************************************************************************************************************************!*\
+  !*** ./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/snippets/c9search.js ***!
+  \***************************************************************************************************************************/
+/***/ ((module, __unused_webpack_exports, __webpack_require__) => {
+
+eval("module.exports = __webpack_require__.p + \"bb5bab7a675544fe31ddb7f4a77dffb9.js\";\n\n//# sourceURL=webpack://iris-web/./node_modules/ace-builds/src-noconflict/snippets/c9search.js?./node_modules/file-loader/dist/cjs.js?esModule=false");
+
+/***/ }),
+
+/***/ "./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/snippets/c_cpp.js":
+/*!************************************************************************************************************************!*\
+  !*** ./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/snippets/c_cpp.js ***!
+  \************************************************************************************************************************/
+/***/ ((module, __unused_webpack_exports, __webpack_require__) => {
+
+eval("module.exports = __webpack_require__.p + \"a2746fc96d535b19c120d4b87dc86ef1.js\";\n\n//# sourceURL=webpack://iris-web/./node_modules/ace-builds/src-noconflict/snippets/c_cpp.js?./node_modules/file-loader/dist/cjs.js?esModule=false");
+
+/***/ }),
+
+/***/ "./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/snippets/cirru.js":
+/*!************************************************************************************************************************!*\
+  !*** ./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/snippets/cirru.js ***!
+  \************************************************************************************************************************/
+/***/ ((module, __unused_webpack_exports, __webpack_require__) => {
+
+eval("module.exports = __webpack_require__.p + \"23bb1a9f279e7a732bfd405350aab114.js\";\n\n//# sourceURL=webpack://iris-web/./node_modules/ace-builds/src-noconflict/snippets/cirru.js?./node_modules/file-loader/dist/cjs.js?esModule=false");
+
+/***/ }),
+
+/***/ "./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/snippets/clojure.js":
+/*!**************************************************************************************************************************!*\
+  !*** ./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/snippets/clojure.js ***!
+  \**************************************************************************************************************************/
+/***/ ((module, __unused_webpack_exports, __webpack_require__) => {
+
+eval("module.exports = __webpack_require__.p + \"b1e349371cb9c226905c846706ad8b93.js\";\n\n//# sourceURL=webpack://iris-web/./node_modules/ace-builds/src-noconflict/snippets/clojure.js?./node_modules/file-loader/dist/cjs.js?esModule=false");
+
+/***/ }),
+
+/***/ "./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/snippets/cobol.js":
+/*!************************************************************************************************************************!*\
+  !*** ./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/snippets/cobol.js ***!
+  \************************************************************************************************************************/
+/***/ ((module, __unused_webpack_exports, __webpack_require__) => {
+
+eval("module.exports = __webpack_require__.p + \"1c57b3481f295105588972ffa1305521.js\";\n\n//# sourceURL=webpack://iris-web/./node_modules/ace-builds/src-noconflict/snippets/cobol.js?./node_modules/file-loader/dist/cjs.js?esModule=false");
+
+/***/ }),
+
+/***/ "./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/snippets/coffee.js":
+/*!*************************************************************************************************************************!*\
+  !*** ./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/snippets/coffee.js ***!
+  \*************************************************************************************************************************/
+/***/ ((module, __unused_webpack_exports, __webpack_require__) => {
+
+eval("module.exports = __webpack_require__.p + \"87bce6f50196688852142c679227b1b9.js\";\n\n//# sourceURL=webpack://iris-web/./node_modules/ace-builds/src-noconflict/snippets/coffee.js?./node_modules/file-loader/dist/cjs.js?esModule=false");
+
+/***/ }),
+
+/***/ "./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/snippets/coldfusion.js":
+/*!*****************************************************************************************************************************!*\
+  !*** ./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/snippets/coldfusion.js ***!
+  \*****************************************************************************************************************************/
+/***/ ((module, __unused_webpack_exports, __webpack_require__) => {
+
+eval("module.exports = __webpack_require__.p + \"6c67587c2093ac3a19da9f2196e040b7.js\";\n\n//# sourceURL=webpack://iris-web/./node_modules/ace-builds/src-noconflict/snippets/coldfusion.js?./node_modules/file-loader/dist/cjs.js?esModule=false");
+
+/***/ }),
+
+/***/ "./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/snippets/crystal.js":
+/*!**************************************************************************************************************************!*\
+  !*** ./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/snippets/crystal.js ***!
+  \**************************************************************************************************************************/
+/***/ ((module, __unused_webpack_exports, __webpack_require__) => {
+
+eval("module.exports = __webpack_require__.p + \"5a496ae20cc576bef1d35972548207cf.js\";\n\n//# sourceURL=webpack://iris-web/./node_modules/ace-builds/src-noconflict/snippets/crystal.js?./node_modules/file-loader/dist/cjs.js?esModule=false");
+
+/***/ }),
+
+/***/ "./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/snippets/csharp.js":
+/*!*************************************************************************************************************************!*\
+  !*** ./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/snippets/csharp.js ***!
+  \*************************************************************************************************************************/
+/***/ ((module, __unused_webpack_exports, __webpack_require__) => {
+
+eval("module.exports = __webpack_require__.p + \"5e55b301888460bd06c8e26d1011e01a.js\";\n\n//# sourceURL=webpack://iris-web/./node_modules/ace-builds/src-noconflict/snippets/csharp.js?./node_modules/file-loader/dist/cjs.js?esModule=false");
+
+/***/ }),
+
+/***/ "./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/snippets/csound_document.js":
+/*!**********************************************************************************************************************************!*\
+  !*** ./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/snippets/csound_document.js ***!
+  \**********************************************************************************************************************************/
+/***/ ((module, __unused_webpack_exports, __webpack_require__) => {
+
+eval("module.exports = __webpack_require__.p + \"003671ee2a876e7614cd94390e2255b3.js\";\n\n//# sourceURL=webpack://iris-web/./node_modules/ace-builds/src-noconflict/snippets/csound_document.js?./node_modules/file-loader/dist/cjs.js?esModule=false");
+
+/***/ }),
+
+/***/ "./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/snippets/csound_orchestra.js":
+/*!***********************************************************************************************************************************!*\
+  !*** ./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/snippets/csound_orchestra.js ***!
+  \***********************************************************************************************************************************/
+/***/ ((module, __unused_webpack_exports, __webpack_require__) => {
+
+eval("module.exports = __webpack_require__.p + \"3ea020c57c2bbf457a8497df313b2e5c.js\";\n\n//# sourceURL=webpack://iris-web/./node_modules/ace-builds/src-noconflict/snippets/csound_orchestra.js?./node_modules/file-loader/dist/cjs.js?esModule=false");
+
+/***/ }),
+
+/***/ "./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/snippets/csound_score.js":
+/*!*******************************************************************************************************************************!*\
+  !*** ./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/snippets/csound_score.js ***!
+  \*******************************************************************************************************************************/
+/***/ ((module, __unused_webpack_exports, __webpack_require__) => {
+
+eval("module.exports = __webpack_require__.p + \"64d6924350bd7706850cdc0dcc76ccf6.js\";\n\n//# sourceURL=webpack://iris-web/./node_modules/ace-builds/src-noconflict/snippets/csound_score.js?./node_modules/file-loader/dist/cjs.js?esModule=false");
+
+/***/ }),
+
+/***/ "./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/snippets/csp.js":
+/*!**********************************************************************************************************************!*\
+  !*** ./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/snippets/csp.js ***!
+  \**********************************************************************************************************************/
+/***/ ((module, __unused_webpack_exports, __webpack_require__) => {
+
+eval("module.exports = __webpack_require__.p + \"b1f3f77a9279cdb38846ebe13c3438bc.js\";\n\n//# sourceURL=webpack://iris-web/./node_modules/ace-builds/src-noconflict/snippets/csp.js?./node_modules/file-loader/dist/cjs.js?esModule=false");
+
+/***/ }),
+
+/***/ "./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/snippets/css.js":
+/*!**********************************************************************************************************************!*\
+  !*** ./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/snippets/css.js ***!
+  \**********************************************************************************************************************/
+/***/ ((module, __unused_webpack_exports, __webpack_require__) => {
+
+eval("module.exports = __webpack_require__.p + \"d5999827bd3af6b813a871de344b109a.js\";\n\n//# sourceURL=webpack://iris-web/./node_modules/ace-builds/src-noconflict/snippets/css.js?./node_modules/file-loader/dist/cjs.js?esModule=false");
+
+/***/ }),
+
+/***/ "./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/snippets/curly.js":
+/*!************************************************************************************************************************!*\
+  !*** ./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/snippets/curly.js ***!
+  \************************************************************************************************************************/
+/***/ ((module, __unused_webpack_exports, __webpack_require__) => {
+
+eval("module.exports = __webpack_require__.p + \"58598705e7012f4ca1eb1dd21d3c59a5.js\";\n\n//# sourceURL=webpack://iris-web/./node_modules/ace-builds/src-noconflict/snippets/curly.js?./node_modules/file-loader/dist/cjs.js?esModule=false");
+
+/***/ }),
+
+/***/ "./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/snippets/d.js":
+/*!********************************************************************************************************************!*\
+  !*** ./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/snippets/d.js ***!
+  \********************************************************************************************************************/
+/***/ ((module, __unused_webpack_exports, __webpack_require__) => {
+
+eval("module.exports = __webpack_require__.p + \"70074e0c785c9a808dea76c7c7d17af3.js\";\n\n//# sourceURL=webpack://iris-web/./node_modules/ace-builds/src-noconflict/snippets/d.js?./node_modules/file-loader/dist/cjs.js?esModule=false");
+
+/***/ }),
+
+/***/ "./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/snippets/dart.js":
+/*!***********************************************************************************************************************!*\
+  !*** ./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/snippets/dart.js ***!
+  \***********************************************************************************************************************/
+/***/ ((module, __unused_webpack_exports, __webpack_require__) => {
+
+eval("module.exports = __webpack_require__.p + \"1875ecdf54e78b5f07ff1bd944cf794b.js\";\n\n//# sourceURL=webpack://iris-web/./node_modules/ace-builds/src-noconflict/snippets/dart.js?./node_modules/file-loader/dist/cjs.js?esModule=false");
+
+/***/ }),
+
+/***/ "./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/snippets/diff.js":
+/*!***********************************************************************************************************************!*\
+  !*** ./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/snippets/diff.js ***!
+  \***********************************************************************************************************************/
+/***/ ((module, __unused_webpack_exports, __webpack_require__) => {
+
+eval("module.exports = __webpack_require__.p + \"8eede17ae9e4d25c3c17b8a8a7fc3c3d.js\";\n\n//# sourceURL=webpack://iris-web/./node_modules/ace-builds/src-noconflict/snippets/diff.js?./node_modules/file-loader/dist/cjs.js?esModule=false");
+
+/***/ }),
+
+/***/ "./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/snippets/django.js":
+/*!*************************************************************************************************************************!*\
+  !*** ./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/snippets/django.js ***!
+  \*************************************************************************************************************************/
+/***/ ((module, __unused_webpack_exports, __webpack_require__) => {
+
+eval("module.exports = __webpack_require__.p + \"eff4371180dfac54de25ed3a0105d82f.js\";\n\n//# sourceURL=webpack://iris-web/./node_modules/ace-builds/src-noconflict/snippets/django.js?./node_modules/file-loader/dist/cjs.js?esModule=false");
+
+/***/ }),
+
+/***/ "./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/snippets/dockerfile.js":
+/*!*****************************************************************************************************************************!*\
+  !*** ./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/snippets/dockerfile.js ***!
+  \*****************************************************************************************************************************/
+/***/ ((module, __unused_webpack_exports, __webpack_require__) => {
+
+eval("module.exports = __webpack_require__.p + \"06d958315fc6cdbb28576b03e43203aa.js\";\n\n//# sourceURL=webpack://iris-web/./node_modules/ace-builds/src-noconflict/snippets/dockerfile.js?./node_modules/file-loader/dist/cjs.js?esModule=false");
+
+/***/ }),
+
+/***/ "./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/snippets/dot.js":
+/*!**********************************************************************************************************************!*\
+  !*** ./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/snippets/dot.js ***!
+  \**********************************************************************************************************************/
+/***/ ((module, __unused_webpack_exports, __webpack_require__) => {
+
+eval("module.exports = __webpack_require__.p + \"c51840077c684be0e7e13339f85cd4a9.js\";\n\n//# sourceURL=webpack://iris-web/./node_modules/ace-builds/src-noconflict/snippets/dot.js?./node_modules/file-loader/dist/cjs.js?esModule=false");
+
+/***/ }),
+
+/***/ "./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/snippets/drools.js":
+/*!*************************************************************************************************************************!*\
+  !*** ./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/snippets/drools.js ***!
+  \*************************************************************************************************************************/
+/***/ ((module, __unused_webpack_exports, __webpack_require__) => {
+
+eval("module.exports = __webpack_require__.p + \"c3f345c994392d97785925e790513a9f.js\";\n\n//# sourceURL=webpack://iris-web/./node_modules/ace-builds/src-noconflict/snippets/drools.js?./node_modules/file-loader/dist/cjs.js?esModule=false");
+
+/***/ }),
+
+/***/ "./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/snippets/edifact.js":
+/*!**************************************************************************************************************************!*\
+  !*** ./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/snippets/edifact.js ***!
+  \**************************************************************************************************************************/
+/***/ ((module, __unused_webpack_exports, __webpack_require__) => {
+
+eval("module.exports = __webpack_require__.p + \"1495a3d68b15b8622c53f6688b64809f.js\";\n\n//# sourceURL=webpack://iris-web/./node_modules/ace-builds/src-noconflict/snippets/edifact.js?./node_modules/file-loader/dist/cjs.js?esModule=false");
+
+/***/ }),
+
+/***/ "./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/snippets/eiffel.js":
+/*!*************************************************************************************************************************!*\
+  !*** ./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/snippets/eiffel.js ***!
+  \*************************************************************************************************************************/
+/***/ ((module, __unused_webpack_exports, __webpack_require__) => {
+
+eval("module.exports = __webpack_require__.p + \"7e4099fc2d04c7c1cf96892b962ba4ec.js\";\n\n//# sourceURL=webpack://iris-web/./node_modules/ace-builds/src-noconflict/snippets/eiffel.js?./node_modules/file-loader/dist/cjs.js?esModule=false");
+
+/***/ }),
+
+/***/ "./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/snippets/ejs.js":
+/*!**********************************************************************************************************************!*\
+  !*** ./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/snippets/ejs.js ***!
+  \**********************************************************************************************************************/
+/***/ ((module, __unused_webpack_exports, __webpack_require__) => {
+
+eval("module.exports = __webpack_require__.p + \"6c0a75dc5671c3f237a79f6e45b9891c.js\";\n\n//# sourceURL=webpack://iris-web/./node_modules/ace-builds/src-noconflict/snippets/ejs.js?./node_modules/file-loader/dist/cjs.js?esModule=false");
+
+/***/ }),
+
+/***/ "./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/snippets/elixir.js":
+/*!*************************************************************************************************************************!*\
+  !*** ./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/snippets/elixir.js ***!
+  \*************************************************************************************************************************/
+/***/ ((module, __unused_webpack_exports, __webpack_require__) => {
+
+eval("module.exports = __webpack_require__.p + \"aa5623ec68d23fedb9c9c115c7d99063.js\";\n\n//# sourceURL=webpack://iris-web/./node_modules/ace-builds/src-noconflict/snippets/elixir.js?./node_modules/file-loader/dist/cjs.js?esModule=false");
+
+/***/ }),
+
+/***/ "./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/snippets/elm.js":
+/*!**********************************************************************************************************************!*\
+  !*** ./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/snippets/elm.js ***!
+  \**********************************************************************************************************************/
+/***/ ((module, __unused_webpack_exports, __webpack_require__) => {
+
+eval("module.exports = __webpack_require__.p + \"4ef80ee74467e0297eec3cc03092da01.js\";\n\n//# sourceURL=webpack://iris-web/./node_modules/ace-builds/src-noconflict/snippets/elm.js?./node_modules/file-loader/dist/cjs.js?esModule=false");
+
+/***/ }),
+
+/***/ "./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/snippets/erlang.js":
+/*!*************************************************************************************************************************!*\
+  !*** ./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/snippets/erlang.js ***!
+  \*************************************************************************************************************************/
+/***/ ((module, __unused_webpack_exports, __webpack_require__) => {
+
+eval("module.exports = __webpack_require__.p + \"f6d7091e70dee6c74956acfef2464d08.js\";\n\n//# sourceURL=webpack://iris-web/./node_modules/ace-builds/src-noconflict/snippets/erlang.js?./node_modules/file-loader/dist/cjs.js?esModule=false");
+
+/***/ }),
+
+/***/ "./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/snippets/forth.js":
+/*!************************************************************************************************************************!*\
+  !*** ./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/snippets/forth.js ***!
+  \************************************************************************************************************************/
+/***/ ((module, __unused_webpack_exports, __webpack_require__) => {
+
+eval("module.exports = __webpack_require__.p + \"4bf3bc1fbdd26ac698fef1bdf26e3ff4.js\";\n\n//# sourceURL=webpack://iris-web/./node_modules/ace-builds/src-noconflict/snippets/forth.js?./node_modules/file-loader/dist/cjs.js?esModule=false");
+
+/***/ }),
+
+/***/ "./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/snippets/fortran.js":
+/*!**************************************************************************************************************************!*\
+  !*** ./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/snippets/fortran.js ***!
+  \**************************************************************************************************************************/
+/***/ ((module, __unused_webpack_exports, __webpack_require__) => {
+
+eval("module.exports = __webpack_require__.p + \"70286c33cab463fd576766adecd2d5d9.js\";\n\n//# sourceURL=webpack://iris-web/./node_modules/ace-builds/src-noconflict/snippets/fortran.js?./node_modules/file-loader/dist/cjs.js?esModule=false");
+
+/***/ }),
+
+/***/ "./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/snippets/fsharp.js":
+/*!*************************************************************************************************************************!*\
+  !*** ./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/snippets/fsharp.js ***!
+  \*************************************************************************************************************************/
+/***/ ((module, __unused_webpack_exports, __webpack_require__) => {
+
+eval("module.exports = __webpack_require__.p + \"1533058f0ce13acdaa8d5bdc7d147bef.js\";\n\n//# sourceURL=webpack://iris-web/./node_modules/ace-builds/src-noconflict/snippets/fsharp.js?./node_modules/file-loader/dist/cjs.js?esModule=false");
+
+/***/ }),
+
+/***/ "./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/snippets/fsl.js":
+/*!**********************************************************************************************************************!*\
+  !*** ./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/snippets/fsl.js ***!
+  \**********************************************************************************************************************/
+/***/ ((module, __unused_webpack_exports, __webpack_require__) => {
+
+eval("module.exports = __webpack_require__.p + \"724a16861717b5b4f786d24b56b62614.js\";\n\n//# sourceURL=webpack://iris-web/./node_modules/ace-builds/src-noconflict/snippets/fsl.js?./node_modules/file-loader/dist/cjs.js?esModule=false");
+
+/***/ }),
+
+/***/ "./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/snippets/ftl.js":
+/*!**********************************************************************************************************************!*\
+  !*** ./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/snippets/ftl.js ***!
+  \**********************************************************************************************************************/
+/***/ ((module, __unused_webpack_exports, __webpack_require__) => {
+
+eval("module.exports = __webpack_require__.p + \"03aae8272914723a7bf85b984385032c.js\";\n\n//# sourceURL=webpack://iris-web/./node_modules/ace-builds/src-noconflict/snippets/ftl.js?./node_modules/file-loader/dist/cjs.js?esModule=false");
+
+/***/ }),
+
+/***/ "./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/snippets/gcode.js":
+/*!************************************************************************************************************************!*\
+  !*** ./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/snippets/gcode.js ***!
+  \************************************************************************************************************************/
+/***/ ((module, __unused_webpack_exports, __webpack_require__) => {
+
+eval("module.exports = __webpack_require__.p + \"029ed9161a8d24a9c2ba97124020989d.js\";\n\n//# sourceURL=webpack://iris-web/./node_modules/ace-builds/src-noconflict/snippets/gcode.js?./node_modules/file-loader/dist/cjs.js?esModule=false");
+
+/***/ }),
+
+/***/ "./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/snippets/gherkin.js":
+/*!**************************************************************************************************************************!*\
+  !*** ./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/snippets/gherkin.js ***!
+  \**************************************************************************************************************************/
+/***/ ((module, __unused_webpack_exports, __webpack_require__) => {
+
+eval("module.exports = __webpack_require__.p + \"cb652f200fc3dd740b2e7f678a9272ea.js\";\n\n//# sourceURL=webpack://iris-web/./node_modules/ace-builds/src-noconflict/snippets/gherkin.js?./node_modules/file-loader/dist/cjs.js?esModule=false");
+
+/***/ }),
+
+/***/ "./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/snippets/gitignore.js":
+/*!****************************************************************************************************************************!*\
+  !*** ./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/snippets/gitignore.js ***!
+  \****************************************************************************************************************************/
+/***/ ((module, __unused_webpack_exports, __webpack_require__) => {
+
+eval("module.exports = __webpack_require__.p + \"d43ad5f9bad9a042b49b2592c7639c28.js\";\n\n//# sourceURL=webpack://iris-web/./node_modules/ace-builds/src-noconflict/snippets/gitignore.js?./node_modules/file-loader/dist/cjs.js?esModule=false");
+
+/***/ }),
+
+/***/ "./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/snippets/glsl.js":
+/*!***********************************************************************************************************************!*\
+  !*** ./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/snippets/glsl.js ***!
+  \***********************************************************************************************************************/
+/***/ ((module, __unused_webpack_exports, __webpack_require__) => {
+
+eval("module.exports = __webpack_require__.p + \"d78d3b050ea95b068380d975fd413fd7.js\";\n\n//# sourceURL=webpack://iris-web/./node_modules/ace-builds/src-noconflict/snippets/glsl.js?./node_modules/file-loader/dist/cjs.js?esModule=false");
+
+/***/ }),
+
+/***/ "./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/snippets/gobstones.js":
+/*!****************************************************************************************************************************!*\
+  !*** ./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/snippets/gobstones.js ***!
+  \****************************************************************************************************************************/
+/***/ ((module, __unused_webpack_exports, __webpack_require__) => {
+
+eval("module.exports = __webpack_require__.p + \"4d0ebf4c528cee9b0cdd3e076e06570b.js\";\n\n//# sourceURL=webpack://iris-web/./node_modules/ace-builds/src-noconflict/snippets/gobstones.js?./node_modules/file-loader/dist/cjs.js?esModule=false");
+
+/***/ }),
+
+/***/ "./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/snippets/golang.js":
+/*!*************************************************************************************************************************!*\
+  !*** ./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/snippets/golang.js ***!
+  \*************************************************************************************************************************/
+/***/ ((module, __unused_webpack_exports, __webpack_require__) => {
+
+eval("module.exports = __webpack_require__.p + \"28785bea435918d49b290d27bf660baa.js\";\n\n//# sourceURL=webpack://iris-web/./node_modules/ace-builds/src-noconflict/snippets/golang.js?./node_modules/file-loader/dist/cjs.js?esModule=false");
+
+/***/ }),
+
+/***/ "./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/snippets/graphqlschema.js":
+/*!********************************************************************************************************************************!*\
+  !*** ./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/snippets/graphqlschema.js ***!
+  \********************************************************************************************************************************/
+/***/ ((module, __unused_webpack_exports, __webpack_require__) => {
+
+eval("module.exports = __webpack_require__.p + \"38b1d18836e38ee7b4deaeba0c35f7b8.js\";\n\n//# sourceURL=webpack://iris-web/./node_modules/ace-builds/src-noconflict/snippets/graphqlschema.js?./node_modules/file-loader/dist/cjs.js?esModule=false");
+
+/***/ }),
+
+/***/ "./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/snippets/groovy.js":
+/*!*************************************************************************************************************************!*\
+  !*** ./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/snippets/groovy.js ***!
+  \*************************************************************************************************************************/
+/***/ ((module, __unused_webpack_exports, __webpack_require__) => {
+
+eval("module.exports = __webpack_require__.p + \"2dd82c65030101b60dffccedd8741c6e.js\";\n\n//# sourceURL=webpack://iris-web/./node_modules/ace-builds/src-noconflict/snippets/groovy.js?./node_modules/file-loader/dist/cjs.js?esModule=false");
+
+/***/ }),
+
+/***/ "./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/snippets/haml.js":
+/*!***********************************************************************************************************************!*\
+  !*** ./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/snippets/haml.js ***!
+  \***********************************************************************************************************************/
+/***/ ((module, __unused_webpack_exports, __webpack_require__) => {
+
+eval("module.exports = __webpack_require__.p + \"47e5776dff3b80ed69ab5947dba33c76.js\";\n\n//# sourceURL=webpack://iris-web/./node_modules/ace-builds/src-noconflict/snippets/haml.js?./node_modules/file-loader/dist/cjs.js?esModule=false");
+
+/***/ }),
+
+/***/ "./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/snippets/handlebars.js":
+/*!*****************************************************************************************************************************!*\
+  !*** ./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/snippets/handlebars.js ***!
+  \*****************************************************************************************************************************/
+/***/ ((module, __unused_webpack_exports, __webpack_require__) => {
+
+eval("module.exports = __webpack_require__.p + \"e61779df91186b23e7adf2d1968b2708.js\";\n\n//# sourceURL=webpack://iris-web/./node_modules/ace-builds/src-noconflict/snippets/handlebars.js?./node_modules/file-loader/dist/cjs.js?esModule=false");
+
+/***/ }),
+
+/***/ "./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/snippets/haskell.js":
+/*!**************************************************************************************************************************!*\
+  !*** ./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/snippets/haskell.js ***!
+  \**************************************************************************************************************************/
+/***/ ((module, __unused_webpack_exports, __webpack_require__) => {
+
+eval("module.exports = __webpack_require__.p + \"839e3594798c1942d3c92f9acfaa5f0b.js\";\n\n//# sourceURL=webpack://iris-web/./node_modules/ace-builds/src-noconflict/snippets/haskell.js?./node_modules/file-loader/dist/cjs.js?esModule=false");
+
+/***/ }),
+
+/***/ "./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/snippets/haskell_cabal.js":
+/*!********************************************************************************************************************************!*\
+  !*** ./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/snippets/haskell_cabal.js ***!
+  \********************************************************************************************************************************/
+/***/ ((module, __unused_webpack_exports, __webpack_require__) => {
+
+eval("module.exports = __webpack_require__.p + \"3567d1ea443427e944a6f189a0898819.js\";\n\n//# sourceURL=webpack://iris-web/./node_modules/ace-builds/src-noconflict/snippets/haskell_cabal.js?./node_modules/file-loader/dist/cjs.js?esModule=false");
+
+/***/ }),
+
+/***/ "./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/snippets/haxe.js":
+/*!***********************************************************************************************************************!*\
+  !*** ./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/snippets/haxe.js ***!
+  \***********************************************************************************************************************/
+/***/ ((module, __unused_webpack_exports, __webpack_require__) => {
+
+eval("module.exports = __webpack_require__.p + \"c80e89199aef31e48addb2b35ea96365.js\";\n\n//# sourceURL=webpack://iris-web/./node_modules/ace-builds/src-noconflict/snippets/haxe.js?./node_modules/file-loader/dist/cjs.js?esModule=false");
+
+/***/ }),
+
+/***/ "./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/snippets/hjson.js":
+/*!************************************************************************************************************************!*\
+  !*** ./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/snippets/hjson.js ***!
+  \************************************************************************************************************************/
+/***/ ((module, __unused_webpack_exports, __webpack_require__) => {
+
+eval("module.exports = __webpack_require__.p + \"5b6a626249d0bc43e412fffa6a9ee177.js\";\n\n//# sourceURL=webpack://iris-web/./node_modules/ace-builds/src-noconflict/snippets/hjson.js?./node_modules/file-loader/dist/cjs.js?esModule=false");
+
+/***/ }),
+
+/***/ "./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/snippets/html.js":
+/*!***********************************************************************************************************************!*\
+  !*** ./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/snippets/html.js ***!
+  \***********************************************************************************************************************/
+/***/ ((module, __unused_webpack_exports, __webpack_require__) => {
+
+eval("module.exports = __webpack_require__.p + \"fd9645aaf1f70c8abc562be41bee25fc.js\";\n\n//# sourceURL=webpack://iris-web/./node_modules/ace-builds/src-noconflict/snippets/html.js?./node_modules/file-loader/dist/cjs.js?esModule=false");
+
+/***/ }),
+
+/***/ "./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/snippets/html_elixir.js":
+/*!******************************************************************************************************************************!*\
+  !*** ./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/snippets/html_elixir.js ***!
+  \******************************************************************************************************************************/
+/***/ ((module, __unused_webpack_exports, __webpack_require__) => {
+
+eval("module.exports = __webpack_require__.p + \"57f4109bd1f06be4dc2bcb8ff7eaf1e5.js\";\n\n//# sourceURL=webpack://iris-web/./node_modules/ace-builds/src-noconflict/snippets/html_elixir.js?./node_modules/file-loader/dist/cjs.js?esModule=false");
+
+/***/ }),
+
+/***/ "./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/snippets/html_ruby.js":
+/*!****************************************************************************************************************************!*\
+  !*** ./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/snippets/html_ruby.js ***!
+  \****************************************************************************************************************************/
+/***/ ((module, __unused_webpack_exports, __webpack_require__) => {
+
+eval("module.exports = __webpack_require__.p + \"cd9a17f94a922c7c88000b1b3cdd67df.js\";\n\n//# sourceURL=webpack://iris-web/./node_modules/ace-builds/src-noconflict/snippets/html_ruby.js?./node_modules/file-loader/dist/cjs.js?esModule=false");
+
+/***/ }),
+
+/***/ "./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/snippets/ini.js":
+/*!**********************************************************************************************************************!*\
+  !*** ./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/snippets/ini.js ***!
+  \**********************************************************************************************************************/
+/***/ ((module, __unused_webpack_exports, __webpack_require__) => {
+
+eval("module.exports = __webpack_require__.p + \"755114145e5b97e5571a160a39e716db.js\";\n\n//# sourceURL=webpack://iris-web/./node_modules/ace-builds/src-noconflict/snippets/ini.js?./node_modules/file-loader/dist/cjs.js?esModule=false");
+
+/***/ }),
+
+/***/ "./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/snippets/io.js":
+/*!*********************************************************************************************************************!*\
+  !*** ./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/snippets/io.js ***!
+  \*********************************************************************************************************************/
+/***/ ((module, __unused_webpack_exports, __webpack_require__) => {
+
+eval("module.exports = __webpack_require__.p + \"5e8a4f4320a07ae4bb1d8a5cd621d955.js\";\n\n//# sourceURL=webpack://iris-web/./node_modules/ace-builds/src-noconflict/snippets/io.js?./node_modules/file-loader/dist/cjs.js?esModule=false");
+
+/***/ }),
+
+/***/ "./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/snippets/ion.js":
+/*!**********************************************************************************************************************!*\
+  !*** ./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/snippets/ion.js ***!
+  \**********************************************************************************************************************/
+/***/ ((module, __unused_webpack_exports, __webpack_require__) => {
+
+eval("module.exports = __webpack_require__.p + \"e9c8f7e13e00284ce126890bf7ac46fd.js\";\n\n//# sourceURL=webpack://iris-web/./node_modules/ace-builds/src-noconflict/snippets/ion.js?./node_modules/file-loader/dist/cjs.js?esModule=false");
+
+/***/ }),
+
+/***/ "./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/snippets/jack.js":
+/*!***********************************************************************************************************************!*\
+  !*** ./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/snippets/jack.js ***!
+  \***********************************************************************************************************************/
+/***/ ((module, __unused_webpack_exports, __webpack_require__) => {
+
+eval("module.exports = __webpack_require__.p + \"e0adad8a8579bf99f3e22f7c214a5c64.js\";\n\n//# sourceURL=webpack://iris-web/./node_modules/ace-builds/src-noconflict/snippets/jack.js?./node_modules/file-loader/dist/cjs.js?esModule=false");
+
+/***/ }),
+
+/***/ "./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/snippets/jade.js":
+/*!***********************************************************************************************************************!*\
+  !*** ./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/snippets/jade.js ***!
+  \***********************************************************************************************************************/
+/***/ ((module, __unused_webpack_exports, __webpack_require__) => {
+
+eval("module.exports = __webpack_require__.p + \"3b190e5159c72fb7e27271956772bcba.js\";\n\n//# sourceURL=webpack://iris-web/./node_modules/ace-builds/src-noconflict/snippets/jade.js?./node_modules/file-loader/dist/cjs.js?esModule=false");
+
+/***/ }),
+
+/***/ "./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/snippets/java.js":
+/*!***********************************************************************************************************************!*\
+  !*** ./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/snippets/java.js ***!
+  \***********************************************************************************************************************/
+/***/ ((module, __unused_webpack_exports, __webpack_require__) => {
+
+eval("module.exports = __webpack_require__.p + \"62a96977e725e8bc809dc80afe0fedf1.js\";\n\n//# sourceURL=webpack://iris-web/./node_modules/ace-builds/src-noconflict/snippets/java.js?./node_modules/file-loader/dist/cjs.js?esModule=false");
+
+/***/ }),
+
+/***/ "./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/snippets/javascript.js":
+/*!*****************************************************************************************************************************!*\
+  !*** ./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/snippets/javascript.js ***!
+  \*****************************************************************************************************************************/
+/***/ ((module, __unused_webpack_exports, __webpack_require__) => {
+
+eval("module.exports = __webpack_require__.p + \"8a31266178067a316bb2503147cdb5cb.js\";\n\n//# sourceURL=webpack://iris-web/./node_modules/ace-builds/src-noconflict/snippets/javascript.js?./node_modules/file-loader/dist/cjs.js?esModule=false");
+
+/***/ }),
+
+/***/ "./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/snippets/jexl.js":
+/*!***********************************************************************************************************************!*\
+  !*** ./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/snippets/jexl.js ***!
+  \***********************************************************************************************************************/
+/***/ ((module, __unused_webpack_exports, __webpack_require__) => {
+
+eval("module.exports = __webpack_require__.p + \"a9cb92db2399f7ac97ad55fe79fe5c20.js\";\n\n//# sourceURL=webpack://iris-web/./node_modules/ace-builds/src-noconflict/snippets/jexl.js?./node_modules/file-loader/dist/cjs.js?esModule=false");
+
+/***/ }),
+
+/***/ "./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/snippets/json.js":
+/*!***********************************************************************************************************************!*\
+  !*** ./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/snippets/json.js ***!
+  \***********************************************************************************************************************/
+/***/ ((module, __unused_webpack_exports, __webpack_require__) => {
+
+eval("module.exports = __webpack_require__.p + \"6d38cef4a006e6cfe54a6117aba7b600.js\";\n\n//# sourceURL=webpack://iris-web/./node_modules/ace-builds/src-noconflict/snippets/json.js?./node_modules/file-loader/dist/cjs.js?esModule=false");
+
+/***/ }),
+
+/***/ "./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/snippets/json5.js":
+/*!************************************************************************************************************************!*\
+  !*** ./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/snippets/json5.js ***!
+  \************************************************************************************************************************/
+/***/ ((module, __unused_webpack_exports, __webpack_require__) => {
+
+eval("module.exports = __webpack_require__.p + \"8d9bb1799d9b98db107e84f10132e17f.js\";\n\n//# sourceURL=webpack://iris-web/./node_modules/ace-builds/src-noconflict/snippets/json5.js?./node_modules/file-loader/dist/cjs.js?esModule=false");
+
+/***/ }),
+
+/***/ "./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/snippets/jsoniq.js":
+/*!*************************************************************************************************************************!*\
+  !*** ./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/snippets/jsoniq.js ***!
+  \*************************************************************************************************************************/
+/***/ ((module, __unused_webpack_exports, __webpack_require__) => {
+
+eval("module.exports = __webpack_require__.p + \"432aff60ba31a74d2120031fdc894775.js\";\n\n//# sourceURL=webpack://iris-web/./node_modules/ace-builds/src-noconflict/snippets/jsoniq.js?./node_modules/file-loader/dist/cjs.js?esModule=false");
+
+/***/ }),
+
+/***/ "./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/snippets/jsp.js":
+/*!**********************************************************************************************************************!*\
+  !*** ./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/snippets/jsp.js ***!
+  \**********************************************************************************************************************/
+/***/ ((module, __unused_webpack_exports, __webpack_require__) => {
+
+eval("module.exports = __webpack_require__.p + \"e2fe8f0d4fd950b20b30fabaea96b3f8.js\";\n\n//# sourceURL=webpack://iris-web/./node_modules/ace-builds/src-noconflict/snippets/jsp.js?./node_modules/file-loader/dist/cjs.js?esModule=false");
+
+/***/ }),
+
+/***/ "./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/snippets/jssm.js":
+/*!***********************************************************************************************************************!*\
+  !*** ./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/snippets/jssm.js ***!
+  \***********************************************************************************************************************/
+/***/ ((module, __unused_webpack_exports, __webpack_require__) => {
+
+eval("module.exports = __webpack_require__.p + \"b881dca9d9a80f61d87374b4bd5a2dd5.js\";\n\n//# sourceURL=webpack://iris-web/./node_modules/ace-builds/src-noconflict/snippets/jssm.js?./node_modules/file-loader/dist/cjs.js?esModule=false");
+
+/***/ }),
+
+/***/ "./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/snippets/jsx.js":
+/*!**********************************************************************************************************************!*\
+  !*** ./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/snippets/jsx.js ***!
+  \**********************************************************************************************************************/
+/***/ ((module, __unused_webpack_exports, __webpack_require__) => {
+
+eval("module.exports = __webpack_require__.p + \"ffd3b83e8b5878f4785591ff54b1dfff.js\";\n\n//# sourceURL=webpack://iris-web/./node_modules/ace-builds/src-noconflict/snippets/jsx.js?./node_modules/file-loader/dist/cjs.js?esModule=false");
+
+/***/ }),
+
+/***/ "./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/snippets/julia.js":
+/*!************************************************************************************************************************!*\
+  !*** ./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/snippets/julia.js ***!
+  \************************************************************************************************************************/
+/***/ ((module, __unused_webpack_exports, __webpack_require__) => {
+
+eval("module.exports = __webpack_require__.p + \"88e2feda80ac8cfb28f1dc0ec833b40d.js\";\n\n//# sourceURL=webpack://iris-web/./node_modules/ace-builds/src-noconflict/snippets/julia.js?./node_modules/file-loader/dist/cjs.js?esModule=false");
+
+/***/ }),
+
+/***/ "./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/snippets/kotlin.js":
+/*!*************************************************************************************************************************!*\
+  !*** ./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/snippets/kotlin.js ***!
+  \*************************************************************************************************************************/
+/***/ ((module, __unused_webpack_exports, __webpack_require__) => {
+
+eval("module.exports = __webpack_require__.p + \"64a5f4d62507d032038dcd76d15188e1.js\";\n\n//# sourceURL=webpack://iris-web/./node_modules/ace-builds/src-noconflict/snippets/kotlin.js?./node_modules/file-loader/dist/cjs.js?esModule=false");
+
+/***/ }),
+
+/***/ "./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/snippets/latex.js":
+/*!************************************************************************************************************************!*\
+  !*** ./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/snippets/latex.js ***!
+  \************************************************************************************************************************/
+/***/ ((module, __unused_webpack_exports, __webpack_require__) => {
+
+eval("module.exports = __webpack_require__.p + \"aa0eee504d52a12d3a30bbd523afcc34.js\";\n\n//# sourceURL=webpack://iris-web/./node_modules/ace-builds/src-noconflict/snippets/latex.js?./node_modules/file-loader/dist/cjs.js?esModule=false");
+
+/***/ }),
+
+/***/ "./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/snippets/latte.js":
+/*!************************************************************************************************************************!*\
+  !*** ./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/snippets/latte.js ***!
+  \************************************************************************************************************************/
+/***/ ((module, __unused_webpack_exports, __webpack_require__) => {
+
+eval("module.exports = __webpack_require__.p + \"cf26dd07f19bcb5b7efbf057a6cfeb8f.js\";\n\n//# sourceURL=webpack://iris-web/./node_modules/ace-builds/src-noconflict/snippets/latte.js?./node_modules/file-loader/dist/cjs.js?esModule=false");
+
+/***/ }),
+
+/***/ "./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/snippets/less.js":
+/*!***********************************************************************************************************************!*\
+  !*** ./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/snippets/less.js ***!
+  \***********************************************************************************************************************/
+/***/ ((module, __unused_webpack_exports, __webpack_require__) => {
+
+eval("module.exports = __webpack_require__.p + \"cbdbd623038183a8c068dd24ecd90682.js\";\n\n//# sourceURL=webpack://iris-web/./node_modules/ace-builds/src-noconflict/snippets/less.js?./node_modules/file-loader/dist/cjs.js?esModule=false");
+
+/***/ }),
+
+/***/ "./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/snippets/liquid.js":
+/*!*************************************************************************************************************************!*\
+  !*** ./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/snippets/liquid.js ***!
+  \*************************************************************************************************************************/
+/***/ ((module, __unused_webpack_exports, __webpack_require__) => {
+
+eval("module.exports = __webpack_require__.p + \"0972f21af3e75388ef55435c0b3b831d.js\";\n\n//# sourceURL=webpack://iris-web/./node_modules/ace-builds/src-noconflict/snippets/liquid.js?./node_modules/file-loader/dist/cjs.js?esModule=false");
+
+/***/ }),
+
+/***/ "./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/snippets/lisp.js":
+/*!***********************************************************************************************************************!*\
+  !*** ./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/snippets/lisp.js ***!
+  \***********************************************************************************************************************/
+/***/ ((module, __unused_webpack_exports, __webpack_require__) => {
+
+eval("module.exports = __webpack_require__.p + \"4d8cb7033879cb7fcc7a43798e2bde22.js\";\n\n//# sourceURL=webpack://iris-web/./node_modules/ace-builds/src-noconflict/snippets/lisp.js?./node_modules/file-loader/dist/cjs.js?esModule=false");
+
+/***/ }),
+
+/***/ "./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/snippets/livescript.js":
+/*!*****************************************************************************************************************************!*\
+  !*** ./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/snippets/livescript.js ***!
+  \*****************************************************************************************************************************/
+/***/ ((module, __unused_webpack_exports, __webpack_require__) => {
+
+eval("module.exports = __webpack_require__.p + \"58aab872dbdb5e1607076e1935130e03.js\";\n\n//# sourceURL=webpack://iris-web/./node_modules/ace-builds/src-noconflict/snippets/livescript.js?./node_modules/file-loader/dist/cjs.js?esModule=false");
+
+/***/ }),
+
+/***/ "./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/snippets/logiql.js":
+/*!*************************************************************************************************************************!*\
+  !*** ./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/snippets/logiql.js ***!
+  \*************************************************************************************************************************/
+/***/ ((module, __unused_webpack_exports, __webpack_require__) => {
+
+eval("module.exports = __webpack_require__.p + \"ecdb4966f685f3e44b1f28fae46827a3.js\";\n\n//# sourceURL=webpack://iris-web/./node_modules/ace-builds/src-noconflict/snippets/logiql.js?./node_modules/file-loader/dist/cjs.js?esModule=false");
+
+/***/ }),
+
+/***/ "./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/snippets/logtalk.js":
+/*!**************************************************************************************************************************!*\
+  !*** ./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/snippets/logtalk.js ***!
+  \**************************************************************************************************************************/
+/***/ ((module, __unused_webpack_exports, __webpack_require__) => {
+
+eval("module.exports = __webpack_require__.p + \"5d3314103b00c8ea165c6f9f6757f794.js\";\n\n//# sourceURL=webpack://iris-web/./node_modules/ace-builds/src-noconflict/snippets/logtalk.js?./node_modules/file-loader/dist/cjs.js?esModule=false");
+
+/***/ }),
+
+/***/ "./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/snippets/lsl.js":
+/*!**********************************************************************************************************************!*\
+  !*** ./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/snippets/lsl.js ***!
+  \**********************************************************************************************************************/
+/***/ ((module, __unused_webpack_exports, __webpack_require__) => {
+
+eval("module.exports = __webpack_require__.p + \"9b5a6ec07bb0a2daade10189696fc399.js\";\n\n//# sourceURL=webpack://iris-web/./node_modules/ace-builds/src-noconflict/snippets/lsl.js?./node_modules/file-loader/dist/cjs.js?esModule=false");
+
+/***/ }),
+
+/***/ "./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/snippets/lua.js":
+/*!**********************************************************************************************************************!*\
+  !*** ./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/snippets/lua.js ***!
+  \**********************************************************************************************************************/
+/***/ ((module, __unused_webpack_exports, __webpack_require__) => {
+
+eval("module.exports = __webpack_require__.p + \"e0c565aadda4787ba4ef4456c0a7ee29.js\";\n\n//# sourceURL=webpack://iris-web/./node_modules/ace-builds/src-noconflict/snippets/lua.js?./node_modules/file-loader/dist/cjs.js?esModule=false");
+
+/***/ }),
+
+/***/ "./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/snippets/luapage.js":
+/*!**************************************************************************************************************************!*\
+  !*** ./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/snippets/luapage.js ***!
+  \**************************************************************************************************************************/
+/***/ ((module, __unused_webpack_exports, __webpack_require__) => {
+
+eval("module.exports = __webpack_require__.p + \"d5f79987405c2169278f8de37bcc9d05.js\";\n\n//# sourceURL=webpack://iris-web/./node_modules/ace-builds/src-noconflict/snippets/luapage.js?./node_modules/file-loader/dist/cjs.js?esModule=false");
+
+/***/ }),
+
+/***/ "./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/snippets/lucene.js":
+/*!*************************************************************************************************************************!*\
+  !*** ./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/snippets/lucene.js ***!
+  \*************************************************************************************************************************/
+/***/ ((module, __unused_webpack_exports, __webpack_require__) => {
+
+eval("module.exports = __webpack_require__.p + \"de0fd4fd7c2d7a4887cbc99eed91f797.js\";\n\n//# sourceURL=webpack://iris-web/./node_modules/ace-builds/src-noconflict/snippets/lucene.js?./node_modules/file-loader/dist/cjs.js?esModule=false");
+
+/***/ }),
+
+/***/ "./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/snippets/makefile.js":
+/*!***************************************************************************************************************************!*\
+  !*** ./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/snippets/makefile.js ***!
+  \***************************************************************************************************************************/
+/***/ ((module, __unused_webpack_exports, __webpack_require__) => {
+
+eval("module.exports = __webpack_require__.p + \"17632e1e19e438f431784dfd77e01773.js\";\n\n//# sourceURL=webpack://iris-web/./node_modules/ace-builds/src-noconflict/snippets/makefile.js?./node_modules/file-loader/dist/cjs.js?esModule=false");
+
+/***/ }),
+
+/***/ "./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/snippets/markdown.js":
+/*!***************************************************************************************************************************!*\
+  !*** ./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/snippets/markdown.js ***!
+  \***************************************************************************************************************************/
+/***/ ((module, __unused_webpack_exports, __webpack_require__) => {
+
+eval("module.exports = __webpack_require__.p + \"663ffb67b9683a2126410325d1a5a152.js\";\n\n//# sourceURL=webpack://iris-web/./node_modules/ace-builds/src-noconflict/snippets/markdown.js?./node_modules/file-loader/dist/cjs.js?esModule=false");
+
+/***/ }),
+
+/***/ "./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/snippets/mask.js":
+/*!***********************************************************************************************************************!*\
+  !*** ./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/snippets/mask.js ***!
+  \***********************************************************************************************************************/
+/***/ ((module, __unused_webpack_exports, __webpack_require__) => {
+
+eval("module.exports = __webpack_require__.p + \"e2b38a8393be2cf23f3894ace3efb1c3.js\";\n\n//# sourceURL=webpack://iris-web/./node_modules/ace-builds/src-noconflict/snippets/mask.js?./node_modules/file-loader/dist/cjs.js?esModule=false");
+
+/***/ }),
+
+/***/ "./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/snippets/matlab.js":
+/*!*************************************************************************************************************************!*\
+  !*** ./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/snippets/matlab.js ***!
+  \*************************************************************************************************************************/
+/***/ ((module, __unused_webpack_exports, __webpack_require__) => {
+
+eval("module.exports = __webpack_require__.p + \"27730a0bdc6f430cc85049a46a73a029.js\";\n\n//# sourceURL=webpack://iris-web/./node_modules/ace-builds/src-noconflict/snippets/matlab.js?./node_modules/file-loader/dist/cjs.js?esModule=false");
+
+/***/ }),
+
+/***/ "./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/snippets/maze.js":
+/*!***********************************************************************************************************************!*\
+  !*** ./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/snippets/maze.js ***!
+  \***********************************************************************************************************************/
+/***/ ((module, __unused_webpack_exports, __webpack_require__) => {
+
+eval("module.exports = __webpack_require__.p + \"0f147528a6f36ca40c8b3ec796429f58.js\";\n\n//# sourceURL=webpack://iris-web/./node_modules/ace-builds/src-noconflict/snippets/maze.js?./node_modules/file-loader/dist/cjs.js?esModule=false");
+
+/***/ }),
+
+/***/ "./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/snippets/mediawiki.js":
+/*!****************************************************************************************************************************!*\
+  !*** ./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/snippets/mediawiki.js ***!
+  \****************************************************************************************************************************/
+/***/ ((module, __unused_webpack_exports, __webpack_require__) => {
+
+eval("module.exports = __webpack_require__.p + \"15f3800d33b854ba476c9daf1b9e0326.js\";\n\n//# sourceURL=webpack://iris-web/./node_modules/ace-builds/src-noconflict/snippets/mediawiki.js?./node_modules/file-loader/dist/cjs.js?esModule=false");
+
+/***/ }),
+
+/***/ "./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/snippets/mel.js":
+/*!**********************************************************************************************************************!*\
+  !*** ./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/snippets/mel.js ***!
+  \**********************************************************************************************************************/
+/***/ ((module, __unused_webpack_exports, __webpack_require__) => {
+
+eval("module.exports = __webpack_require__.p + \"211511e7b374f57ad31acaf49dbdccb1.js\";\n\n//# sourceURL=webpack://iris-web/./node_modules/ace-builds/src-noconflict/snippets/mel.js?./node_modules/file-loader/dist/cjs.js?esModule=false");
+
+/***/ }),
+
+/***/ "./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/snippets/mips.js":
+/*!***********************************************************************************************************************!*\
+  !*** ./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/snippets/mips.js ***!
+  \***********************************************************************************************************************/
+/***/ ((module, __unused_webpack_exports, __webpack_require__) => {
+
+eval("module.exports = __webpack_require__.p + \"54560f13b36626237959e93b7771a484.js\";\n\n//# sourceURL=webpack://iris-web/./node_modules/ace-builds/src-noconflict/snippets/mips.js?./node_modules/file-loader/dist/cjs.js?esModule=false");
+
+/***/ }),
+
+/***/ "./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/snippets/mixal.js":
+/*!************************************************************************************************************************!*\
+  !*** ./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/snippets/mixal.js ***!
+  \************************************************************************************************************************/
+/***/ ((module, __unused_webpack_exports, __webpack_require__) => {
+
+eval("module.exports = __webpack_require__.p + \"582e24f5ba929e358fadfc7be4c18025.js\";\n\n//# sourceURL=webpack://iris-web/./node_modules/ace-builds/src-noconflict/snippets/mixal.js?./node_modules/file-loader/dist/cjs.js?esModule=false");
+
+/***/ }),
+
+/***/ "./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/snippets/mushcode.js":
+/*!***************************************************************************************************************************!*\
+  !*** ./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/snippets/mushcode.js ***!
+  \***************************************************************************************************************************/
+/***/ ((module, __unused_webpack_exports, __webpack_require__) => {
+
+eval("module.exports = __webpack_require__.p + \"37ee3b5201ae2e2dc5dc8b1b20ad900e.js\";\n\n//# sourceURL=webpack://iris-web/./node_modules/ace-builds/src-noconflict/snippets/mushcode.js?./node_modules/file-loader/dist/cjs.js?esModule=false");
+
+/***/ }),
+
+/***/ "./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/snippets/mysql.js":
+/*!************************************************************************************************************************!*\
+  !*** ./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/snippets/mysql.js ***!
+  \************************************************************************************************************************/
+/***/ ((module, __unused_webpack_exports, __webpack_require__) => {
+
+eval("module.exports = __webpack_require__.p + \"cf3f6b1c74c72cb5d02870022dbc9f94.js\";\n\n//# sourceURL=webpack://iris-web/./node_modules/ace-builds/src-noconflict/snippets/mysql.js?./node_modules/file-loader/dist/cjs.js?esModule=false");
+
+/***/ }),
+
+/***/ "./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/snippets/nginx.js":
+/*!************************************************************************************************************************!*\
+  !*** ./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/snippets/nginx.js ***!
+  \************************************************************************************************************************/
+/***/ ((module, __unused_webpack_exports, __webpack_require__) => {
+
+eval("module.exports = __webpack_require__.p + \"9696a4229fb787eeb25b26f1274b75ee.js\";\n\n//# sourceURL=webpack://iris-web/./node_modules/ace-builds/src-noconflict/snippets/nginx.js?./node_modules/file-loader/dist/cjs.js?esModule=false");
+
+/***/ }),
+
+/***/ "./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/snippets/nim.js":
+/*!**********************************************************************************************************************!*\
+  !*** ./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/snippets/nim.js ***!
+  \**********************************************************************************************************************/
+/***/ ((module, __unused_webpack_exports, __webpack_require__) => {
+
+eval("module.exports = __webpack_require__.p + \"cf188b3f83735389d47bb12fc9f7069a.js\";\n\n//# sourceURL=webpack://iris-web/./node_modules/ace-builds/src-noconflict/snippets/nim.js?./node_modules/file-loader/dist/cjs.js?esModule=false");
+
+/***/ }),
+
+/***/ "./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/snippets/nix.js":
+/*!**********************************************************************************************************************!*\
+  !*** ./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/snippets/nix.js ***!
+  \**********************************************************************************************************************/
+/***/ ((module, __unused_webpack_exports, __webpack_require__) => {
+
+eval("module.exports = __webpack_require__.p + \"ba6b8b3e06cd9d0aee9c69278ee84647.js\";\n\n//# sourceURL=webpack://iris-web/./node_modules/ace-builds/src-noconflict/snippets/nix.js?./node_modules/file-loader/dist/cjs.js?esModule=false");
+
+/***/ }),
+
+/***/ "./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/snippets/nsis.js":
+/*!***********************************************************************************************************************!*\
+  !*** ./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/snippets/nsis.js ***!
+  \***********************************************************************************************************************/
+/***/ ((module, __unused_webpack_exports, __webpack_require__) => {
+
+eval("module.exports = __webpack_require__.p + \"130340e2c62b9e858f186dab5f491e55.js\";\n\n//# sourceURL=webpack://iris-web/./node_modules/ace-builds/src-noconflict/snippets/nsis.js?./node_modules/file-loader/dist/cjs.js?esModule=false");
+
+/***/ }),
+
+/***/ "./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/snippets/nunjucks.js":
+/*!***************************************************************************************************************************!*\
+  !*** ./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/snippets/nunjucks.js ***!
+  \***************************************************************************************************************************/
+/***/ ((module, __unused_webpack_exports, __webpack_require__) => {
+
+eval("module.exports = __webpack_require__.p + \"6faa9e5f2a0122d2333fa450337a09b0.js\";\n\n//# sourceURL=webpack://iris-web/./node_modules/ace-builds/src-noconflict/snippets/nunjucks.js?./node_modules/file-loader/dist/cjs.js?esModule=false");
+
+/***/ }),
+
+/***/ "./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/snippets/objectivec.js":
+/*!*****************************************************************************************************************************!*\
+  !*** ./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/snippets/objectivec.js ***!
+  \*****************************************************************************************************************************/
+/***/ ((module, __unused_webpack_exports, __webpack_require__) => {
+
+eval("module.exports = __webpack_require__.p + \"2fc0239242a898632ca8aa451cb930c2.js\";\n\n//# sourceURL=webpack://iris-web/./node_modules/ace-builds/src-noconflict/snippets/objectivec.js?./node_modules/file-loader/dist/cjs.js?esModule=false");
+
+/***/ }),
+
+/***/ "./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/snippets/ocaml.js":
+/*!************************************************************************************************************************!*\
+  !*** ./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/snippets/ocaml.js ***!
+  \************************************************************************************************************************/
+/***/ ((module, __unused_webpack_exports, __webpack_require__) => {
+
+eval("module.exports = __webpack_require__.p + \"92f4aab5c66f6269c7054c8fbcb3de13.js\";\n\n//# sourceURL=webpack://iris-web/./node_modules/ace-builds/src-noconflict/snippets/ocaml.js?./node_modules/file-loader/dist/cjs.js?esModule=false");
+
+/***/ }),
+
+/***/ "./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/snippets/partiql.js":
+/*!**************************************************************************************************************************!*\
+  !*** ./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/snippets/partiql.js ***!
+  \**************************************************************************************************************************/
+/***/ ((module, __unused_webpack_exports, __webpack_require__) => {
+
+eval("module.exports = __webpack_require__.p + \"63596b4896732fb322ab0496b4be1e74.js\";\n\n//# sourceURL=webpack://iris-web/./node_modules/ace-builds/src-noconflict/snippets/partiql.js?./node_modules/file-loader/dist/cjs.js?esModule=false");
+
+/***/ }),
+
+/***/ "./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/snippets/pascal.js":
+/*!*************************************************************************************************************************!*\
+  !*** ./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/snippets/pascal.js ***!
+  \*************************************************************************************************************************/
+/***/ ((module, __unused_webpack_exports, __webpack_require__) => {
+
+eval("module.exports = __webpack_require__.p + \"5352ecd8e5f1a2637b48e18cc406edb1.js\";\n\n//# sourceURL=webpack://iris-web/./node_modules/ace-builds/src-noconflict/snippets/pascal.js?./node_modules/file-loader/dist/cjs.js?esModule=false");
+
+/***/ }),
+
+/***/ "./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/snippets/perl.js":
+/*!***********************************************************************************************************************!*\
+  !*** ./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/snippets/perl.js ***!
+  \***********************************************************************************************************************/
+/***/ ((module, __unused_webpack_exports, __webpack_require__) => {
+
+eval("module.exports = __webpack_require__.p + \"07397bd479cbc34bc04576b4f15bdf18.js\";\n\n//# sourceURL=webpack://iris-web/./node_modules/ace-builds/src-noconflict/snippets/perl.js?./node_modules/file-loader/dist/cjs.js?esModule=false");
+
+/***/ }),
+
+/***/ "./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/snippets/pgsql.js":
+/*!************************************************************************************************************************!*\
+  !*** ./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/snippets/pgsql.js ***!
+  \************************************************************************************************************************/
+/***/ ((module, __unused_webpack_exports, __webpack_require__) => {
+
+eval("module.exports = __webpack_require__.p + \"5fedbf948ed123687f77167fac1faf8b.js\";\n\n//# sourceURL=webpack://iris-web/./node_modules/ace-builds/src-noconflict/snippets/pgsql.js?./node_modules/file-loader/dist/cjs.js?esModule=false");
+
+/***/ }),
+
+/***/ "./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/snippets/php.js":
+/*!**********************************************************************************************************************!*\
+  !*** ./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/snippets/php.js ***!
+  \**********************************************************************************************************************/
+/***/ ((module, __unused_webpack_exports, __webpack_require__) => {
+
+eval("module.exports = __webpack_require__.p + \"a709bba98acec5da3ea6258e245514cb.js\";\n\n//# sourceURL=webpack://iris-web/./node_modules/ace-builds/src-noconflict/snippets/php.js?./node_modules/file-loader/dist/cjs.js?esModule=false");
+
+/***/ }),
+
+/***/ "./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/snippets/php_laravel_blade.js":
+/*!************************************************************************************************************************************!*\
+  !*** ./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/snippets/php_laravel_blade.js ***!
+  \************************************************************************************************************************************/
+/***/ ((module, __unused_webpack_exports, __webpack_require__) => {
+
+eval("module.exports = __webpack_require__.p + \"25eda4bb98e40a82cfd5b4bf9fbc06ec.js\";\n\n//# sourceURL=webpack://iris-web/./node_modules/ace-builds/src-noconflict/snippets/php_laravel_blade.js?./node_modules/file-loader/dist/cjs.js?esModule=false");
+
+/***/ }),
+
+/***/ "./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/snippets/pig.js":
+/*!**********************************************************************************************************************!*\
+  !*** ./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/snippets/pig.js ***!
+  \**********************************************************************************************************************/
+/***/ ((module, __unused_webpack_exports, __webpack_require__) => {
+
+eval("module.exports = __webpack_require__.p + \"3b6e7dc98c47eeafd851ca5072db4be6.js\";\n\n//# sourceURL=webpack://iris-web/./node_modules/ace-builds/src-noconflict/snippets/pig.js?./node_modules/file-loader/dist/cjs.js?esModule=false");
+
+/***/ }),
+
+/***/ "./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/snippets/plain_text.js":
+/*!*****************************************************************************************************************************!*\
+  !*** ./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/snippets/plain_text.js ***!
+  \*****************************************************************************************************************************/
+/***/ ((module, __unused_webpack_exports, __webpack_require__) => {
+
+eval("module.exports = __webpack_require__.p + \"cbdc4ca43a8c940a6c3f59a8b6f17df5.js\";\n\n//# sourceURL=webpack://iris-web/./node_modules/ace-builds/src-noconflict/snippets/plain_text.js?./node_modules/file-loader/dist/cjs.js?esModule=false");
+
+/***/ }),
+
+/***/ "./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/snippets/plsql.js":
+/*!************************************************************************************************************************!*\
+  !*** ./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/snippets/plsql.js ***!
+  \************************************************************************************************************************/
+/***/ ((module, __unused_webpack_exports, __webpack_require__) => {
+
+eval("module.exports = __webpack_require__.p + \"432a5982ba3ddf958381d780e1e9a8e2.js\";\n\n//# sourceURL=webpack://iris-web/./node_modules/ace-builds/src-noconflict/snippets/plsql.js?./node_modules/file-loader/dist/cjs.js?esModule=false");
+
+/***/ }),
+
+/***/ "./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/snippets/powershell.js":
+/*!*****************************************************************************************************************************!*\
+  !*** ./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/snippets/powershell.js ***!
+  \*****************************************************************************************************************************/
+/***/ ((module, __unused_webpack_exports, __webpack_require__) => {
+
+eval("module.exports = __webpack_require__.p + \"3c5b59a666c5d39d9ba9cc054d36a410.js\";\n\n//# sourceURL=webpack://iris-web/./node_modules/ace-builds/src-noconflict/snippets/powershell.js?./node_modules/file-loader/dist/cjs.js?esModule=false");
+
+/***/ }),
+
+/***/ "./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/snippets/praat.js":
+/*!************************************************************************************************************************!*\
+  !*** ./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/snippets/praat.js ***!
+  \************************************************************************************************************************/
+/***/ ((module, __unused_webpack_exports, __webpack_require__) => {
+
+eval("module.exports = __webpack_require__.p + \"13eda3507db9cbfb400f46b9b3ff6553.js\";\n\n//# sourceURL=webpack://iris-web/./node_modules/ace-builds/src-noconflict/snippets/praat.js?./node_modules/file-loader/dist/cjs.js?esModule=false");
+
+/***/ }),
+
+/***/ "./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/snippets/prisma.js":
+/*!*************************************************************************************************************************!*\
+  !*** ./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/snippets/prisma.js ***!
+  \*************************************************************************************************************************/
+/***/ ((module, __unused_webpack_exports, __webpack_require__) => {
+
+eval("module.exports = __webpack_require__.p + \"894edcaf39c3c95818e3949d737ed459.js\";\n\n//# sourceURL=webpack://iris-web/./node_modules/ace-builds/src-noconflict/snippets/prisma.js?./node_modules/file-loader/dist/cjs.js?esModule=false");
+
+/***/ }),
+
+/***/ "./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/snippets/prolog.js":
+/*!*************************************************************************************************************************!*\
+  !*** ./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/snippets/prolog.js ***!
+  \*************************************************************************************************************************/
+/***/ ((module, __unused_webpack_exports, __webpack_require__) => {
+
+eval("module.exports = __webpack_require__.p + \"0a1d9862d917663419ac2dd2e8193267.js\";\n\n//# sourceURL=webpack://iris-web/./node_modules/ace-builds/src-noconflict/snippets/prolog.js?./node_modules/file-loader/dist/cjs.js?esModule=false");
+
+/***/ }),
+
+/***/ "./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/snippets/properties.js":
+/*!*****************************************************************************************************************************!*\
+  !*** ./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/snippets/properties.js ***!
+  \*****************************************************************************************************************************/
+/***/ ((module, __unused_webpack_exports, __webpack_require__) => {
+
+eval("module.exports = __webpack_require__.p + \"51f903c5ce5284a63196247cffb5ca40.js\";\n\n//# sourceURL=webpack://iris-web/./node_modules/ace-builds/src-noconflict/snippets/properties.js?./node_modules/file-loader/dist/cjs.js?esModule=false");
+
+/***/ }),
+
+/***/ "./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/snippets/protobuf.js":
+/*!***************************************************************************************************************************!*\
+  !*** ./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/snippets/protobuf.js ***!
+  \***************************************************************************************************************************/
+/***/ ((module, __unused_webpack_exports, __webpack_require__) => {
+
+eval("module.exports = __webpack_require__.p + \"e4917fa7632b01d28e99304d32d989f7.js\";\n\n//# sourceURL=webpack://iris-web/./node_modules/ace-builds/src-noconflict/snippets/protobuf.js?./node_modules/file-loader/dist/cjs.js?esModule=false");
+
+/***/ }),
+
+/***/ "./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/snippets/puppet.js":
+/*!*************************************************************************************************************************!*\
+  !*** ./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/snippets/puppet.js ***!
+  \*************************************************************************************************************************/
+/***/ ((module, __unused_webpack_exports, __webpack_require__) => {
+
+eval("module.exports = __webpack_require__.p + \"805cb6232d7a9fa46025d48a43622ecf.js\";\n\n//# sourceURL=webpack://iris-web/./node_modules/ace-builds/src-noconflict/snippets/puppet.js?./node_modules/file-loader/dist/cjs.js?esModule=false");
+
+/***/ }),
+
+/***/ "./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/snippets/python.js":
+/*!*************************************************************************************************************************!*\
+  !*** ./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/snippets/python.js ***!
+  \*************************************************************************************************************************/
+/***/ ((module, __unused_webpack_exports, __webpack_require__) => {
+
+eval("module.exports = __webpack_require__.p + \"283970c76db99e2d0d90f0e7c45494f9.js\";\n\n//# sourceURL=webpack://iris-web/./node_modules/ace-builds/src-noconflict/snippets/python.js?./node_modules/file-loader/dist/cjs.js?esModule=false");
+
+/***/ }),
+
+/***/ "./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/snippets/qml.js":
+/*!**********************************************************************************************************************!*\
+  !*** ./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/snippets/qml.js ***!
+  \**********************************************************************************************************************/
+/***/ ((module, __unused_webpack_exports, __webpack_require__) => {
+
+eval("module.exports = __webpack_require__.p + \"10132993df2cf9c9423b53a8a44379ab.js\";\n\n//# sourceURL=webpack://iris-web/./node_modules/ace-builds/src-noconflict/snippets/qml.js?./node_modules/file-loader/dist/cjs.js?esModule=false");
+
+/***/ }),
+
+/***/ "./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/snippets/r.js":
+/*!********************************************************************************************************************!*\
+  !*** ./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/snippets/r.js ***!
+  \********************************************************************************************************************/
+/***/ ((module, __unused_webpack_exports, __webpack_require__) => {
+
+eval("module.exports = __webpack_require__.p + \"1736cea368ae85240f34289307fdf67f.js\";\n\n//# sourceURL=webpack://iris-web/./node_modules/ace-builds/src-noconflict/snippets/r.js?./node_modules/file-loader/dist/cjs.js?esModule=false");
+
+/***/ }),
+
+/***/ "./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/snippets/raku.js":
+/*!***********************************************************************************************************************!*\
+  !*** ./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/snippets/raku.js ***!
+  \***********************************************************************************************************************/
+/***/ ((module, __unused_webpack_exports, __webpack_require__) => {
+
+eval("module.exports = __webpack_require__.p + \"cf9c7cbfc2b609b9ae59daeab82719c4.js\";\n\n//# sourceURL=webpack://iris-web/./node_modules/ace-builds/src-noconflict/snippets/raku.js?./node_modules/file-loader/dist/cjs.js?esModule=false");
+
+/***/ }),
+
+/***/ "./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/snippets/razor.js":
+/*!************************************************************************************************************************!*\
+  !*** ./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/snippets/razor.js ***!
+  \************************************************************************************************************************/
+/***/ ((module, __unused_webpack_exports, __webpack_require__) => {
+
+eval("module.exports = __webpack_require__.p + \"119f6c45ea400e3c27e1ce172e4c881d.js\";\n\n//# sourceURL=webpack://iris-web/./node_modules/ace-builds/src-noconflict/snippets/razor.js?./node_modules/file-loader/dist/cjs.js?esModule=false");
+
+/***/ }),
+
+/***/ "./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/snippets/rdoc.js":
+/*!***********************************************************************************************************************!*\
+  !*** ./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/snippets/rdoc.js ***!
+  \***********************************************************************************************************************/
+/***/ ((module, __unused_webpack_exports, __webpack_require__) => {
+
+eval("module.exports = __webpack_require__.p + \"d5a6140d581e5c4eb200259ce372f40b.js\";\n\n//# sourceURL=webpack://iris-web/./node_modules/ace-builds/src-noconflict/snippets/rdoc.js?./node_modules/file-loader/dist/cjs.js?esModule=false");
+
+/***/ }),
+
+/***/ "./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/snippets/red.js":
+/*!**********************************************************************************************************************!*\
+  !*** ./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/snippets/red.js ***!
+  \**********************************************************************************************************************/
+/***/ ((module, __unused_webpack_exports, __webpack_require__) => {
+
+eval("module.exports = __webpack_require__.p + \"a533e643002830be2da76c9527265860.js\";\n\n//# sourceURL=webpack://iris-web/./node_modules/ace-builds/src-noconflict/snippets/red.js?./node_modules/file-loader/dist/cjs.js?esModule=false");
+
+/***/ }),
+
+/***/ "./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/snippets/redshift.js":
+/*!***************************************************************************************************************************!*\
+  !*** ./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/snippets/redshift.js ***!
+  \***************************************************************************************************************************/
+/***/ ((module, __unused_webpack_exports, __webpack_require__) => {
+
+eval("module.exports = __webpack_require__.p + \"83387cb17a7680f59240e7b399e3ac2b.js\";\n\n//# sourceURL=webpack://iris-web/./node_modules/ace-builds/src-noconflict/snippets/redshift.js?./node_modules/file-loader/dist/cjs.js?esModule=false");
+
+/***/ }),
+
+/***/ "./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/snippets/rhtml.js":
+/*!************************************************************************************************************************!*\
+  !*** ./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/snippets/rhtml.js ***!
+  \************************************************************************************************************************/
+/***/ ((module, __unused_webpack_exports, __webpack_require__) => {
+
+eval("module.exports = __webpack_require__.p + \"37172facd8a534a38f378ca2a9c7c11b.js\";\n\n//# sourceURL=webpack://iris-web/./node_modules/ace-builds/src-noconflict/snippets/rhtml.js?./node_modules/file-loader/dist/cjs.js?esModule=false");
+
+/***/ }),
+
+/***/ "./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/snippets/robot.js":
+/*!************************************************************************************************************************!*\
+  !*** ./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/snippets/robot.js ***!
+  \************************************************************************************************************************/
+/***/ ((module, __unused_webpack_exports, __webpack_require__) => {
+
+eval("module.exports = __webpack_require__.p + \"02174460fe8ff6a6bc19db86543b9600.js\";\n\n//# sourceURL=webpack://iris-web/./node_modules/ace-builds/src-noconflict/snippets/robot.js?./node_modules/file-loader/dist/cjs.js?esModule=false");
+
+/***/ }),
+
+/***/ "./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/snippets/rst.js":
+/*!**********************************************************************************************************************!*\
+  !*** ./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/snippets/rst.js ***!
+  \**********************************************************************************************************************/
+/***/ ((module, __unused_webpack_exports, __webpack_require__) => {
+
+eval("module.exports = __webpack_require__.p + \"c64d6e1e72024bb5d3d3e9bfc19d183d.js\";\n\n//# sourceURL=webpack://iris-web/./node_modules/ace-builds/src-noconflict/snippets/rst.js?./node_modules/file-loader/dist/cjs.js?esModule=false");
+
+/***/ }),
+
+/***/ "./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/snippets/ruby.js":
+/*!***********************************************************************************************************************!*\
+  !*** ./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/snippets/ruby.js ***!
+  \***********************************************************************************************************************/
+/***/ ((module, __unused_webpack_exports, __webpack_require__) => {
+
+eval("module.exports = __webpack_require__.p + \"54a10f3bddad1e6da452fee7124fe846.js\";\n\n//# sourceURL=webpack://iris-web/./node_modules/ace-builds/src-noconflict/snippets/ruby.js?./node_modules/file-loader/dist/cjs.js?esModule=false");
+
+/***/ }),
+
+/***/ "./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/snippets/rust.js":
+/*!***********************************************************************************************************************!*\
+  !*** ./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/snippets/rust.js ***!
+  \***********************************************************************************************************************/
+/***/ ((module, __unused_webpack_exports, __webpack_require__) => {
+
+eval("module.exports = __webpack_require__.p + \"24a3ff38afde257888d755ece9bfd704.js\";\n\n//# sourceURL=webpack://iris-web/./node_modules/ace-builds/src-noconflict/snippets/rust.js?./node_modules/file-loader/dist/cjs.js?esModule=false");
+
+/***/ }),
+
+/***/ "./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/snippets/sac.js":
+/*!**********************************************************************************************************************!*\
+  !*** ./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/snippets/sac.js ***!
+  \**********************************************************************************************************************/
+/***/ ((module, __unused_webpack_exports, __webpack_require__) => {
+
+eval("module.exports = __webpack_require__.p + \"078dd0bd08c93b1512e3d1b777591b21.js\";\n\n//# sourceURL=webpack://iris-web/./node_modules/ace-builds/src-noconflict/snippets/sac.js?./node_modules/file-loader/dist/cjs.js?esModule=false");
+
+/***/ }),
+
+/***/ "./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/snippets/sass.js":
+/*!***********************************************************************************************************************!*\
+  !*** ./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/snippets/sass.js ***!
+  \***********************************************************************************************************************/
+/***/ ((module, __unused_webpack_exports, __webpack_require__) => {
+
+eval("module.exports = __webpack_require__.p + \"170487867de05784a96608617bdd544d.js\";\n\n//# sourceURL=webpack://iris-web/./node_modules/ace-builds/src-noconflict/snippets/sass.js?./node_modules/file-loader/dist/cjs.js?esModule=false");
+
+/***/ }),
+
+/***/ "./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/snippets/scad.js":
+/*!***********************************************************************************************************************!*\
+  !*** ./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/snippets/scad.js ***!
+  \***********************************************************************************************************************/
+/***/ ((module, __unused_webpack_exports, __webpack_require__) => {
+
+eval("module.exports = __webpack_require__.p + \"5861dfe4f2c7823623e82d0619c5bf06.js\";\n\n//# sourceURL=webpack://iris-web/./node_modules/ace-builds/src-noconflict/snippets/scad.js?./node_modules/file-loader/dist/cjs.js?esModule=false");
+
+/***/ }),
+
+/***/ "./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/snippets/scala.js":
+/*!************************************************************************************************************************!*\
+  !*** ./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/snippets/scala.js ***!
+  \************************************************************************************************************************/
+/***/ ((module, __unused_webpack_exports, __webpack_require__) => {
+
+eval("module.exports = __webpack_require__.p + \"2272c6632c52c3e402ab27b8045ab8f1.js\";\n\n//# sourceURL=webpack://iris-web/./node_modules/ace-builds/src-noconflict/snippets/scala.js?./node_modules/file-loader/dist/cjs.js?esModule=false");
+
+/***/ }),
+
+/***/ "./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/snippets/scheme.js":
+/*!*************************************************************************************************************************!*\
+  !*** ./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/snippets/scheme.js ***!
+  \*************************************************************************************************************************/
+/***/ ((module, __unused_webpack_exports, __webpack_require__) => {
+
+eval("module.exports = __webpack_require__.p + \"03980cb12dacd26148c22bb61fce440f.js\";\n\n//# sourceURL=webpack://iris-web/./node_modules/ace-builds/src-noconflict/snippets/scheme.js?./node_modules/file-loader/dist/cjs.js?esModule=false");
+
+/***/ }),
+
+/***/ "./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/snippets/scrypt.js":
+/*!*************************************************************************************************************************!*\
+  !*** ./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/snippets/scrypt.js ***!
+  \*************************************************************************************************************************/
+/***/ ((module, __unused_webpack_exports, __webpack_require__) => {
+
+eval("module.exports = __webpack_require__.p + \"58c35e5c73bbc1664bbd67c570342aa0.js\";\n\n//# sourceURL=webpack://iris-web/./node_modules/ace-builds/src-noconflict/snippets/scrypt.js?./node_modules/file-loader/dist/cjs.js?esModule=false");
+
+/***/ }),
+
+/***/ "./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/snippets/scss.js":
+/*!***********************************************************************************************************************!*\
+  !*** ./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/snippets/scss.js ***!
+  \***********************************************************************************************************************/
+/***/ ((module, __unused_webpack_exports, __webpack_require__) => {
+
+eval("module.exports = __webpack_require__.p + \"fd5bc50b18c9f46380cbe5ec1ac2127b.js\";\n\n//# sourceURL=webpack://iris-web/./node_modules/ace-builds/src-noconflict/snippets/scss.js?./node_modules/file-loader/dist/cjs.js?esModule=false");
+
+/***/ }),
+
+/***/ "./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/snippets/sh.js":
+/*!*********************************************************************************************************************!*\
+  !*** ./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/snippets/sh.js ***!
+  \*********************************************************************************************************************/
+/***/ ((module, __unused_webpack_exports, __webpack_require__) => {
+
+eval("module.exports = __webpack_require__.p + \"714763ddd9bd466c95df7b042900bb87.js\";\n\n//# sourceURL=webpack://iris-web/./node_modules/ace-builds/src-noconflict/snippets/sh.js?./node_modules/file-loader/dist/cjs.js?esModule=false");
+
+/***/ }),
+
+/***/ "./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/snippets/sjs.js":
+/*!**********************************************************************************************************************!*\
+  !*** ./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/snippets/sjs.js ***!
+  \**********************************************************************************************************************/
+/***/ ((module, __unused_webpack_exports, __webpack_require__) => {
+
+eval("module.exports = __webpack_require__.p + \"4e389cce6fb8f78845fab249bce43c0b.js\";\n\n//# sourceURL=webpack://iris-web/./node_modules/ace-builds/src-noconflict/snippets/sjs.js?./node_modules/file-loader/dist/cjs.js?esModule=false");
+
+/***/ }),
+
+/***/ "./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/snippets/slim.js":
+/*!***********************************************************************************************************************!*\
+  !*** ./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/snippets/slim.js ***!
+  \***********************************************************************************************************************/
+/***/ ((module, __unused_webpack_exports, __webpack_require__) => {
+
+eval("module.exports = __webpack_require__.p + \"17dc98279d24649d3ca77cbce8c44e83.js\";\n\n//# sourceURL=webpack://iris-web/./node_modules/ace-builds/src-noconflict/snippets/slim.js?./node_modules/file-loader/dist/cjs.js?esModule=false");
+
+/***/ }),
+
+/***/ "./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/snippets/smarty.js":
+/*!*************************************************************************************************************************!*\
+  !*** ./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/snippets/smarty.js ***!
+  \*************************************************************************************************************************/
+/***/ ((module, __unused_webpack_exports, __webpack_require__) => {
+
+eval("module.exports = __webpack_require__.p + \"a1c8660c5bcc6b6a43a7fb3c351174d9.js\";\n\n//# sourceURL=webpack://iris-web/./node_modules/ace-builds/src-noconflict/snippets/smarty.js?./node_modules/file-loader/dist/cjs.js?esModule=false");
+
+/***/ }),
+
+/***/ "./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/snippets/smithy.js":
+/*!*************************************************************************************************************************!*\
+  !*** ./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/snippets/smithy.js ***!
+  \*************************************************************************************************************************/
+/***/ ((module, __unused_webpack_exports, __webpack_require__) => {
+
+eval("module.exports = __webpack_require__.p + \"a4d638b976f02f35740be031f996e088.js\";\n\n//# sourceURL=webpack://iris-web/./node_modules/ace-builds/src-noconflict/snippets/smithy.js?./node_modules/file-loader/dist/cjs.js?esModule=false");
+
+/***/ }),
+
+/***/ "./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/snippets/snippets.js":
+/*!***************************************************************************************************************************!*\
+  !*** ./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/snippets/snippets.js ***!
+  \***************************************************************************************************************************/
+/***/ ((module, __unused_webpack_exports, __webpack_require__) => {
+
+eval("module.exports = __webpack_require__.p + \"b306285dfd802d091e788de0f96b8cb2.js\";\n\n//# sourceURL=webpack://iris-web/./node_modules/ace-builds/src-noconflict/snippets/snippets.js?./node_modules/file-loader/dist/cjs.js?esModule=false");
+
+/***/ }),
+
+/***/ "./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/snippets/soy_template.js":
+/*!*******************************************************************************************************************************!*\
+  !*** ./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/snippets/soy_template.js ***!
+  \*******************************************************************************************************************************/
+/***/ ((module, __unused_webpack_exports, __webpack_require__) => {
+
+eval("module.exports = __webpack_require__.p + \"ddbc961769cd2ff4d4a7a136168ebf4c.js\";\n\n//# sourceURL=webpack://iris-web/./node_modules/ace-builds/src-noconflict/snippets/soy_template.js?./node_modules/file-loader/dist/cjs.js?esModule=false");
+
+/***/ }),
+
+/***/ "./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/snippets/space.js":
+/*!************************************************************************************************************************!*\
+  !*** ./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/snippets/space.js ***!
+  \************************************************************************************************************************/
+/***/ ((module, __unused_webpack_exports, __webpack_require__) => {
+
+eval("module.exports = __webpack_require__.p + \"3b544bb2c5a4e7b225a4b50235a0fd6d.js\";\n\n//# sourceURL=webpack://iris-web/./node_modules/ace-builds/src-noconflict/snippets/space.js?./node_modules/file-loader/dist/cjs.js?esModule=false");
+
+/***/ }),
+
+/***/ "./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/snippets/sparql.js":
+/*!*************************************************************************************************************************!*\
+  !*** ./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/snippets/sparql.js ***!
+  \*************************************************************************************************************************/
+/***/ ((module, __unused_webpack_exports, __webpack_require__) => {
+
+eval("module.exports = __webpack_require__.p + \"1034e3807d1bcf55cb564491950237ab.js\";\n\n//# sourceURL=webpack://iris-web/./node_modules/ace-builds/src-noconflict/snippets/sparql.js?./node_modules/file-loader/dist/cjs.js?esModule=false");
+
+/***/ }),
+
+/***/ "./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/snippets/sql.js":
+/*!**********************************************************************************************************************!*\
+  !*** ./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/snippets/sql.js ***!
+  \**********************************************************************************************************************/
+/***/ ((module, __unused_webpack_exports, __webpack_require__) => {
+
+eval("module.exports = __webpack_require__.p + \"d83cda12aee0c87c8b381a1234bf7798.js\";\n\n//# sourceURL=webpack://iris-web/./node_modules/ace-builds/src-noconflict/snippets/sql.js?./node_modules/file-loader/dist/cjs.js?esModule=false");
+
+/***/ }),
+
+/***/ "./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/snippets/sqlserver.js":
+/*!****************************************************************************************************************************!*\
+  !*** ./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/snippets/sqlserver.js ***!
+  \****************************************************************************************************************************/
+/***/ ((module, __unused_webpack_exports, __webpack_require__) => {
+
+eval("module.exports = __webpack_require__.p + \"9ed8c3550b5c3c1e878d0692f0338cb7.js\";\n\n//# sourceURL=webpack://iris-web/./node_modules/ace-builds/src-noconflict/snippets/sqlserver.js?./node_modules/file-loader/dist/cjs.js?esModule=false");
+
+/***/ }),
+
+/***/ "./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/snippets/stylus.js":
+/*!*************************************************************************************************************************!*\
+  !*** ./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/snippets/stylus.js ***!
+  \*************************************************************************************************************************/
+/***/ ((module, __unused_webpack_exports, __webpack_require__) => {
+
+eval("module.exports = __webpack_require__.p + \"5f3ce6efab3c679ec1ad25ab0b3f6b2f.js\";\n\n//# sourceURL=webpack://iris-web/./node_modules/ace-builds/src-noconflict/snippets/stylus.js?./node_modules/file-loader/dist/cjs.js?esModule=false");
+
+/***/ }),
+
+/***/ "./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/snippets/svg.js":
+/*!**********************************************************************************************************************!*\
+  !*** ./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/snippets/svg.js ***!
+  \**********************************************************************************************************************/
+/***/ ((module, __unused_webpack_exports, __webpack_require__) => {
+
+eval("module.exports = __webpack_require__.p + \"db8ca5cfb6fe4aaef215f116f6991784.js\";\n\n//# sourceURL=webpack://iris-web/./node_modules/ace-builds/src-noconflict/snippets/svg.js?./node_modules/file-loader/dist/cjs.js?esModule=false");
+
+/***/ }),
+
+/***/ "./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/snippets/swift.js":
+/*!************************************************************************************************************************!*\
+  !*** ./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/snippets/swift.js ***!
+  \************************************************************************************************************************/
+/***/ ((module, __unused_webpack_exports, __webpack_require__) => {
+
+eval("module.exports = __webpack_require__.p + \"53e3600928916423671f3388e2d67844.js\";\n\n//# sourceURL=webpack://iris-web/./node_modules/ace-builds/src-noconflict/snippets/swift.js?./node_modules/file-loader/dist/cjs.js?esModule=false");
+
+/***/ }),
+
+/***/ "./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/snippets/tcl.js":
+/*!**********************************************************************************************************************!*\
+  !*** ./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/snippets/tcl.js ***!
+  \**********************************************************************************************************************/
+/***/ ((module, __unused_webpack_exports, __webpack_require__) => {
+
+eval("module.exports = __webpack_require__.p + \"dc8240db39815020378555a4d80571c3.js\";\n\n//# sourceURL=webpack://iris-web/./node_modules/ace-builds/src-noconflict/snippets/tcl.js?./node_modules/file-loader/dist/cjs.js?esModule=false");
+
+/***/ }),
+
+/***/ "./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/snippets/terraform.js":
+/*!****************************************************************************************************************************!*\
+  !*** ./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/snippets/terraform.js ***!
+  \****************************************************************************************************************************/
+/***/ ((module, __unused_webpack_exports, __webpack_require__) => {
+
+eval("module.exports = __webpack_require__.p + \"1b15b9f88acaf59b96e59c6b5f32da12.js\";\n\n//# sourceURL=webpack://iris-web/./node_modules/ace-builds/src-noconflict/snippets/terraform.js?./node_modules/file-loader/dist/cjs.js?esModule=false");
+
+/***/ }),
+
+/***/ "./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/snippets/tex.js":
+/*!**********************************************************************************************************************!*\
+  !*** ./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/snippets/tex.js ***!
+  \**********************************************************************************************************************/
+/***/ ((module, __unused_webpack_exports, __webpack_require__) => {
+
+eval("module.exports = __webpack_require__.p + \"894052ca1f8f35cc1cf7cfb29ef75027.js\";\n\n//# sourceURL=webpack://iris-web/./node_modules/ace-builds/src-noconflict/snippets/tex.js?./node_modules/file-loader/dist/cjs.js?esModule=false");
+
+/***/ }),
+
+/***/ "./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/snippets/text.js":
+/*!***********************************************************************************************************************!*\
+  !*** ./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/snippets/text.js ***!
+  \***********************************************************************************************************************/
+/***/ ((module, __unused_webpack_exports, __webpack_require__) => {
+
+eval("module.exports = __webpack_require__.p + \"191feb6103c36b202bc01ba262916cdf.js\";\n\n//# sourceURL=webpack://iris-web/./node_modules/ace-builds/src-noconflict/snippets/text.js?./node_modules/file-loader/dist/cjs.js?esModule=false");
+
+/***/ }),
+
+/***/ "./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/snippets/textile.js":
+/*!**************************************************************************************************************************!*\
+  !*** ./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/snippets/textile.js ***!
+  \**************************************************************************************************************************/
+/***/ ((module, __unused_webpack_exports, __webpack_require__) => {
+
+eval("module.exports = __webpack_require__.p + \"33b4e371d4983ab56f4db08627119f0b.js\";\n\n//# sourceURL=webpack://iris-web/./node_modules/ace-builds/src-noconflict/snippets/textile.js?./node_modules/file-loader/dist/cjs.js?esModule=false");
+
+/***/ }),
+
+/***/ "./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/snippets/toml.js":
+/*!***********************************************************************************************************************!*\
+  !*** ./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/snippets/toml.js ***!
+  \***********************************************************************************************************************/
+/***/ ((module, __unused_webpack_exports, __webpack_require__) => {
+
+eval("module.exports = __webpack_require__.p + \"b1170472ae4b50e3b0070eb991e502fe.js\";\n\n//# sourceURL=webpack://iris-web/./node_modules/ace-builds/src-noconflict/snippets/toml.js?./node_modules/file-loader/dist/cjs.js?esModule=false");
+
+/***/ }),
+
+/***/ "./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/snippets/tsx.js":
+/*!**********************************************************************************************************************!*\
+  !*** ./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/snippets/tsx.js ***!
+  \**********************************************************************************************************************/
+/***/ ((module, __unused_webpack_exports, __webpack_require__) => {
+
+eval("module.exports = __webpack_require__.p + \"9807cf1e443a7440371904b6525f37eb.js\";\n\n//# sourceURL=webpack://iris-web/./node_modules/ace-builds/src-noconflict/snippets/tsx.js?./node_modules/file-loader/dist/cjs.js?esModule=false");
+
+/***/ }),
+
+/***/ "./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/snippets/turtle.js":
+/*!*************************************************************************************************************************!*\
+  !*** ./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/snippets/turtle.js ***!
+  \*************************************************************************************************************************/
+/***/ ((module, __unused_webpack_exports, __webpack_require__) => {
+
+eval("module.exports = __webpack_require__.p + \"9b1fd9cf4206cc32e84150c49707d811.js\";\n\n//# sourceURL=webpack://iris-web/./node_modules/ace-builds/src-noconflict/snippets/turtle.js?./node_modules/file-loader/dist/cjs.js?esModule=false");
+
+/***/ }),
+
+/***/ "./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/snippets/twig.js":
+/*!***********************************************************************************************************************!*\
+  !*** ./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/snippets/twig.js ***!
+  \***********************************************************************************************************************/
+/***/ ((module, __unused_webpack_exports, __webpack_require__) => {
+
+eval("module.exports = __webpack_require__.p + \"d7d616d4aa8fd3f51d681242853dcde9.js\";\n\n//# sourceURL=webpack://iris-web/./node_modules/ace-builds/src-noconflict/snippets/twig.js?./node_modules/file-loader/dist/cjs.js?esModule=false");
+
+/***/ }),
+
+/***/ "./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/snippets/typescript.js":
+/*!*****************************************************************************************************************************!*\
+  !*** ./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/snippets/typescript.js ***!
+  \*****************************************************************************************************************************/
+/***/ ((module, __unused_webpack_exports, __webpack_require__) => {
+
+eval("module.exports = __webpack_require__.p + \"e6ad50b520736b595970c9e07029c3f1.js\";\n\n//# sourceURL=webpack://iris-web/./node_modules/ace-builds/src-noconflict/snippets/typescript.js?./node_modules/file-loader/dist/cjs.js?esModule=false");
+
+/***/ }),
+
+/***/ "./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/snippets/vala.js":
+/*!***********************************************************************************************************************!*\
+  !*** ./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/snippets/vala.js ***!
+  \***********************************************************************************************************************/
+/***/ ((module, __unused_webpack_exports, __webpack_require__) => {
+
+eval("module.exports = __webpack_require__.p + \"49582665262ff6179b9f3a98adf7ed5c.js\";\n\n//# sourceURL=webpack://iris-web/./node_modules/ace-builds/src-noconflict/snippets/vala.js?./node_modules/file-loader/dist/cjs.js?esModule=false");
+
+/***/ }),
+
+/***/ "./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/snippets/vbscript.js":
+/*!***************************************************************************************************************************!*\
+  !*** ./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/snippets/vbscript.js ***!
+  \***************************************************************************************************************************/
+/***/ ((module, __unused_webpack_exports, __webpack_require__) => {
+
+eval("module.exports = __webpack_require__.p + \"7080d2a1db1608264a6d9d9fbaf2cce8.js\";\n\n//# sourceURL=webpack://iris-web/./node_modules/ace-builds/src-noconflict/snippets/vbscript.js?./node_modules/file-loader/dist/cjs.js?esModule=false");
+
+/***/ }),
+
+/***/ "./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/snippets/velocity.js":
+/*!***************************************************************************************************************************!*\
+  !*** ./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/snippets/velocity.js ***!
+  \***************************************************************************************************************************/
+/***/ ((module, __unused_webpack_exports, __webpack_require__) => {
+
+eval("module.exports = __webpack_require__.p + \"ef87482c92662e8b69a21f47588474ea.js\";\n\n//# sourceURL=webpack://iris-web/./node_modules/ace-builds/src-noconflict/snippets/velocity.js?./node_modules/file-loader/dist/cjs.js?esModule=false");
+
+/***/ }),
+
+/***/ "./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/snippets/verilog.js":
+/*!**************************************************************************************************************************!*\
+  !*** ./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/snippets/verilog.js ***!
+  \**************************************************************************************************************************/
+/***/ ((module, __unused_webpack_exports, __webpack_require__) => {
+
+eval("module.exports = __webpack_require__.p + \"f326f2f263b1498fedbe1d07d7254d10.js\";\n\n//# sourceURL=webpack://iris-web/./node_modules/ace-builds/src-noconflict/snippets/verilog.js?./node_modules/file-loader/dist/cjs.js?esModule=false");
+
+/***/ }),
+
+/***/ "./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/snippets/vhdl.js":
+/*!***********************************************************************************************************************!*\
+  !*** ./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/snippets/vhdl.js ***!
+  \***********************************************************************************************************************/
+/***/ ((module, __unused_webpack_exports, __webpack_require__) => {
+
+eval("module.exports = __webpack_require__.p + \"962969a46fefcace3305abd4d6e14a2e.js\";\n\n//# sourceURL=webpack://iris-web/./node_modules/ace-builds/src-noconflict/snippets/vhdl.js?./node_modules/file-loader/dist/cjs.js?esModule=false");
+
+/***/ }),
+
+/***/ "./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/snippets/visualforce.js":
+/*!******************************************************************************************************************************!*\
+  !*** ./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/snippets/visualforce.js ***!
+  \******************************************************************************************************************************/
+/***/ ((module, __unused_webpack_exports, __webpack_require__) => {
+
+eval("module.exports = __webpack_require__.p + \"b33ef9b4202539d3690251cb8213a034.js\";\n\n//# sourceURL=webpack://iris-web/./node_modules/ace-builds/src-noconflict/snippets/visualforce.js?./node_modules/file-loader/dist/cjs.js?esModule=false");
+
+/***/ }),
+
+/***/ "./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/snippets/wollok.js":
+/*!*************************************************************************************************************************!*\
+  !*** ./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/snippets/wollok.js ***!
+  \*************************************************************************************************************************/
+/***/ ((module, __unused_webpack_exports, __webpack_require__) => {
+
+eval("module.exports = __webpack_require__.p + \"80ddbf4f0fdde4ddba57130e61043017.js\";\n\n//# sourceURL=webpack://iris-web/./node_modules/ace-builds/src-noconflict/snippets/wollok.js?./node_modules/file-loader/dist/cjs.js?esModule=false");
+
+/***/ }),
+
+/***/ "./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/snippets/xml.js":
+/*!**********************************************************************************************************************!*\
+  !*** ./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/snippets/xml.js ***!
+  \**********************************************************************************************************************/
+/***/ ((module, __unused_webpack_exports, __webpack_require__) => {
+
+eval("module.exports = __webpack_require__.p + \"8ed58ed9c7e1cb1ae1f2830d29011ffb.js\";\n\n//# sourceURL=webpack://iris-web/./node_modules/ace-builds/src-noconflict/snippets/xml.js?./node_modules/file-loader/dist/cjs.js?esModule=false");
+
+/***/ }),
+
+/***/ "./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/snippets/xquery.js":
+/*!*************************************************************************************************************************!*\
+  !*** ./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/snippets/xquery.js ***!
+  \*************************************************************************************************************************/
+/***/ ((module, __unused_webpack_exports, __webpack_require__) => {
+
+eval("module.exports = __webpack_require__.p + \"c4e58637b4d14c303e29d3ce4b4a210f.js\";\n\n//# sourceURL=webpack://iris-web/./node_modules/ace-builds/src-noconflict/snippets/xquery.js?./node_modules/file-loader/dist/cjs.js?esModule=false");
+
+/***/ }),
+
+/***/ "./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/snippets/yaml.js":
+/*!***********************************************************************************************************************!*\
+  !*** ./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/snippets/yaml.js ***!
+  \***********************************************************************************************************************/
+/***/ ((module, __unused_webpack_exports, __webpack_require__) => {
+
+eval("module.exports = __webpack_require__.p + \"59cc05504a1c823b6d4796bf6b430822.js\";\n\n//# sourceURL=webpack://iris-web/./node_modules/ace-builds/src-noconflict/snippets/yaml.js?./node_modules/file-loader/dist/cjs.js?esModule=false");
+
+/***/ }),
+
+/***/ "./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/snippets/zeek.js":
+/*!***********************************************************************************************************************!*\
+  !*** ./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/snippets/zeek.js ***!
+  \***********************************************************************************************************************/
+/***/ ((module, __unused_webpack_exports, __webpack_require__) => {
+
+eval("module.exports = __webpack_require__.p + \"b20cd9acf45420fcacfd923754185663.js\";\n\n//# sourceURL=webpack://iris-web/./node_modules/ace-builds/src-noconflict/snippets/zeek.js?./node_modules/file-loader/dist/cjs.js?esModule=false");
+
+/***/ }),
+
+/***/ "./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/theme-ambiance.js":
+/*!************************************************************************************************************************!*\
+  !*** ./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/theme-ambiance.js ***!
+  \************************************************************************************************************************/
+/***/ ((module, __unused_webpack_exports, __webpack_require__) => {
+
+eval("module.exports = __webpack_require__.p + \"19f1a880f679f834a0938b716e7e48e0.js\";\n\n//# sourceURL=webpack://iris-web/./node_modules/ace-builds/src-noconflict/theme-ambiance.js?./node_modules/file-loader/dist/cjs.js?esModule=false");
+
+/***/ }),
+
+/***/ "./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/theme-chaos.js":
+/*!*********************************************************************************************************************!*\
+  !*** ./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/theme-chaos.js ***!
+  \*********************************************************************************************************************/
+/***/ ((module, __unused_webpack_exports, __webpack_require__) => {
+
+eval("module.exports = __webpack_require__.p + \"0d419aec4c7e2317238c3502a967b560.js\";\n\n//# sourceURL=webpack://iris-web/./node_modules/ace-builds/src-noconflict/theme-chaos.js?./node_modules/file-loader/dist/cjs.js?esModule=false");
+
+/***/ }),
+
+/***/ "./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/theme-chrome.js":
+/*!**********************************************************************************************************************!*\
+  !*** ./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/theme-chrome.js ***!
+  \**********************************************************************************************************************/
+/***/ ((module, __unused_webpack_exports, __webpack_require__) => {
+
+eval("module.exports = __webpack_require__.p + \"acaef5b3d4971efbf24be1a229186ff5.js\";\n\n//# sourceURL=webpack://iris-web/./node_modules/ace-builds/src-noconflict/theme-chrome.js?./node_modules/file-loader/dist/cjs.js?esModule=false");
+
+/***/ }),
+
+/***/ "./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/theme-cloud9_day.js":
+/*!**************************************************************************************************************************!*\
+  !*** ./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/theme-cloud9_day.js ***!
+  \**************************************************************************************************************************/
+/***/ ((module, __unused_webpack_exports, __webpack_require__) => {
+
+eval("module.exports = __webpack_require__.p + \"17b41db8dd7120d3a88417a1490f57b7.js\";\n\n//# sourceURL=webpack://iris-web/./node_modules/ace-builds/src-noconflict/theme-cloud9_day.js?./node_modules/file-loader/dist/cjs.js?esModule=false");
+
+/***/ }),
+
+/***/ "./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/theme-cloud9_night.js":
+/*!****************************************************************************************************************************!*\
+  !*** ./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/theme-cloud9_night.js ***!
+  \****************************************************************************************************************************/
+/***/ ((module, __unused_webpack_exports, __webpack_require__) => {
+
+eval("module.exports = __webpack_require__.p + \"8d8bc65ea473a73628e915a0e002e294.js\";\n\n//# sourceURL=webpack://iris-web/./node_modules/ace-builds/src-noconflict/theme-cloud9_night.js?./node_modules/file-loader/dist/cjs.js?esModule=false");
+
+/***/ }),
+
+/***/ "./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/theme-cloud9_night_low_color.js":
+/*!**************************************************************************************************************************************!*\
+  !*** ./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/theme-cloud9_night_low_color.js ***!
+  \**************************************************************************************************************************************/
+/***/ ((module, __unused_webpack_exports, __webpack_require__) => {
+
+eval("module.exports = __webpack_require__.p + \"f861afeb7d450f1840ab5139655d79d4.js\";\n\n//# sourceURL=webpack://iris-web/./node_modules/ace-builds/src-noconflict/theme-cloud9_night_low_color.js?./node_modules/file-loader/dist/cjs.js?esModule=false");
+
+/***/ }),
+
+/***/ "./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/theme-clouds.js":
+/*!**********************************************************************************************************************!*\
+  !*** ./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/theme-clouds.js ***!
+  \**********************************************************************************************************************/
+/***/ ((module, __unused_webpack_exports, __webpack_require__) => {
+
+eval("module.exports = __webpack_require__.p + \"32f291b1164c2610ed1a9260677d15f0.js\";\n\n//# sourceURL=webpack://iris-web/./node_modules/ace-builds/src-noconflict/theme-clouds.js?./node_modules/file-loader/dist/cjs.js?esModule=false");
+
+/***/ }),
+
+/***/ "./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/theme-clouds_midnight.js":
+/*!*******************************************************************************************************************************!*\
+  !*** ./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/theme-clouds_midnight.js ***!
+  \*******************************************************************************************************************************/
+/***/ ((module, __unused_webpack_exports, __webpack_require__) => {
+
+eval("module.exports = __webpack_require__.p + \"47cf6414c4d2d3b5eaaf7030e5b93c4a.js\";\n\n//# sourceURL=webpack://iris-web/./node_modules/ace-builds/src-noconflict/theme-clouds_midnight.js?./node_modules/file-loader/dist/cjs.js?esModule=false");
+
+/***/ }),
+
+/***/ "./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/theme-cobalt.js":
+/*!**********************************************************************************************************************!*\
+  !*** ./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/theme-cobalt.js ***!
+  \**********************************************************************************************************************/
+/***/ ((module, __unused_webpack_exports, __webpack_require__) => {
+
+eval("module.exports = __webpack_require__.p + \"dd7b2f280cf4c20afba7e2a7c2625354.js\";\n\n//# sourceURL=webpack://iris-web/./node_modules/ace-builds/src-noconflict/theme-cobalt.js?./node_modules/file-loader/dist/cjs.js?esModule=false");
+
+/***/ }),
+
+/***/ "./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/theme-crimson_editor.js":
+/*!******************************************************************************************************************************!*\
+  !*** ./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/theme-crimson_editor.js ***!
+  \******************************************************************************************************************************/
+/***/ ((module, __unused_webpack_exports, __webpack_require__) => {
+
+eval("module.exports = __webpack_require__.p + \"700530bc418f23dccca7db36bfa9f745.js\";\n\n//# sourceURL=webpack://iris-web/./node_modules/ace-builds/src-noconflict/theme-crimson_editor.js?./node_modules/file-loader/dist/cjs.js?esModule=false");
+
+/***/ }),
+
+/***/ "./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/theme-dawn.js":
+/*!********************************************************************************************************************!*\
+  !*** ./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/theme-dawn.js ***!
+  \********************************************************************************************************************/
+/***/ ((module, __unused_webpack_exports, __webpack_require__) => {
+
+eval("module.exports = __webpack_require__.p + \"0d8cca845a71e82acc3ffc1fc95c94f3.js\";\n\n//# sourceURL=webpack://iris-web/./node_modules/ace-builds/src-noconflict/theme-dawn.js?./node_modules/file-loader/dist/cjs.js?esModule=false");
+
+/***/ }),
+
+/***/ "./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/theme-dracula.js":
+/*!***********************************************************************************************************************!*\
+  !*** ./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/theme-dracula.js ***!
+  \***********************************************************************************************************************/
+/***/ ((module, __unused_webpack_exports, __webpack_require__) => {
+
+eval("module.exports = __webpack_require__.p + \"ac0681e93739efad9b6f1b85453d6a1b.js\";\n\n//# sourceURL=webpack://iris-web/./node_modules/ace-builds/src-noconflict/theme-dracula.js?./node_modules/file-loader/dist/cjs.js?esModule=false");
+
+/***/ }),
+
+/***/ "./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/theme-dreamweaver.js":
+/*!***************************************************************************************************************************!*\
+  !*** ./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/theme-dreamweaver.js ***!
+  \***************************************************************************************************************************/
+/***/ ((module, __unused_webpack_exports, __webpack_require__) => {
+
+eval("module.exports = __webpack_require__.p + \"fc84e4779f22e5f1c9a70f56f47e0ed6.js\";\n\n//# sourceURL=webpack://iris-web/./node_modules/ace-builds/src-noconflict/theme-dreamweaver.js?./node_modules/file-loader/dist/cjs.js?esModule=false");
+
+/***/ }),
+
+/***/ "./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/theme-eclipse.js":
+/*!***********************************************************************************************************************!*\
+  !*** ./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/theme-eclipse.js ***!
+  \***********************************************************************************************************************/
+/***/ ((module, __unused_webpack_exports, __webpack_require__) => {
+
+eval("module.exports = __webpack_require__.p + \"d492c085b5834c819ba21542b9147966.js\";\n\n//# sourceURL=webpack://iris-web/./node_modules/ace-builds/src-noconflict/theme-eclipse.js?./node_modules/file-loader/dist/cjs.js?esModule=false");
+
+/***/ }),
+
+/***/ "./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/theme-github.js":
+/*!**********************************************************************************************************************!*\
+  !*** ./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/theme-github.js ***!
+  \**********************************************************************************************************************/
+/***/ ((module, __unused_webpack_exports, __webpack_require__) => {
+
+eval("module.exports = __webpack_require__.p + \"330c0deacbfbbb6f1249b5bd887d608a.js\";\n\n//# sourceURL=webpack://iris-web/./node_modules/ace-builds/src-noconflict/theme-github.js?./node_modules/file-loader/dist/cjs.js?esModule=false");
+
+/***/ }),
+
+/***/ "./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/theme-github_dark.js":
+/*!***************************************************************************************************************************!*\
+  !*** ./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/theme-github_dark.js ***!
+  \***************************************************************************************************************************/
+/***/ ((module, __unused_webpack_exports, __webpack_require__) => {
+
+eval("module.exports = __webpack_require__.p + \"6243cb7ca70f5114027827e75be5f70c.js\";\n\n//# sourceURL=webpack://iris-web/./node_modules/ace-builds/src-noconflict/theme-github_dark.js?./node_modules/file-loader/dist/cjs.js?esModule=false");
+
+/***/ }),
+
+/***/ "./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/theme-gob.js":
+/*!*******************************************************************************************************************!*\
+  !*** ./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/theme-gob.js ***!
+  \*******************************************************************************************************************/
+/***/ ((module, __unused_webpack_exports, __webpack_require__) => {
+
+eval("module.exports = __webpack_require__.p + \"124690e9a699fd76cfa8a534efda285b.js\";\n\n//# sourceURL=webpack://iris-web/./node_modules/ace-builds/src-noconflict/theme-gob.js?./node_modules/file-loader/dist/cjs.js?esModule=false");
+
+/***/ }),
+
+/***/ "./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/theme-gruvbox.js":
+/*!***********************************************************************************************************************!*\
+  !*** ./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/theme-gruvbox.js ***!
+  \***********************************************************************************************************************/
+/***/ ((module, __unused_webpack_exports, __webpack_require__) => {
+
+eval("module.exports = __webpack_require__.p + \"757427655aafe6b2f424fefdf1747758.js\";\n\n//# sourceURL=webpack://iris-web/./node_modules/ace-builds/src-noconflict/theme-gruvbox.js?./node_modules/file-loader/dist/cjs.js?esModule=false");
+
+/***/ }),
+
+/***/ "./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/theme-gruvbox_dark_hard.js":
+/*!*********************************************************************************************************************************!*\
+  !*** ./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/theme-gruvbox_dark_hard.js ***!
+  \*********************************************************************************************************************************/
+/***/ ((module, __unused_webpack_exports, __webpack_require__) => {
+
+eval("module.exports = __webpack_require__.p + \"98c86ea025c719a98eeba2931cc3d4c3.js\";\n\n//# sourceURL=webpack://iris-web/./node_modules/ace-builds/src-noconflict/theme-gruvbox_dark_hard.js?./node_modules/file-loader/dist/cjs.js?esModule=false");
+
+/***/ }),
+
+/***/ "./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/theme-gruvbox_light_hard.js":
+/*!**********************************************************************************************************************************!*\
+  !*** ./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/theme-gruvbox_light_hard.js ***!
+  \**********************************************************************************************************************************/
+/***/ ((module, __unused_webpack_exports, __webpack_require__) => {
+
+eval("module.exports = __webpack_require__.p + \"2772fa250d538d9b7a8702fb6c50d195.js\";\n\n//# sourceURL=webpack://iris-web/./node_modules/ace-builds/src-noconflict/theme-gruvbox_light_hard.js?./node_modules/file-loader/dist/cjs.js?esModule=false");
+
+/***/ }),
+
+/***/ "./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/theme-idle_fingers.js":
+/*!****************************************************************************************************************************!*\
+  !*** ./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/theme-idle_fingers.js ***!
+  \****************************************************************************************************************************/
+/***/ ((module, __unused_webpack_exports, __webpack_require__) => {
+
+eval("module.exports = __webpack_require__.p + \"03b1e9dce952e11949d123c2f00a1a0d.js\";\n\n//# sourceURL=webpack://iris-web/./node_modules/ace-builds/src-noconflict/theme-idle_fingers.js?./node_modules/file-loader/dist/cjs.js?esModule=false");
+
+/***/ }),
+
+/***/ "./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/theme-iplastic.js":
+/*!************************************************************************************************************************!*\
+  !*** ./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/theme-iplastic.js ***!
+  \************************************************************************************************************************/
+/***/ ((module, __unused_webpack_exports, __webpack_require__) => {
+
+eval("module.exports = __webpack_require__.p + \"5fc5b7fdc1899b18bee20c7905c76182.js\";\n\n//# sourceURL=webpack://iris-web/./node_modules/ace-builds/src-noconflict/theme-iplastic.js?./node_modules/file-loader/dist/cjs.js?esModule=false");
+
+/***/ }),
+
+/***/ "./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/theme-katzenmilch.js":
+/*!***************************************************************************************************************************!*\
+  !*** ./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/theme-katzenmilch.js ***!
+  \***************************************************************************************************************************/
+/***/ ((module, __unused_webpack_exports, __webpack_require__) => {
+
+eval("module.exports = __webpack_require__.p + \"531e426da5d4c152efe1e9522991e466.js\";\n\n//# sourceURL=webpack://iris-web/./node_modules/ace-builds/src-noconflict/theme-katzenmilch.js?./node_modules/file-loader/dist/cjs.js?esModule=false");
+
+/***/ }),
+
+/***/ "./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/theme-kr_theme.js":
+/*!************************************************************************************************************************!*\
+  !*** ./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/theme-kr_theme.js ***!
+  \************************************************************************************************************************/
+/***/ ((module, __unused_webpack_exports, __webpack_require__) => {
+
+eval("module.exports = __webpack_require__.p + \"b0ca1cc27ac114315e876ea7f4992597.js\";\n\n//# sourceURL=webpack://iris-web/./node_modules/ace-builds/src-noconflict/theme-kr_theme.js?./node_modules/file-loader/dist/cjs.js?esModule=false");
+
+/***/ }),
+
+/***/ "./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/theme-kuroir.js":
+/*!**********************************************************************************************************************!*\
+  !*** ./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/theme-kuroir.js ***!
+  \**********************************************************************************************************************/
+/***/ ((module, __unused_webpack_exports, __webpack_require__) => {
+
+eval("module.exports = __webpack_require__.p + \"4123d5ea3e1f99dd3a5f2a89e16c6e59.js\";\n\n//# sourceURL=webpack://iris-web/./node_modules/ace-builds/src-noconflict/theme-kuroir.js?./node_modules/file-loader/dist/cjs.js?esModule=false");
+
+/***/ }),
+
+/***/ "./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/theme-merbivore.js":
+/*!*************************************************************************************************************************!*\
+  !*** ./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/theme-merbivore.js ***!
+  \*************************************************************************************************************************/
+/***/ ((module, __unused_webpack_exports, __webpack_require__) => {
+
+eval("module.exports = __webpack_require__.p + \"2241367b24817b336d02880c0fb9d4da.js\";\n\n//# sourceURL=webpack://iris-web/./node_modules/ace-builds/src-noconflict/theme-merbivore.js?./node_modules/file-loader/dist/cjs.js?esModule=false");
+
+/***/ }),
+
+/***/ "./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/theme-merbivore_soft.js":
+/*!******************************************************************************************************************************!*\
+  !*** ./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/theme-merbivore_soft.js ***!
+  \******************************************************************************************************************************/
+/***/ ((module, __unused_webpack_exports, __webpack_require__) => {
+
+eval("module.exports = __webpack_require__.p + \"83c9fb8b375da1e934dfc690ff491dc8.js\";\n\n//# sourceURL=webpack://iris-web/./node_modules/ace-builds/src-noconflict/theme-merbivore_soft.js?./node_modules/file-loader/dist/cjs.js?esModule=false");
+
+/***/ }),
+
+/***/ "./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/theme-mono_industrial.js":
+/*!*******************************************************************************************************************************!*\
+  !*** ./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/theme-mono_industrial.js ***!
+  \*******************************************************************************************************************************/
+/***/ ((module, __unused_webpack_exports, __webpack_require__) => {
+
+eval("module.exports = __webpack_require__.p + \"b6b908d02eb372ba7c31346f24d6d092.js\";\n\n//# sourceURL=webpack://iris-web/./node_modules/ace-builds/src-noconflict/theme-mono_industrial.js?./node_modules/file-loader/dist/cjs.js?esModule=false");
+
+/***/ }),
+
+/***/ "./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/theme-monokai.js":
+/*!***********************************************************************************************************************!*\
+  !*** ./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/theme-monokai.js ***!
+  \***********************************************************************************************************************/
+/***/ ((module, __unused_webpack_exports, __webpack_require__) => {
+
+eval("module.exports = __webpack_require__.p + \"362d6b4094abc903d46e3ebc2872ebef.js\";\n\n//# sourceURL=webpack://iris-web/./node_modules/ace-builds/src-noconflict/theme-monokai.js?./node_modules/file-loader/dist/cjs.js?esModule=false");
+
+/***/ }),
+
+/***/ "./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/theme-nord_dark.js":
+/*!*************************************************************************************************************************!*\
+  !*** ./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/theme-nord_dark.js ***!
+  \*************************************************************************************************************************/
+/***/ ((module, __unused_webpack_exports, __webpack_require__) => {
+
+eval("module.exports = __webpack_require__.p + \"30d2b805bcbc5d6bd558d7bdf9137a0e.js\";\n\n//# sourceURL=webpack://iris-web/./node_modules/ace-builds/src-noconflict/theme-nord_dark.js?./node_modules/file-loader/dist/cjs.js?esModule=false");
+
+/***/ }),
+
+/***/ "./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/theme-one_dark.js":
+/*!************************************************************************************************************************!*\
+  !*** ./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/theme-one_dark.js ***!
+  \************************************************************************************************************************/
+/***/ ((module, __unused_webpack_exports, __webpack_require__) => {
+
+eval("module.exports = __webpack_require__.p + \"084c8831e00a094c78a6b068737e6fc9.js\";\n\n//# sourceURL=webpack://iris-web/./node_modules/ace-builds/src-noconflict/theme-one_dark.js?./node_modules/file-loader/dist/cjs.js?esModule=false");
+
+/***/ }),
+
+/***/ "./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/theme-pastel_on_dark.js":
+/*!******************************************************************************************************************************!*\
+  !*** ./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/theme-pastel_on_dark.js ***!
+  \******************************************************************************************************************************/
+/***/ ((module, __unused_webpack_exports, __webpack_require__) => {
+
+eval("module.exports = __webpack_require__.p + \"01b980b85f1677a08953749fb6eaa6a7.js\";\n\n//# sourceURL=webpack://iris-web/./node_modules/ace-builds/src-noconflict/theme-pastel_on_dark.js?./node_modules/file-loader/dist/cjs.js?esModule=false");
+
+/***/ }),
+
+/***/ "./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/theme-solarized_dark.js":
+/*!******************************************************************************************************************************!*\
+  !*** ./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/theme-solarized_dark.js ***!
+  \******************************************************************************************************************************/
+/***/ ((module, __unused_webpack_exports, __webpack_require__) => {
+
+eval("module.exports = __webpack_require__.p + \"650d97c1b1782b09687b01c800f8c50d.js\";\n\n//# sourceURL=webpack://iris-web/./node_modules/ace-builds/src-noconflict/theme-solarized_dark.js?./node_modules/file-loader/dist/cjs.js?esModule=false");
+
+/***/ }),
+
+/***/ "./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/theme-solarized_light.js":
+/*!*******************************************************************************************************************************!*\
+  !*** ./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/theme-solarized_light.js ***!
+  \*******************************************************************************************************************************/
+/***/ ((module, __unused_webpack_exports, __webpack_require__) => {
+
+eval("module.exports = __webpack_require__.p + \"4dec4bb457555975c148226534ecbdbe.js\";\n\n//# sourceURL=webpack://iris-web/./node_modules/ace-builds/src-noconflict/theme-solarized_light.js?./node_modules/file-loader/dist/cjs.js?esModule=false");
+
+/***/ }),
+
+/***/ "./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/theme-sqlserver.js":
+/*!*************************************************************************************************************************!*\
+  !*** ./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/theme-sqlserver.js ***!
+  \*************************************************************************************************************************/
+/***/ ((module, __unused_webpack_exports, __webpack_require__) => {
+
+eval("module.exports = __webpack_require__.p + \"4150db3307181a1afef55ab2c9ec191e.js\";\n\n//# sourceURL=webpack://iris-web/./node_modules/ace-builds/src-noconflict/theme-sqlserver.js?./node_modules/file-loader/dist/cjs.js?esModule=false");
+
+/***/ }),
+
+/***/ "./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/theme-terminal.js":
+/*!************************************************************************************************************************!*\
+  !*** ./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/theme-terminal.js ***!
+  \************************************************************************************************************************/
+/***/ ((module, __unused_webpack_exports, __webpack_require__) => {
+
+eval("module.exports = __webpack_require__.p + \"4658834fc06a687e86ad254c924afb03.js\";\n\n//# sourceURL=webpack://iris-web/./node_modules/ace-builds/src-noconflict/theme-terminal.js?./node_modules/file-loader/dist/cjs.js?esModule=false");
+
+/***/ }),
+
+/***/ "./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/theme-textmate.js":
+/*!************************************************************************************************************************!*\
+  !*** ./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/theme-textmate.js ***!
+  \************************************************************************************************************************/
+/***/ ((module, __unused_webpack_exports, __webpack_require__) => {
+
+eval("module.exports = __webpack_require__.p + \"d3c6f63283deafb27231ec767a161534.js\";\n\n//# sourceURL=webpack://iris-web/./node_modules/ace-builds/src-noconflict/theme-textmate.js?./node_modules/file-loader/dist/cjs.js?esModule=false");
+
+/***/ }),
+
+/***/ "./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/theme-tomorrow.js":
+/*!************************************************************************************************************************!*\
+  !*** ./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/theme-tomorrow.js ***!
+  \************************************************************************************************************************/
+/***/ ((module, __unused_webpack_exports, __webpack_require__) => {
+
+eval("module.exports = __webpack_require__.p + \"e4bea9a2a2680d970c13cc4ed89bc1a0.js\";\n\n//# sourceURL=webpack://iris-web/./node_modules/ace-builds/src-noconflict/theme-tomorrow.js?./node_modules/file-loader/dist/cjs.js?esModule=false");
+
+/***/ }),
+
+/***/ "./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/theme-tomorrow_night.js":
+/*!******************************************************************************************************************************!*\
+  !*** ./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/theme-tomorrow_night.js ***!
+  \******************************************************************************************************************************/
+/***/ ((module, __unused_webpack_exports, __webpack_require__) => {
+
+eval("module.exports = __webpack_require__.p + \"7d8a26b9d697e69af3f5850893dbf14f.js\";\n\n//# sourceURL=webpack://iris-web/./node_modules/ace-builds/src-noconflict/theme-tomorrow_night.js?./node_modules/file-loader/dist/cjs.js?esModule=false");
+
+/***/ }),
+
+/***/ "./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/theme-tomorrow_night_blue.js":
+/*!***********************************************************************************************************************************!*\
+  !*** ./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/theme-tomorrow_night_blue.js ***!
+  \***********************************************************************************************************************************/
+/***/ ((module, __unused_webpack_exports, __webpack_require__) => {
+
+eval("module.exports = __webpack_require__.p + \"73566e3f1371433ab25201c465d4ee28.js\";\n\n//# sourceURL=webpack://iris-web/./node_modules/ace-builds/src-noconflict/theme-tomorrow_night_blue.js?./node_modules/file-loader/dist/cjs.js?esModule=false");
+
+/***/ }),
+
+/***/ "./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/theme-tomorrow_night_bright.js":
+/*!*************************************************************************************************************************************!*\
+  !*** ./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/theme-tomorrow_night_bright.js ***!
+  \*************************************************************************************************************************************/
+/***/ ((module, __unused_webpack_exports, __webpack_require__) => {
+
+eval("module.exports = __webpack_require__.p + \"9585c763d3064914bb3445f4123be3b8.js\";\n\n//# sourceURL=webpack://iris-web/./node_modules/ace-builds/src-noconflict/theme-tomorrow_night_bright.js?./node_modules/file-loader/dist/cjs.js?esModule=false");
+
+/***/ }),
+
+/***/ "./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/theme-tomorrow_night_eighties.js":
+/*!***************************************************************************************************************************************!*\
+  !*** ./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/theme-tomorrow_night_eighties.js ***!
+  \***************************************************************************************************************************************/
+/***/ ((module, __unused_webpack_exports, __webpack_require__) => {
+
+eval("module.exports = __webpack_require__.p + \"576b507586d8bfab23a49bafb04d90d9.js\";\n\n//# sourceURL=webpack://iris-web/./node_modules/ace-builds/src-noconflict/theme-tomorrow_night_eighties.js?./node_modules/file-loader/dist/cjs.js?esModule=false");
+
+/***/ }),
+
+/***/ "./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/theme-twilight.js":
+/*!************************************************************************************************************************!*\
+  !*** ./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/theme-twilight.js ***!
+  \************************************************************************************************************************/
+/***/ ((module, __unused_webpack_exports, __webpack_require__) => {
+
+eval("module.exports = __webpack_require__.p + \"1ea58b5ac34abb82493bad6800823fee.js\";\n\n//# sourceURL=webpack://iris-web/./node_modules/ace-builds/src-noconflict/theme-twilight.js?./node_modules/file-loader/dist/cjs.js?esModule=false");
+
+/***/ }),
+
+/***/ "./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/theme-vibrant_ink.js":
+/*!***************************************************************************************************************************!*\
+  !*** ./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/theme-vibrant_ink.js ***!
+  \***************************************************************************************************************************/
+/***/ ((module, __unused_webpack_exports, __webpack_require__) => {
+
+eval("module.exports = __webpack_require__.p + \"6964339483286e46bbadd7b8f3137800.js\";\n\n//# sourceURL=webpack://iris-web/./node_modules/ace-builds/src-noconflict/theme-vibrant_ink.js?./node_modules/file-loader/dist/cjs.js?esModule=false");
+
+/***/ }),
+
+/***/ "./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/theme-xcode.js":
+/*!*********************************************************************************************************************!*\
+  !*** ./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/theme-xcode.js ***!
+  \*********************************************************************************************************************/
+/***/ ((module, __unused_webpack_exports, __webpack_require__) => {
+
+eval("module.exports = __webpack_require__.p + \"2091e4c01015d7dda392116f3ae59801.js\";\n\n//# sourceURL=webpack://iris-web/./node_modules/ace-builds/src-noconflict/theme-xcode.js?./node_modules/file-loader/dist/cjs.js?esModule=false");
+
+/***/ }),
+
+/***/ "./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/worker-base.js":
+/*!*********************************************************************************************************************!*\
+  !*** ./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/worker-base.js ***!
+  \*********************************************************************************************************************/
+/***/ ((module, __unused_webpack_exports, __webpack_require__) => {
+
+eval("module.exports = __webpack_require__.p + \"140f2010c45fdd9d598753b07574e7b7.js\";\n\n//# sourceURL=webpack://iris-web/./node_modules/ace-builds/src-noconflict/worker-base.js?./node_modules/file-loader/dist/cjs.js?esModule=false");
+
+/***/ }),
+
+/***/ "./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/worker-coffee.js":
+/*!***********************************************************************************************************************!*\
+  !*** ./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/worker-coffee.js ***!
+  \***********************************************************************************************************************/
+/***/ ((module, __unused_webpack_exports, __webpack_require__) => {
+
+eval("module.exports = __webpack_require__.p + \"f0a193905c880e82a379837f2c1dee8d.js\";\n\n//# sourceURL=webpack://iris-web/./node_modules/ace-builds/src-noconflict/worker-coffee.js?./node_modules/file-loader/dist/cjs.js?esModule=false");
+
+/***/ }),
+
+/***/ "./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/worker-css.js":
+/*!********************************************************************************************************************!*\
+  !*** ./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/worker-css.js ***!
+  \********************************************************************************************************************/
+/***/ ((module, __unused_webpack_exports, __webpack_require__) => {
+
+eval("module.exports = __webpack_require__.p + \"a98f9d59a921a012c44180be896e357a.js\";\n\n//# sourceURL=webpack://iris-web/./node_modules/ace-builds/src-noconflict/worker-css.js?./node_modules/file-loader/dist/cjs.js?esModule=false");
+
+/***/ }),
+
+/***/ "./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/worker-html.js":
+/*!*********************************************************************************************************************!*\
+  !*** ./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/worker-html.js ***!
+  \*********************************************************************************************************************/
+/***/ ((module, __unused_webpack_exports, __webpack_require__) => {
+
+eval("module.exports = __webpack_require__.p + \"43e20ef4a7b2ff402800c83d46357679.js\";\n\n//# sourceURL=webpack://iris-web/./node_modules/ace-builds/src-noconflict/worker-html.js?./node_modules/file-loader/dist/cjs.js?esModule=false");
+
+/***/ }),
+
+/***/ "./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/worker-javascript.js":
+/*!***************************************************************************************************************************!*\
+  !*** ./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/worker-javascript.js ***!
+  \***************************************************************************************************************************/
+/***/ ((module, __unused_webpack_exports, __webpack_require__) => {
+
+eval("module.exports = __webpack_require__.p + \"56ff25cc578df2108b5377fc59358428.js\";\n\n//# sourceURL=webpack://iris-web/./node_modules/ace-builds/src-noconflict/worker-javascript.js?./node_modules/file-loader/dist/cjs.js?esModule=false");
+
+/***/ }),
+
+/***/ "./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/worker-json.js":
+/*!*********************************************************************************************************************!*\
+  !*** ./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/worker-json.js ***!
+  \*********************************************************************************************************************/
+/***/ ((module, __unused_webpack_exports, __webpack_require__) => {
+
+eval("module.exports = __webpack_require__.p + \"2d90f0a74bd6aafcd4c276d8016de9f9.js\";\n\n//# sourceURL=webpack://iris-web/./node_modules/ace-builds/src-noconflict/worker-json.js?./node_modules/file-loader/dist/cjs.js?esModule=false");
+
+/***/ }),
+
+/***/ "./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/worker-lua.js":
+/*!********************************************************************************************************************!*\
+  !*** ./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/worker-lua.js ***!
+  \********************************************************************************************************************/
+/***/ ((module, __unused_webpack_exports, __webpack_require__) => {
+
+eval("module.exports = __webpack_require__.p + \"39cb510a87ad3901a53bac0fa1e205c9.js\";\n\n//# sourceURL=webpack://iris-web/./node_modules/ace-builds/src-noconflict/worker-lua.js?./node_modules/file-loader/dist/cjs.js?esModule=false");
+
+/***/ }),
+
+/***/ "./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/worker-php.js":
+/*!********************************************************************************************************************!*\
+  !*** ./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/worker-php.js ***!
+  \********************************************************************************************************************/
+/***/ ((module, __unused_webpack_exports, __webpack_require__) => {
+
+eval("module.exports = __webpack_require__.p + \"d24dd56814bd305659ade8fc0374c70b.js\";\n\n//# sourceURL=webpack://iris-web/./node_modules/ace-builds/src-noconflict/worker-php.js?./node_modules/file-loader/dist/cjs.js?esModule=false");
+
+/***/ }),
+
+/***/ "./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/worker-xml.js":
+/*!********************************************************************************************************************!*\
+  !*** ./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/worker-xml.js ***!
+  \********************************************************************************************************************/
+/***/ ((module, __unused_webpack_exports, __webpack_require__) => {
+
+eval("module.exports = __webpack_require__.p + \"848dbd8796253fff0ee238cbeea0d628.js\";\n\n//# sourceURL=webpack://iris-web/./node_modules/ace-builds/src-noconflict/worker-xml.js?./node_modules/file-loader/dist/cjs.js?esModule=false");
+
+/***/ }),
+
+/***/ "./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/worker-xquery.js":
+/*!***********************************************************************************************************************!*\
+  !*** ./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/worker-xquery.js ***!
+  \***********************************************************************************************************************/
+/***/ ((module, __unused_webpack_exports, __webpack_require__) => {
+
+eval("module.exports = __webpack_require__.p + \"ef1973c14e763b179c6ba025897a5383.js\";\n\n//# sourceURL=webpack://iris-web/./node_modules/ace-builds/src-noconflict/worker-xquery.js?./node_modules/file-loader/dist/cjs.js?esModule=false");
+
+/***/ }),
+
+/***/ "./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/worker-yaml.js":
+/*!*********************************************************************************************************************!*\
+  !*** ./node_modules/file-loader/dist/cjs.js?esModule=false!./node_modules/ace-builds/src-noconflict/worker-yaml.js ***!
+  \*********************************************************************************************************************/
+/***/ ((module, __unused_webpack_exports, __webpack_require__) => {
+
+eval("module.exports = __webpack_require__.p + \"9dcb075afc214d32237e9dcac7b9cbf3.js\";\n\n//# sourceURL=webpack://iris-web/./node_modules/ace-builds/src-noconflict/worker-yaml.js?./node_modules/file-loader/dist/cjs.js?esModule=false");
 
 /***/ }),
 
@@ -718,6 +5238,29 @@ eval("__webpack_require__.r(__webpack_exports__);\n/* harmony export */ __webpac
 /******/ 			if (!module.children) module.children = [];
 /******/ 			return module;
 /******/ 		};
+/******/ 	})();
+/******/ 	
+/******/ 	/* webpack/runtime/publicPath */
+/******/ 	(() => {
+/******/ 		var scriptUrl;
+/******/ 		if (__webpack_require__.g.importScripts) scriptUrl = __webpack_require__.g.location + "";
+/******/ 		var document = __webpack_require__.g.document;
+/******/ 		if (!scriptUrl && document) {
+/******/ 			if (document.currentScript)
+/******/ 				scriptUrl = document.currentScript.src;
+/******/ 			if (!scriptUrl) {
+/******/ 				var scripts = document.getElementsByTagName("script");
+/******/ 				if(scripts.length) {
+/******/ 					var i = scripts.length - 1;
+/******/ 					while (i > -1 && !scriptUrl) scriptUrl = scripts[i--].src;
+/******/ 				}
+/******/ 			}
+/******/ 		}
+/******/ 		// When supporting browsers where an automatic publicPath is not supported you must specify an output.publicPath manually via configuration
+/******/ 		// or pass an empty string ("") and set the __webpack_public_path__ variable from your code to use your own logic.
+/******/ 		if (!scriptUrl) throw new Error("Automatic publicPath is not supported in this browser");
+/******/ 		scriptUrl = scriptUrl.replace(/#.*$/, "").replace(/\?.*$/, "").replace(/\/[^\/]+$/, "/");
+/******/ 		__webpack_require__.p = scriptUrl;
 /******/ 	})();
 /******/ 	
 /************************************************************************/
