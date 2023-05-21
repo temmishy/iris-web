@@ -12,6 +12,25 @@ import ace from 'ace-builds';
 
 
 /**
+ * Namespace for common events.
+ */
+const commonEventNamespace = "commonEventNamespace";
+
+/**
+ * Namespace for common click events.
+ */
+const commonClickEventNamespace = `click.${commonEventNamespace}`;
+
+/**
+ * Map of common events and their corresponding functions.
+ */
+const commonEventsMap = {
+    ".sidenav-case-activity-loader": function() {load_case_activity();}, 
+    '.rotate': function() {$(this).toggleClass("down");},
+    '.switch-context-loader': function() {load_context_switcher();}
+}
+
+/**
  * Serializes a form into a JavaScript object.
  * 
  * @returns {Object} The serialized form as a JavaScript object.
@@ -2014,47 +2033,45 @@ $(function(){
     setInterval(function() { update_time(); }, 30000);
 
     // Sets the active navigation tab based on the current URL
-    $(function () {
-        var current = location.pathname;
-        let btt = current.split('/')[1];
+    var current = location.pathname;
+    let btt = current.split('/')[1];
 
-        if (btt !== 'manage') {
-            btt = btt.split('?')[0];
-        } else {
-            let csp = current.split('?')[0].split('/')
-            if (csp.length >= 3) {
-                csp = csp.splice(0, 3);
-            }
-            btt = csp.join('/');
+    if (btt !== 'manage') {
+        btt = btt.split('?')[0];
+    } else {
+        let csp = current.split('?')[0].split('/')
+        if (csp.length >= 3) {
+            csp = csp.splice(0, 3);
         }
+        btt = csp.join('/');
+    }
 
-        $('#l_nav_tab .nav-item').each(function (k, al) {
-            let href = $(al).children().attr('href');
-            let att = "";
-            try {
-                if (href == "#advanced-nav") {
-                    $('#advanced-nav .nav-subitem').each(function (i, el) {
-                        let ktt = $(el).children().attr('href').split('?')[0];
-                        if (ktt === btt) {
-                            $(el).addClass('active');
-                            $(al).addClass('active');
-                            $(al).children().attr('aria-expanded', true);
-                            $('#advanced-nav').show();
-                            return false;
-                        }
-                    });
-                } else if (href.startsWith(btt)){
-                    $(this).addClass('active');
-                    return false;
-                }else{
-                    att = href.split('/')[1].split('?')[0];
-                }
-            } catch {att=""}
-            if (att === btt) {
-                $(al).addClass('active');
+    $('#l_nav_tab .nav-item').each(function (k, al) {
+        let href = $(al).children().attr('href');
+        let att = "";
+        try {
+            if (href == "#advanced-nav") {
+                $('#advanced-nav .nav-subitem').each(function (i, el) {
+                    let ktt = $(el).children().attr('href').split('?')[0];
+                    if (ktt === btt) {
+                        $(el).addClass('active');
+                        $(al).addClass('active');
+                        $(al).children().attr('aria-expanded', true);
+                        $('#advanced-nav').show();
+                        return false;
+                    }
+                });
+            } else if (href.startsWith(btt)){
+                $(this).addClass('active');
                 return false;
+            }else{
+                att = href.split('/')[1].split('?')[0];
             }
-        })
+        } catch {att=""}
+        if (att === btt) {
+            $(al).addClass('active');
+            return false;
+        }
     })
 
     // Handles the submission of the context switcher form
@@ -2082,11 +2099,6 @@ $(function(){
         });
     });
 
-    // Toggles the arrow icon on click
-    $(".rotate").click(function () {
-        $(this).toggleClass("down");
-    });
-
     // Initializes the popover feature (currently commented out)
     $(function () {
         // new Popover({selector: '[data-toggle="popover"]', trigger: 'focus', placement: 'auto', container: 'body', html: true});
@@ -2103,13 +2115,8 @@ $(function(){
         handle: ".modal-header"
     });
 
-    // Loads the context switcher on click
-    $('.switch-context-loader').on("click", function () {
-        load_context_switcher();
-    });
-
     // Handles the submission of the task log form
-    $('#form_add_tasklog').submit(function () {
+    $('#form_add_tasklog').on('submit', function () {
         event.preventDefault();
         event.stopImmediatePropagation();
         var data = $('form#form_add_tasklog').serializeObject();
@@ -2143,6 +2150,9 @@ $(function(){
         }
           }];
     });
+
+    // Register all events 
+    setOnClickEventFromMap(commonEventsMap, commonClickEventNamespace);
 
     // Retrieves the user's information from the server
     userWhoamiRequest();
