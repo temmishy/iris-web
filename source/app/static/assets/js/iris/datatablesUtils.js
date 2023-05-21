@@ -1,5 +1,7 @@
+import $ from 'jquery';
+
 /* remove user provided filter */
-function removeFilter(clickedObject) {
+export function removeFilter(clickedObject) {
     let inputObject = $(clickedObject)
                             .parents("table")
                             .find("input")[$(clickedObject).parents("th").index()] 
@@ -16,7 +18,7 @@ export function addFilterFields(tableId){
 }
 
 /* callback function to activate filtering on a datatable */
-function tableFiltering(api, table_anchor) {
+export function tableFiltering(api, table_anchor) {
     // For each column
     api
         .columns()

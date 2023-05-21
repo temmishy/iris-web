@@ -10,7 +10,6 @@ import html2canvas from 'html2canvas';
 import ace from 'ace-builds';
 
 
-
 /**
  * Namespace for common events.
  */

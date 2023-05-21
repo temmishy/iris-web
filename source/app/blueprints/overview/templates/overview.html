@@ -15,7 +15,7 @@
                                     <div class="card-title">Open cases overview</div>
                                 </div>
                                 <div class="col">
-                                    <button type="button" class="btn btn-sm btn-outline-black float-right" onclick="get_cases_overview(false);">
+                                    <button type="button" class="btn btn-sm btn-outline-black float-right" id="overviewGetOverviewBtn">
                                         Refresh
                                     </button>
                                 </div>
@@ -65,8 +65,6 @@
 
 {% block javascripts %}
 
-    <script src="/static/assets/js/iris/datatablesUtils.js"></script>
-    <script src="/static/assets/js/plugin/datatables/dataTables.responsive.min.js"></script>
-    <script src="/static/assets/js/iris/overview.js"></script>
+    <script src="/static/assets/dist/overview.iris.js"></script>
 
 {% endblock javascripts %}

@@ -8,6 +8,7 @@ module.exports = {
   entry: {
     main: './app/static/assets/js/main.js',
     dashboard: './app/static/assets/js/dashboard.main.js',
+    overview: './app/static/assets/js/overview.main.js',
     datatables: './app/static/assets/js/datatables.main.js',
     "dark-theme": './app/static/assets/css/dark-theme.css'
   },
