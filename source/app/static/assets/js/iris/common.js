@@ -28,7 +28,8 @@ const commonEventsMap = {
     ".sidenav-case-activity-loader": function() {load_case_activity();}, 
     '.rotate': function() {$(this).toggleClass("down");},
     '.switch-context-loader': function() {load_context_switcher();}, 
-    '.sidenav-dimtask-loader': function() {load_dim_limited_tasks();}
+    '.sidenav-dimtask-loader': function() {load_dim_limited_tasks();}, 
+    '#sideBarTakeScreenBtn': function() {exportInnerPng();},
 }
 
 /**
@@ -833,7 +834,7 @@ export function isWhiteSpace(s) {
 /**
  * Exports a PNG image of the inner content of the page.
  */
-export function exportInnerPng() {
+function exportInnerPng() {
     // Close the quick sidebar.
     let close_sid_var = document.querySelector(".close-quick-sidebar");
     close_sid_var.click();
