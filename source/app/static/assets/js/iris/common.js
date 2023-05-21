@@ -27,7 +27,8 @@ const commonClickEventNamespace = `click.${commonEventNamespace}`;
 const commonEventsMap = {
     ".sidenav-case-activity-loader": function() {load_case_activity();}, 
     '.rotate': function() {$(this).toggleClass("down");},
-    '.switch-context-loader': function() {load_context_switcher();}
+    '.switch-context-loader': function() {load_context_switcher();}, 
+    '.sidenav-dimtask-loader': function() {load_dim_limited_tasks();}
 }
 
 /**
@@ -952,7 +953,7 @@ function load_case_activity(){
 /**
  * Loads the first 100 DIM tasks from the server and displays them on the page.
  */
-export function load_dim_limited_tasks(){
+function load_dim_limited_tasks(){
     get_request_api('/dim/tasks/list/100')
     .done((data) => {
         let js_data = data.data;
