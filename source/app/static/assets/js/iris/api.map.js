@@ -5,6 +5,7 @@ const roots = {
     datastore: "/datastore",
     dim: "/dim",
     global_tasks: "/global/tasks",
+    overview: "/overview",
     manage: "/manage",
     user: "/user",
 }
@@ -78,6 +79,12 @@ const endpoints = {
         cases: {
             view: roots.manage + "/cases", // + case id in cid and #view in hash
         }
+    },
+
+    // Overview
+    overview: {
+        root: roots.overview,
+        filter: roots.overview + "/filter",
     },
 
     // User 

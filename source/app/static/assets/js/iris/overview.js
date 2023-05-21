@@ -13,6 +13,8 @@ import {
   setOnClickEventFromMap
 } from './common.js';
 
+import endpoints from './api.map.js';
+
 /**
  * Namespace for overview events.
  */
@@ -59,7 +61,7 @@ var OverviewTable = $("#overview_table").DataTable({
             } else {
                 data = sanitizeHTML(data);
             }
-            data = '<a rel="noopener" title="Open case in new tab" target="_blank" href="case?cid='+ row['case_id'] + '">' + data +'</a>';
+            data = `<a rel="noopener" title="Open case in new tab" target="_blank" href="${endpoints.case.root}?cid=${row['case_id']}">${data}</a>`;
           }
           return data;
         }
@@ -183,7 +185,7 @@ var OverviewTable = $("#overview_table").DataTable({
  */
 function get_cases_overview(silent) {
     // Send a GET request to the API to retrieve the cases overview data
-    get_request_api('overview/filter')
+    get_request_api(endpoints.overview.filter)
     .done((data) => {
         // If the response is successful, update the overview table with the retrieved data
         if(notify_auto_api(data, silent)) {
