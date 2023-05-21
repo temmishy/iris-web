@@ -44,6 +44,7 @@
     "socket.io-client": "^4.6.1",
     "suggestags": "^1.27.0",
     "sweetalert": "^2.1.2",
+    "uglify-js": "^3.17.4",
     "webfontloader": "^1.6.28",
     "xss": "^1.0.14"
   },
