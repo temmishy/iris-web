@@ -16,6 +16,8 @@ import {
 
 import swal from 'sweetalert';
 
+import endpoints from './api.map';  
+
 var modal_user_cac_table = undefined;
 
 /**
@@ -51,7 +53,7 @@ function refresh_case_table() {
  */
 function case_detail(id) {
     // Load the case details modal content into the case info modal
-    let url = 'cases/details/' + id + case_param();
+    let url = endpoints.case.details + id + case_param();
     $('#info_case_modal_content').load(url, function (response, status, xhr) {
         // If the modal content fails to load, display an error notification and return
         if (status !== "success") {
@@ -84,7 +86,7 @@ function remove_case(id) {
     .then((willDelete) => {
         // If the user confirms the deletion, send a request to the server to delete the case
         if (willDelete) {
-            post_request_api('/manage/cases/delete/' + id)
+            post_request_api(endpoints.manage.cases.delete + id)
             .done((data) => {
                 // If the deletion is successful, refresh the cases table and display a success notification
                 if (notify_auto_api(data)) {
@@ -119,7 +121,7 @@ function remove_case(id) {
  */
 function reopen_case(id) {
     // Send a request to the server to reopen the case
-    post_request_api('/manage/cases/reopen/' + id)
+    post_request_api(endpoints.manage.cases.reopen + id)
     .done((data) => {
         // If the reopening is successful, refresh the cases table and hide the case info modal
         if (!refresh_case_table()) {
@@ -145,8 +147,8 @@ function close_case(id) {
     .then((willClose) => {
         // If the user confirms the closure, send a request to the server to close the case
         if (willClose) {
-            post_request_api('/manage/cases/close/' + id)
-            .done((data) => {
+            post_request_api(endpoints.manage.cases.close + id)
+            .done(() => {
                 // If the closure is successful, refresh the cases table and hide the case info modal
                 if (!refresh_case_table()) {
                     window.location.reload();
@@ -232,7 +234,7 @@ function save_case_edit(case_id) {
     data_sent['csrf_token'] = $('#csrf_token').val();
 
     // Send a request to the server to update the case with the serialized form data
-    post_request_api('/manage/cases/update/' + case_id, JSON.stringify(data_sent), true, undefined, case_id)
+    post_request_api(endpoints.manage.cases.update + case_id, JSON.stringify(data_sent), true, undefined, case_id)
     .done((data) => {
         // If the update is successful, display the case details and a success notification
         if(notify_auto_api(data)) {
@@ -262,7 +264,7 @@ function remove_case_access_from_user(user_id, case_id, on_finish) {
     .then((willDelete) => {
         // If the user confirms the removal, send a request to the server to remove the case access
         if (willDelete) {
-            let url = '/manage/users/' + user_id + '/case-access/delete';
+            let url = endpoints.manage.users.root + user_id + endpoints.manage.users.suffixes.delete_case_access;
 
             var data_sent = Object();
             data_sent['case'] = case_id;
@@ -325,7 +327,7 @@ function update_user_case_access_level(user_id, case_id, access_level) {
     };
 
     // Send a request to the server to update the user's access level for the case
-    post_request_api('/case/access/set-user', JSON.stringify(data), false, null, case_id)
+    post_request_api(endpoints.case.access.set_user, JSON.stringify(data), false, null, case_id)
     .done((data) => {
         // Display a notification to the user if the update is successful
         notify_auto_api(data);
@@ -339,7 +341,7 @@ function update_user_case_access_level(user_id, case_id, access_level) {
  */
 function view_case_access_via_group(case_id) {
     // Load the case access modal content into the additional modal
-    let url = '/case/groups/access/modal' + case_param();
+    let url = endpoints.case.access.group_modal + case_param();
     $('#modal_ac_additional').load(url, function (response, status, xhr) {
         // If the modal content fails to load, display an error notification and return
         if (status !== "success") {
@@ -367,7 +369,7 @@ function set_case_access_via_group(case_id) {
     };
 
     // Send a request to the server to set the group's access level for the case
-    post_request_api('/case/access/set-group', JSON.stringify(data))
+    post_request_api(endpoints.case.access.set_group, JSON.stringify(data))
     .done((data) => {
         // Display a notification to the user if the update is successful, reload the case access info, and hide the additional modal
         notify_auto_api(data);
@@ -387,7 +389,7 @@ function access_case_info_reload(case_id, owner_id) {
     var req_users = [];
 
     // Send a request to the server to get a list of users with access to the case
-    get_request_api('/case/users/list')
+    get_request_api(endpoints.case.users.list)
     .done((data) => {
         // If the request is successful, check if the table already exists and notify the user if necessary
         let has_table = $.fn.dataTable.isDataTable( '#case_access_users_list_table' );
@@ -490,7 +492,7 @@ function refresh_user_cac(user_id) {
     // Check if the modal user cases access table exists
     if (modal_user_cac_table !== undefined) {
         // Send a request to the server to get the user's case access information
-        get_request_api('/manage/users/' + user_id)
+        get_request_api(endpoints.manage.users.root + user_id)
         .done((data) => {
             // If the request is successful, update the current user cases access list with the new data and redraw the table
             if(notify_auto_api(data)) {
@@ -522,7 +524,7 @@ function remove_cases_access_user(user_id, cases, on_finish) {
     .then((willDelete) => {
         // If the user confirms, send a request to the server to remove the user's access to the cases
         if (willDelete) {
-            let url = '/manage/users/' + user_id + '/cases-access/delete';
+            let url = endpoints.manage.users.root + user_id + endpoints.manage.users.suffixes.delete_cases_access;
 
             var data_sent = Object();
             data_sent['cases'] = cases;

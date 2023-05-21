@@ -1,3 +1,5 @@
+import m from "ace-builds/src-noconflict/ext-language_tools";
+
 const roots = {
     case: "/case",
     context: "/context",
@@ -17,6 +19,12 @@ const endpoints = {
         root: roots.case,
         // List activities related to a case
         activities_list: roots.case + "/activities/list",
+        access: {
+            root: roots.case + "/access",
+            set_user: roots.case + "/access/set-user",
+            set_group: roots.case + "/access/set-group",
+            group_modal: roots.case + "/groups/access/modal",
+        },
         add_task_log: roots.case + "/tasklog/add",
         details: roots.case + "/details/", // + case id
         pipeline: {
@@ -25,6 +33,9 @@ const endpoints = {
         report: {
             gen_investigation: roots.case + "/report/generate-investigation/", // report template id
             gen_activities: roots.case + "/report/generate-activities/", // report template id
+        },
+        users: {
+            list: roots.case + "/users/list",
         },
         summary: {
             get: roots.case + "/summary/fetch",
@@ -78,6 +89,17 @@ const endpoints = {
         root: roots.manage,
         cases: {
             view: roots.manage + "/cases", // + case id in cid and #view in hash
+            delete: roots.manage + "/cases/delete/", // + case id
+            reopen: roots.manage + "/cases/reopen/", // + case id
+            close: roots.manage + "/cases/close/", // + case id
+            update: roots.manage + "/cases/update/", // + case id
+        },
+        users: {
+            root: roots.manage + "/users",
+            suffixes: {
+                delete_case_access: '/case-access/delete',
+                delete_cases_access: '/cases-access/delete',
+            }
         }
     },
 
