@@ -1,12 +1,8 @@
 {% extends "layouts/default_ext.html" %} {% block title %} Case summary {% endblock title %}
 {% block stylesheets %}
 {% include 'includes/header_case.html' %}
-<link rel="stylesheet" href="/static/assets/css/select2.css">
-<link rel="stylesheet" href="/static/assets/css/bootstrap-multiselect.min.css">
-<link rel="stylesheet" href="/static/assets/css/bootstrap-select.min.css">
 {% endblock stylesheets %}
 {% block content %}
-{% if current_user.is_authenticated %}
 
 {% include 'includes/navigation_ext.html' %}
 {% include 'includes/sidenav.html' %}
@@ -229,9 +225,10 @@
     </div>
 </div>
 {% include 'includes/footer.html' %}
-{% endif %} {% endblock content %} {% block javascripts %}
-
-<script src="/static/assets/js/plugin/ace/src-noconflict/ace.js" type="text/javascript" charset="utf-8"></script>
+{% endblock content %} 
+{% block javascripts %}
+    <script src="/static/assets/dist/case.iris.js"></script>
+<!-- <script src="/static/assets/js/plugin/ace/src-noconflict/ace.js" type="text/javascript" charset="utf-8"></script>
 <script src="/static/assets/js/plugin/ace/src-noconflict/ext-language_tools.js" type="text/javascript" charset="utf-8"></script>
 <script src="/static/assets/js/core/socket.io.js"></script>
 <script src="/static/assets/js/plugin/select/select2.js"></script>
@@ -243,11 +240,6 @@
 <script src="/static/assets/js/iris/manage.cases.common.js"></script>
 <script src="/static/assets/js/iris/case.summary.js"></script>
 <script src="/static/assets/js/plugin/select/bootstrap-select.min.js"></script>
-<script src="/static/assets/js/plugin/select/bootstrap-multiselect.min.js"></script>
-
-<script>
-    $('#modal_select_report').selectpicker();
-    load_menu_mod_options_modal([{{case.case_id}}], 'case', $("#case_modal_quick_actions"));
-</script>
+<script src="/static/assets/js/plugin/select/bootstrap-multiselect.min.js"></script> -->
 
 {% endblock javascripts %}

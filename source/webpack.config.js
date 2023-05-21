@@ -10,7 +10,8 @@ module.exports = {
     dashboard: './app/static/assets/js/dashboard.main.js',
     overview: './app/static/assets/js/overview.main.js',
     datatables: './app/static/assets/js/datatables.main.js',
-    "dark-theme": './app/static/assets/css/dark-theme.css'
+    "dark-theme": './app/static/assets/css/dark-theme.css', 
+    "case.summary": './app/static/assets/js/case.summary.main.js'
   },
   optimization: {
     minimizer: [
@@ -19,7 +20,7 @@ module.exports = {
   },
   output: {
     path: path.resolve(__dirname, 'app/static/assets/dist'),
-    filename: '[name].iris.js', 
+    filename: '[name].iris.js'
   },
   plugins: [
     new webpack.ProvidePlugin({

@@ -1,141 +1,221 @@
-var session_id = null ;
-var collaborator = null ;
-var buffer_dumped = false ;
-var last_applied_change = null ;
-var just_cleared_buffer = null ;
-var from_sync = null;
+import $ from 'jquery';
+import ace from 'ace-builds';
+import { 
+    load_menu_mod_options_modal, 
+    get_caseid, 
+    notify_success,
+    random_filename,
+    upload_interactive_data,
+    case_param, 
+    notify_error, 
+    get_request_api, 
+    ajax_notify_error, 
+    get_showdown_convert,
+    do_md_filter_xss
+} from 'common.js';
 
-var editor = ace.edit("editor_summary",
-    {
-    autoScrollEditorIntoView: true,
-    minLines: 4
-    });
+import crc32 from 'iris/crc32.js';
+import edit_case_info from 'iris/manage.cases.common.js';
+import swal from 'sweetalert';
+import io from 'socket.io-client';
 
-var textarea = $('#case_summary');
+let collaborator = null;
+let last_applied_change = null;
+let just_cleared_buffer = false;
+let from_sync = false;
 
-function Collaborator( session_id ) {
-    this.collaboration_socket = io.connect() ;
+/**
+ * Initializes a Collaborator object with a given session ID and sets up a socket connection to the server.
+ * 
+ * @param {string} session_id - The session ID to use for the collaboration channel.
+ */
+function Collaborator(session_id) {
+    // Set up a socket connection to the server for collaboration
+    this.collaboration_socket = io.connect();
 
+    // Set the channel for the collaboration socket to the given session ID
     this.channel = "case-" + session_id;
+
+    // Join the collaboration channel
     this.collaboration_socket.emit('join', { 'channel': this.channel });
 
-    this.collaboration_socket.on( "change", function(data) {
-        delta = JSON.parse( data.delta ) ;
-        console.log(delta);
-        last_applied_change = delta ;
+    // Listen for changes to the editor content from other collaborators
+    this.collaboration_socket.on("change", function(data) {
+        // Parse the delta data and apply it to the editor
+        let delta = JSON.parse(data.delta);
+        last_applied_change = delta;
         $("#content_typing").text(data.last_change + " is typing..");
-        editor.getSession().getDocument().applyDeltas( [delta] ) ;
-    }.bind() ) ;
+        editor.getSession().getDocument().applyDeltas([delta]);
+    }.bind());
 
-    this.collaboration_socket.on( "clear_buffer", function() {
-        just_cleared_buffer = true ;
-        console.log( "setting editor empty" ) ;
-        editor.setValue( "" ) ;
-    }.bind() ) ;
+    // Listen for a request to clear the editor buffer
+    this.collaboration_socket.on("clear_buffer", function() {
+        just_cleared_buffer = true;
+        console.log("setting editor empty");
+        editor.setValue("");
+    }.bind());
 
-    this.collaboration_socket.on( "save", function(data) {
+    // Listen for a request to save the editor content
+    this.collaboration_socket.on("save", function(data) {
+        // Update the last saved by information and sync the editor content
         $("#content_last_saved_by").text("Last saved by " + data.last_saved);
-         sync_editor(true);
-    }.bind() ) ;
+        sync_editor(true);
+    }.bind());
 }
 
-Collaborator.prototype.change = function( delta ) {
-    this.collaboration_socket.emit( "change", { 'delta': delta, 'channel': this.channel } ) ;
+/**
+ * Initializes an Ace editor with the given options and sets up Collaborator methods for changing, clearing, and saving the editor content.
+ */
+var editor = ace.edit("editor_summary", {
+    autoScrollEditorIntoView: true,
+    minLines: 4
+});
+
+/**
+ * Sends a change event to the collaboration socket with the given delta data.
+ * 
+ * @param {Object} delta - The delta data to send to the collaboration socket.
+ */
+Collaborator.prototype.change = function(delta) {
+    this.collaboration_socket.emit("change", { 'delta': delta, 'channel': this.channel });
 }
 
+/**
+ * Sends a clear buffer event to the collaboration socket.
+ */
 Collaborator.prototype.clear_buffer = function() {
-    this.collaboration_socket.emit( "clear_buffer", { 'channel': this.channel } ) ;
+    this.collaboration_socket.emit("clear_buffer", { 'channel': this.channel });
 }
 
+/**
+ * Sends a save event to the collaboration socket.
+ */
 Collaborator.prototype.save = function() {
-    this.collaboration_socket.emit( "save", { 'channel': this.channel } ) ;
+    this.collaboration_socket.emit("save", { 'channel': this.channel });
 }
 
+/**
+ * Initializes the Ace editor and sets up a Collaborator object for real-time collaboration.
+ */
 function body_loaded() {
+    // Create a new Collaborator object with the current case ID
+    collaborator = new Collaborator(get_caseid());
 
-    collaborator = new Collaborator( get_caseid() ) ;
-
-    // registering change callback
+    // Register a change event listener on the editor to send changes to the collaboration socket
     from_sync = true;
-    editor.on( "change", function( e ) {
-        // TODO, we could make things more efficient and not likely to conflict by keeping track of change IDs
-        if( last_applied_change!=e && editor.curOp && editor.curOp.command.name) {
-            collaborator.change( JSON.stringify(e) ) ;
+    editor.on("change", function(e) {
+        if (last_applied_change != e && editor.curOp && editor.curOp.command.name) {
+            collaborator.change(JSON.stringify(e));
         }
-    }, false );
+    }, false);
 
-    editor.$blockScrolling = Infinity ;
+    // Set the block scrolling property of the editor to infinity
+    editor.$blockScrolling = Infinity;
 
-    document.getElementsByTagName('textarea')[0].focus() ;
-    last_applied_change = null ;
-    just_cleared_buffer = false ;
+    // Set focus on the first textarea element in the document
+    document.getElementsByTagName('textarea')[0].focus();
+    last_applied_change = null;
+    just_cleared_buffer = false;
 }
 
+/**
+ * Handles a paste event on the editor by uploading the pasted file to the datastore and inserting a markdown image link into the editor.
+ * 
+ * @param {Event} event - The paste event to handle.
+ */
 function handle_ed_paste(event) {
-    filename = null;
+    let filename = null;
     const { items } = event.originalEvent.clipboardData;
     for (let i = 0; i < items.length; i += 1) {
-      const item = items[i];
+        const item = items[i];
 
-      if (item.kind === 'string') {
-        item.getAsString(function (s){
-            filename = $.trim(s.replace(/\t|\n|\r/g, '')).substring(0, 40);
-        });
-      }
-
-      if (item.kind === 'file') {
-        const blob = item.getAsFile();
-
-        if (blob !== null) {
-            const reader = new FileReader();
-            reader.onload = (e) => {
-                notify_success('The file is uploading in background. Don\'t leave the page');
-
-                if (filename === null) {
-                    filename = random_filename(25);
-                }
-
-                upload_interactive_data(e.target.result, filename, function(data){
-                    url = data.data.file_url + case_param();
-                    event.preventDefault();
-                    editor.insertSnippet(`\n![${filename}](${url} =40%x40%)\n`);
-                });
-
-            };
-            reader.readAsDataURL(blob);
-        } else {
-            notify_error('Unsupported direct paste of this item. Use datastore to upload.');
+        // If the item is a string, set the filename to the trimmed string value
+        if (item.kind === 'string') {
+            item.getAsString(function (s){
+                filename = $.trim(s.replace(/\t|\n|\r/g, '')).substring(0, 40);
+            });
         }
-      }
+
+        // If the item is a file, upload it to the datastore and insert a markdown image link into the editor
+        if (item.kind === 'file') {
+            const blob = item.getAsFile();
+
+            if (blob !== null) {
+                const reader = new FileReader();
+                reader.onload = (e) => {
+                    // Notify the user that the file is uploading
+                    notify_success('The file is uploading in background. Don\'t leave the page');
+
+                    // If a filename was not set, generate a random filename
+                    if (filename === null) {
+                        filename = random_filename(25);
+                    }
+
+                    // Upload the file to the datastore and insert a markdown image link into the editor
+                    upload_interactive_data(e.target.result, filename, function(data){
+                        let url = data.data.file_url + case_param();
+                        event.preventDefault();
+                        editor.insertSnippet(`\n![${filename}](${url} =40%x40%)\n`);
+                    });
+
+                };
+                reader.readAsDataURL(blob);
+            } else {
+                // Notify the user that the item is not supported for direct paste and should be uploaded to the datastore
+                notify_error('Unsupported direct paste of this item. Use datastore to upload.');
+            }
+        }
     }
 }
 
+/**
+ * Displays a modal dialog to select a report template.
+ */
 function report_template_selector() {
     $('#modal_select_report').modal({ show: true });
 }
 
+/**
+ * Generates an investigation report with the selected report template.
+ * 
+ * @param {boolean} safe - Whether to generate a safe report or not.
+ */
 function gen_report(safe) {
-    url = '/case/report/generate-investigation/' + $("#select_report option:selected").val() + case_param();
+    let url = '/case/report/generate-investigation/' + $("#select_report option:selected").val() + case_param();
     if (safe === true) {
         url += '&safe=true';
     }
     window.open(url, '_blank');
 }
 
+/**
+ * Generates an activities report with the selected report template.
+ * 
+ * @param {boolean} safe - Whether to generate a safe report or not.
+ */
 function gen_act_report(safe) {
-    url = '/case/report/generate-activities/' + $("#select_report_act option:selected").val() + case_param();
+    let url = '/case/report/generate-activities/' + $("#select_report_act option:selected").val() + case_param();
     if (safe === true) {
         url += '&safe=true';
     }
     window.open(url, '_blank');
 }
 
+/**
+ * Displays a modal dialog to select an activities report template.
+ */
 function act_report_template_selector() {
     $('#modal_select_report_act').modal({ show: true });
 }
 
+/**
+ * Toggles the visibility of the case summary editor and updates the corresponding buttons and layout.
+ */
 function edit_case_summary() {
+    // Toggle the visibility of the case summary editor
     $('#container_editor_summary').toggle();
+
+    // Update the layout and buttons based on the visibility of the editor
     if ($('#container_editor_summary').is(':visible')) {
         $('#ctrd_casesum').removeClass('col-md-12').addClass('col-md-6');
         $('#summary_edition_btn').show(100);
@@ -173,7 +253,8 @@ function sync_editor(no_check) {
             }
             else {
                 // Check if content is different
-                st = editor.getSession().getValue();
+                let st = editor.getSession().getValue();
+                let local_crc = '';
                 if (data.data.crc32 != $('#fetched_crc').val()) {
                     // Content has changed remotely
                     // Check if we have changes locally
@@ -193,7 +274,7 @@ function sync_editor(no_check) {
                         swal ( "Oh no !" ,
                         "We have a conflict with the remote content.\nSomeone may just have changed the description at the same time.\nThe local content will be copied into clipboard and content will be updated with remote." ,
                         "error"
-                        ).then((value) => {
+                        ).then(() => {
                             // Old fashion trick
                             editor.selectAll();
                             editor.focus();
@@ -211,21 +292,21 @@ function sync_editor(no_check) {
                     if (local_crc != $('#fetched_crc').val()) {
                         console.log('Local change. Old CRC is ' + local_crc);
                         console.log('New CRC is ' + $('#fetched_crc').val());
-                        var data = Object();
-                        data['case_description'] = st;
-                        data['csrf_token'] = $('#csrf_token').val();
+                        var data_req = Object();
+                        data_req['case_description'] = st;
+                        data_req['csrf_token'] = $('#csrf_token').val();
                         // Local change detected. Update to remote
                         $.ajax({
                             url: '/case/summary/update' + case_param(),
                             type: "POST",
                             dataType: "json",
                             contentType: "application/json;charset=UTF-8",
-                            data: JSON.stringify(data),
-                            success: function (data) {
-                                if (data.status == 'success') {
+                            data: JSON.stringify(data_req),
+                            success: function (data_received) {
+                                if (data_received.status == 'success') {
                                     collaborator.save();
                                     $('#content_last_sync').text("Last synced: " + new Date().toLocaleTimeString());
-                                    $('#fetched_crc').val(data.data);
+                                    $('#fetched_crc').val(data_received.data);
                                     $('#last_saved').text('Changes saved').removeClass('badge-danger').addClass('badge-success');
                                 } else {
                                     notify_error("Unable to save content to remote server");
@@ -247,7 +328,10 @@ function sync_editor(no_check) {
 }
 
 
-is_typing = "";
+/**
+ * Tracks the current typing status and removes the typing indicator if the status hasn't changed.
+ */
+let is_typing = "";
 function auto_remove_typing() {
     if ($("#content_typing").text() == is_typing) {
         $("#content_typing").text("");
@@ -256,36 +340,59 @@ function auto_remove_typing() {
     }
 }
 
+/**
+ * Displays a modal dialog to select a pipeline for the current case and updates the corresponding buttons and layout.
+ */
 function case_pipeline_popup() {
-    url = '/case/pipelines-modal' + case_param();
+    // Load the pipeline modal content into the case info modal
+    let url = '/case/pipelines-modal' + case_param();
     $('#info_case_modal_content').load(url, function (response, status, xhr) {
+        // If the modal content fails to load, display an error notification and return
         if (status !== "success") {
              ajax_notify_error(xhr, url);
              return false;
         }
+
+        // Show the case info modal and initialize the pipeline selector
         $('#modal_case_detail').modal({ show: true });
         $("#update_pipeline_selector").selectpicker({
             liveSearch: true,
             style: "btn-outline-white"
-            })
+        })
         $('#update_pipeline_selector').selectpicker("refresh");
+
+        // Hide all pipeline argument controls and show the controls for the selected pipeline
         $(".control-update-pipeline-args ").hide();
         $('.control-update-pipeline-'+ $('#update_pipeline_selector').val() ).show();
+
+        // Register a change event listener on the pipeline selector to show the corresponding pipeline argument controls
         $('#update_pipeline_selector').on('change', function(e){
-          $(".control-update-pipeline-args ").hide();
-          $('.control-update-pipeline-'+this.value).show();
+            $(".control-update-pipeline-args ").hide();
+            $('.control-update-pipeline-'+this.value).show();
         });
+
+        // Initialize popovers for pipeline argument controls
         $('[data-toggle="popover"]').popover();
     });
 }
 
+/**
+ * Displays the details of a case in a modal dialog.
+ * 
+ * @param {number} case_id - The ID of the case to display details for.
+ * @param {boolean} edit_mode - Whether to display the case details in edit mode or not.
+ */
 function case_detail(case_id, edit_mode=false) {
-    url = '/case/details/' + case_id + case_param();
+    // Load the case details modal content into the case info modal
+    let url = '/case/details/' + case_id + case_param();
     $('#info_case_modal_content').load(url, function (response, status, xhr) {
+        // If the modal content fails to load, display an error notification and return
         if (status !== "success") {
              ajax_notify_error(xhr, url);
              return false;
         }
+
+        // Show the case info modal and enter edit mode if specified
         $('#modal_case_detail').modal({ show: true });
         if (edit_mode) {
             edit_case_info();
@@ -293,19 +400,31 @@ function case_detail(case_id, edit_mode=false) {
     });
 }
 
+/**
+ * Redirects the user to the case management page for the specified case.
+ * 
+ * @param {number} case_id - The ID of the case to manage.
+ */
 function manage_case(case_id) {
    window.location = '/manage/cases?cid='+ case_id +'#view';
 }
 
 
-$(document).ready(function() {
-
+/**
+ * Initializes the case summary editor with various options and key bindings.
+ */
+$(function() {
+    // Set the editor theme based on the data-theme attribute of the editor_summary element
     if ($("#editor_summary").attr("data-theme") !== "dark") {
         editor.setTheme("ace/theme/tomorrow");
     } else {
         editor.setTheme("ace/theme/iris_night");
     }
+
+    // Set the editor mode to markdown
     editor.session.setMode("ace/mode/markdown");
+
+    // Set various editor options
     editor.renderer.setShowGutter(true);
     editor.setOption("showLineNumbers", true);
     editor.setOption("showPrintMargin", false);
@@ -315,10 +434,12 @@ $(document).ready(function() {
     editor.setOption("maxLines", "Infinity")
     editor.renderer.setScrollMargin(8, 5)
     editor.setOption("enableBasicAutocompletion", true);
+
+    // Add key bindings for saving, bold, italic, and heading formatting
     editor.commands.addCommand({
         name: 'save',
         bindKey: {win: "Ctrl-S", "mac": "Cmd-S"},
-        exec: function(editor) {
+        exec: function() {
             sync_editor(false);
         }
     })
@@ -364,11 +485,14 @@ $(document).ready(function() {
             editor.insertSnippet('#### ${1:$SELECTION}');
         }
     });
+
+    // Add a paste event listener to handle pasting into the editor
     $('#editor_summary').on('paste', (event) => {
         event.preventDefault();
         handle_ed_paste(event);
     });
 
+    // Add a keyup event listener to the editor to sync changes with the server
     var timer;
     var timeout = 10000;
     $('#editor_summary').keyup(function(){
@@ -378,24 +502,22 @@ $(document).ready(function() {
         timer = setTimeout(sync_editor, timeout);
     });
 
-
-    //var textarea = $('#case_summary');
+    // Add a change event listener to the editor to update the preview and mark changes as unsaved
     editor.getSession().on("change", function () {
-        //textarea.val(do_md_filter_xss(editor.getSession().getValue()));
         $('#last_saved').text('Changes not saved').addClass('badge-danger').removeClass('badge-success');
         let target = document.getElementById('targetDiv');
         let converter = get_showdown_convert();
         let html = converter.makeHtml(do_md_filter_xss(editor.getSession().getValue()));
-
         target.innerHTML = do_md_filter_xss(html);
-
     });
 
+    // Call various functions to initialize the editor and page
     edit_case_summary();
     body_loaded();
     sync_editor(true);
     setInterval(auto_remove_typing, 2000);
-
+    $('#modal_select_report').selectpicker();
+    load_menu_mod_options_modal([], 'case', $("#case_modal_quick_actions"));
 });
 
 

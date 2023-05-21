@@ -105,7 +105,7 @@ function close_case(id) {
     });
 }
 
-function edit_case_info() {
+export function edit_case_info() {
     $('#case_gen_info_content').hide();
     $('#case_gen_info_edit').show();
     $('#cancel_case_info').show();

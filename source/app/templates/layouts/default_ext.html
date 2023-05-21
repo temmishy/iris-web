@@ -1,9 +1,8 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-
 	<meta http-equiv="X-UA-Compatible" content="IE=edge" />
-	<title>IRIS - {% block title %}Case{% endblock %} {% if session['current_case'].case_id %}| {{ session['current_case'].case_name }}  {% endif %} </title>
+	<title>IRIS - {% block title %}Case{% endblock %} {% if session['current_case'].case_id %}| {{ session['current_case'].case_name }}  {% endif %}</title>
 	<meta content='width=device-width, initial-scale=1.0, shrink-to-fit=no' name='viewport' />
 	<link rel="icon" href="/static/assets/img/logo.ico" type="image/x-icon"/>
 	{% if demo_domain %}
@@ -36,10 +35,6 @@
 			</div>
 		</div>
 	</div>
-
-	<script src="/static/assets/dist/main.iris.js"></script>
-
-    {% block javascripts %}{% endblock javascripts %}
-	
+	{% block javascripts %}{% endblock javascripts %}
 </body>
 </html>
