@@ -23,11 +23,23 @@ import "ace-builds/src-noconflict/theme-tomorrow";
 
 import swal from 'sweetalert';
 
-const dsEventNamespace = 'dsEventNamespace';
-const dsClickEventNamespace = `click.${dsEventNamespace}`;
-
 let ds_filter;
 
+
+
+/*
+ * Namespace for datastore events
+ */
+const dsEventNamespace = 'dsEventNamespace';
+
+/*
+ * Namespace for click events in datastore
+ */
+const dsClickEventNamespace = `click.${dsEventNamespace}`;
+
+/*
+ * Map of events and their corresponding functions in datastore
+ */
 const dsStoreEventsMap = {
     "#dsRefreshDatastore": function() {refresh_ds();},
     "#dsToggleSelectFiles": function() {toggle_select_file();},
@@ -53,6 +65,7 @@ const dsStoreEventsMap = {
     ".ds-file-selector": function() {ds_file_select($(this).parent().data('file-id'));},
     ".ds-download-file-btn": function() {download_ds_file(getParentDataNode($(this), 'file-id'));}
 }
+
 
 function getParentDataNode(node, data_name) {
     return node.parent().parent().data(data_name);
