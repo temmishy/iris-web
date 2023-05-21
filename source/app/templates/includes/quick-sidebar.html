@@ -5,7 +5,7 @@
 		<div class="quick-sidebar-wrapper">
 			<ul class="nav nav-tabs nav-line nav-color-primary" role="tablist">
 				<li class="nav-item"> <a class="nav-link active show" data-toggle="tab" href="#case" role="tab" aria-controls="case"  aria-selected="true">Case</a> </li>
-				<li class="nav-item"> <a class="nav-link" data-toggle="tab" href="#activities" aria-controls="activities" role="tab" onclick="load_case_activity();">Activities</a></li>
+				<li class="nav-item"> <a class="nav-link sidenav-case-activity-loader" data-toggle="tab" href="#activities" aria-controls="activities" role="tab">Activities</a></li>
 				<li class="nav-item"> <a class="nav-link" data-toggle="tab" href="#dim_tasks" aria-controls="dim_tasks" role="tab" onclick="load_dim_limited_tasks();">DIM Tasks</a></li>
 
 			</ul>
@@ -13,7 +13,7 @@
 				<div class="tab-chat tab-pane fade" id="activities" role="tabpanel">
 					<div class="row">
 						<div class="col">
-							<button type="button" class="float-right btn btn-round btn-xs btn-icon btn-outline-default mr-3 ml-3" onclick="load_case_activity();">
+							<button type="button" class="float-right btn btn-round btn-xs btn-icon btn-outline-default mr-3 ml-3 sidenav-case-activity-loader">
 								<i class="fas fa-sync rotate"></i>
 							</button>
 							<ol class="activity-feed" id="case_activities">

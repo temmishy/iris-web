@@ -16,5 +16,6 @@ import 'dropzone';
 import 'ace-builds';
 
 import './fonts';
+import './atlantis.js';
 
 import '../css/main.css.js';

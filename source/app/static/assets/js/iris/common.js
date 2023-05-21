@@ -595,7 +595,7 @@ export function copy_object_link_md(data_type, node_id){
     });
 }
 
-export function load_case_activity(){
+function load_case_activity(){
     get_request_api('/case/activities/list')
     .done((data) => {
         let js_data = data.data;
@@ -1466,7 +1466,7 @@ export function do_deletion_prompt(message, force_prompt=false) {
     }
 }
 
-$(document).ready(function(){
+$(function(){
     notify_redirect();
     update_time();
     setInterval(function() { update_time(); }, 30000);

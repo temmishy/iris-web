@@ -673,7 +673,7 @@ function download_ds_file(file_id, filename) {
 }
 
 function reparse_activate_tree_selection() {
-    $('.tree li.parent_li > span').on('click', function (e) {
+    $('.tree li.parent_li > span').on('click', function () {
         if ($(this).hasClass('node-selected')) {
             $(this).removeClass('node-selected');
             $('#msg_mv_dst_folder').text('unselected destination');
