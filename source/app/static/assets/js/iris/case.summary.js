@@ -22,7 +22,8 @@ import { crc32 } from './crc32.utils';
 import { edit_case_info } from './manage.cases.common';
 import swal from 'sweetalert';
 import io from 'socket.io-client';
-import m from 'ace-builds/src-noconflict/ext-language_tools';
+
+import endpoints from './api.map';
 
 let collaborator = null;
 let last_applied_change = null;
@@ -227,7 +228,7 @@ function report_template_selector() {
  * @param {boolean} safe - Whether to generate a safe report or not.
  */
 function gen_report(safe) {
-    let url = '/case/report/generate-investigation/' + $("#select_report option:selected").val() + case_param();
+    let url = endpoints.case.report.gen_investigation + $("#select_report option:selected").val() + case_param();
     if (safe === true) {
         url += '&safe=true';
     }
@@ -240,7 +241,7 @@ function gen_report(safe) {
  * @param {boolean} safe - Whether to generate a safe report or not.
  */
 function gen_act_report(safe) {
-    let url = '/case/report/generate-activities/' + $("#select_report_act option:selected").val() + case_param();
+    let url = endpoints.case.report.gen_activities + $("#select_report_act option:selected").val() + case_param();
     if (safe === true) {
         url += '&safe=true';
     }
@@ -284,7 +285,7 @@ function sync_editor(no_check) {
 
     $('#last_saved').text('Syncing..').addClass('badge-danger').removeClass('badge-success');
 
-    get_request_api('/case/summary/fetch')
+    get_request_api(endpoints.case.summary.get)
     .done((data) => {
         if (data.status == 'success') {
             if (no_check) {
@@ -343,7 +344,7 @@ function sync_editor(no_check) {
                         data_req['csrf_token'] = $('#csrf_token').val();
                         // Local change detected. Update to remote
                         $.ajax({
-                            url: '/case/summary/update' + case_param(),
+                            url: endpoints.case.summary.set + case_param(),
                             type: "POST",
                             dataType: "json",
                             contentType: "application/json;charset=UTF-8",
@@ -391,7 +392,7 @@ function auto_remove_typing() {
  */
 function case_pipeline_popup() {
     // Load the pipeline modal content into the case info modal
-    let url = '/case/pipelines-modal' + case_param();
+    let url = endpoints.case.pipeline.modal + case_param();
     $('#info_case_modal_content').load(url, function (response, status, xhr) {
         // If the modal content fails to load, display an error notification and return
         if (status !== "success") {
@@ -430,7 +431,7 @@ function case_pipeline_popup() {
  */
 function case_detail(case_id, edit_mode=false) {
     // Load the case details modal content into the case info modal
-    let url = '/case/details/' + case_id + case_param();
+    let url = endpoints.case.details + case_id + case_param();
     $('#info_case_modal_content').load(url, function (response, status, xhr) {
         // If the modal content fails to load, display an error notification and return
         if (status !== "success") {
@@ -452,7 +453,7 @@ function case_detail(case_id, edit_mode=false) {
  * @param {number} case_id - The ID of the case to manage.
  */
 function manage_case(case_id) {
-   window.location = '/manage/cases?cid='+ case_id +'#view';
+   window.location = endpoints.manage.cases.view + '?cid='+ case_id +'#view';
 }
 
 

@@ -8,7 +8,7 @@ import swal from 'sweetalert';
 import html2canvas from 'html2canvas';
 import ace from 'ace-builds';
 
-import { endpoints } from './api.map';
+import endpoints from './api.map';
 
 
 /**
