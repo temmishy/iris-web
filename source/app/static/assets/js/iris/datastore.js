@@ -586,32 +586,6 @@ function refresh_ds(silent = false){
 }
 
 /**
- * Uploads interactive data to the datastore.
- * 
- * @param {string} data_blob - The data to upload.
- * @param {string} filename - The name of the file to upload.
- * @param {function} completion_callback - The function to call upon completion.
- */
-export function upload_interactive_data(data_blob, filename, completion_callback) {
-    // Create an object with the data to send
-    var data_sent = Object()
-    data_sent["csrf_token"] = $('#csrf_token').val();
-    data_sent["file_content"] = data_blob.split(';base64,')[1];
-    data_sent["file_original_name"] = filename;
-
-    // Send a POST request to the server to add the file
-    post_request_api('/datastore/file/add-interactive', JSON.stringify(data_sent), true)
-    .done(function (data){
-        if(notify_auto_api(data)) {
-            // If the request is successful, call the completion callback function
-            if (completion_callback !== undefined) {
-                completion_callback(data);
-            }
-        }
-    });
-}
-
-/**
  * Toggles the file selection mode in the datastore.
  */
 function toggle_select_file() {

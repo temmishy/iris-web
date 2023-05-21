@@ -12,10 +12,10 @@ import {
     ajax_notify_error, 
     get_showdown_convert,
     do_md_filter_xss
-} from 'common.js';
+} from './common';
 
-import crc32 from 'iris/crc32.js';
-import edit_case_info from 'iris/manage.cases.common.js';
+import { crc32 } from './crc32.utils';
+import { edit_case_info } from './manage.cases.common';
 import swal from 'sweetalert';
 import io from 'socket.io-client';
 
