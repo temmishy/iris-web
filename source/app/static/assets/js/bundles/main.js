@@ -15,7 +15,11 @@ import 'chartjs';
 import 'dropzone';
 import 'ace-builds';
 
-import './fonts';
-import './atlantis.js';
+import $ from 'jquery';
+global.$ = global.jQuery = $;
 
-import '../css/main.css.js';
+import '../fonts';
+import '../atlantis.js';
+
+import '../../css/main.css.js';
+

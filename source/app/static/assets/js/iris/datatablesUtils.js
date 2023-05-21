@@ -1,4 +1,4 @@
-import $ from 'jquery';
+/* global $ */
 
 /* remove user provided filter */
 export function removeFilter(clickedObject) {

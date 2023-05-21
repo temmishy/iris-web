@@ -41,7 +41,7 @@ function submit_new_case() {
     send_add_case(data_sent);
 
     return false;
-};
+}
 
 
 function send_add_case(data_sent) {
@@ -133,7 +133,7 @@ $('#cases_table').dataTable({
         {
             "render": function (data, type, row) {
                 data = sanitizeHTML(data);
-                return '<a href="#" onclick="case_detail(\'' + row['case_id'] + '\');">' + decodeURIComponent(data) + '</a>';
+                return `<a data-case-id="${row['case_id']} class="summary-case-details-btn">${decodeURIComponent(data)}</a>`;
             },
             "data": "case_name"
         },

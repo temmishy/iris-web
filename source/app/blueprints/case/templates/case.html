@@ -30,8 +30,7 @@
                         </div>
                         <div class="col mt-4">
                             <div class="row">
-                                 <span title="Case outcome" class="float-right btn btn-rounded badge-pill hidden-caret ml-auto btn-xs mb-2 {% if case.status_id == 1%}badge-success{% elif case.status_id == 2 %}badge-danger{% else %}btn-light{% endif %}"
-                                    onclick="case_detail('{{ case.case_id }}', true);"
+                                 <span title="Case outcome" class="float-right btn btn-rounded badge-pill hidden-caret ml-auto summary-case-details-btn btn-xs mb-2 {% if case.status_id == 1%}badge-success{% elif case.status_id == 2 %}badge-danger{% else %}btn-light{% endif %}"
                                  ><i class="fa-solid fa-group-arrows-rotate mr-2"></i>{{ case.status_name }}</span>
                             </div>
                             <div class="row">
@@ -50,8 +49,8 @@
 
                         <div class="ml-2 col">
                             <div class="row ml-1">
-                                {% if case.state %}<h5 title="Case state" onclick="case_detail('{{ case.case_id }}', true);" style="cursor:pointer;"><span class="btn-rounded badge-pill hidden-caret btn-sm btn-light"><i class="fa-solid fa-business-time  mr-1"></i> {{ case.state.state_name }}</span></h5>{% endif %}
-                                {% if case.classification %}<h5 title="Classification" onclick="case_detail('{{ case.case_id }}', true);" style="cursor:pointer;"><span class="btn-rounded badge-pill hidden-caret btn-sm btn-light ml-2"><i class="fa-solid fa-shield-virus mr-1"></i>{{ case.classification.name_expanded }}</span></h5>{% endif %}
+                                {% if case.state %}<h5 title="Case state" style="cursor:pointer;"><span class="btn-rounded badge-pill hidden-caret btn-sm btn-light summary-case-details-btn"><i class="fa-solid fa-business-time  mr-1"></i> {{ case.state.state_name }}</span></h5>{% endif %}
+                                {% if case.classification %}<h5 title="Classification"ß style="cursor:pointer;"><span class="btn-rounded badge-pill hidden-caret btn-sm btn-light ml-2 summary-case-details-btn"><i class="fa-solid fa-shield-virus mr-1"></i>{{ case.classification.name_expanded }}</span></h5>{% endif %}
                                 {% if case.alerts| length > 0 %}<h5 title="Alerts"><a class="btn-rounded badge-pill hidden-caret btn-sm btn-dark ml-2 badge-warning" href="/alerts?cid={{ case.case_id }}&sort=desc&case_id={{ case.case_id }}" target="_blank" rel="noopener"><i class="fa-solid fa-bell mr-1"></i> {{ case.alerts| length }} related alerts</a></h5>{% endif %}
                             </div>
                         </div>
@@ -85,8 +84,8 @@
                                         <small id="content_last_saved_by" class="mr-3 mt-1"></small>
                                         <span id="last_saved" class="badge mr-3 ml-2"></span>
                                         <small id="content_last_sync"></small>
-                                        <button class="btn btn-sm mr-2 ml-3" onclick="edit_case_summary();" id="sum_edit_btn" >Edit</button>
-                                        <button type="button" id="sum_refresh_btn" class="btn btn-sm btn-outline-default mr-3" onclick="sync_editor();">
+                                        <button class="btn btn-sm mr-2 ml-3 btn-light" id="summaryEditBtn" >Edit</button>
+                                        <button type="button" class="btn btn-sm btn-light mr-3" id="summarySyncEditor">
                                             Refresh
                                         </button>
                                     </div>
@@ -227,7 +226,7 @@
 {% include 'includes/footer.html' %}
 {% endblock content %} 
 {% block javascripts %}
-    <script src="/static/assets/dist/case.iris.js"></script>
+    <script src="/static/assets/dist/case.summary.iris.js"></script>
 <!-- <script src="/static/assets/js/plugin/ace/src-noconflict/ace.js" type="text/javascript" charset="utf-8"></script>
 <script src="/static/assets/js/plugin/ace/src-noconflict/ext-language_tools.js" type="text/javascript" charset="utf-8"></script>
 <script src="/static/assets/js/core/socket.io.js"></script>

@@ -9,14 +9,14 @@
 /******/ (() => { // webpackBootstrap
 /******/ 	var __webpack_modules__ = ({
 
-/***/ "./app/static/assets/js/datatables.main.js":
-/*!*************************************************!*\
-  !*** ./app/static/assets/js/datatables.main.js ***!
-  \*************************************************/
+/***/ "./app/static/assets/js/bundles/datatables.main.js":
+/*!*********************************************************!*\
+  !*** ./app/static/assets/js/bundles/datatables.main.js ***!
+  \*********************************************************/
 /***/ ((__unused_webpack_module, __webpack_exports__, __webpack_require__) => {
 
 "use strict";
-eval("__webpack_require__.r(__webpack_exports__);\n/* harmony import */ var datatables_net__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! datatables.net */ \"./node_modules/datatables.net/js/jquery.dataTables.mjs\");\n/* harmony import */ var datatables_net_bs4__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(/*! datatables.net-bs4 */ \"./node_modules/datatables.net-bs4/js/dataTables.bootstrap4.mjs\");\n/* harmony import */ var datatables_net_responsive_bs4__WEBPACK_IMPORTED_MODULE_2__ = __webpack_require__(/*! datatables.net-responsive-bs4 */ \"./node_modules/datatables.net-responsive-bs4/js/responsive.bootstrap4.mjs\");\n/* harmony import */ var datatables_net_select_bs4__WEBPACK_IMPORTED_MODULE_3__ = __webpack_require__(/*! datatables.net-select-bs4 */ \"./node_modules/datatables.net-select-bs4/js/select.bootstrap4.mjs\");\n/* harmony import */ var datatables_net_buttons_js_buttons_html5__WEBPACK_IMPORTED_MODULE_4__ = __webpack_require__(/*! datatables.net-buttons/js/buttons.html5 */ \"./node_modules/datatables.net-buttons/js/buttons.html5.js\");\n/* harmony import */ var datatables_net_buttons_js_buttons_html5__WEBPACK_IMPORTED_MODULE_4___default = /*#__PURE__*/__webpack_require__.n(datatables_net_buttons_js_buttons_html5__WEBPACK_IMPORTED_MODULE_4__);\n/* harmony import */ var datatables_contextual_actions__WEBPACK_IMPORTED_MODULE_5__ = __webpack_require__(/*! datatables-contextual-actions */ \"./node_modules/datatables-contextual-actions/dist/dataTables.contextualActions.min.js\");\n/* harmony import */ var datatables_contextual_actions__WEBPACK_IMPORTED_MODULE_5___default = /*#__PURE__*/__webpack_require__.n(datatables_contextual_actions__WEBPACK_IMPORTED_MODULE_5__);\n\n\n\n\n\n\n\n//# sourceURL=webpack://iris-web/./app/static/assets/js/datatables.main.js?");
+eval("__webpack_require__.r(__webpack_exports__);\n/* harmony import */ var datatables_net__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! datatables.net */ \"./node_modules/datatables.net/js/jquery.dataTables.mjs\");\n/* harmony import */ var datatables_net_bs4__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(/*! datatables.net-bs4 */ \"./node_modules/datatables.net-bs4/js/dataTables.bootstrap4.mjs\");\n/* harmony import */ var datatables_net_responsive_bs4__WEBPACK_IMPORTED_MODULE_2__ = __webpack_require__(/*! datatables.net-responsive-bs4 */ \"./node_modules/datatables.net-responsive-bs4/js/responsive.bootstrap4.mjs\");\n/* harmony import */ var datatables_net_select_bs4__WEBPACK_IMPORTED_MODULE_3__ = __webpack_require__(/*! datatables.net-select-bs4 */ \"./node_modules/datatables.net-select-bs4/js/select.bootstrap4.mjs\");\n/* harmony import */ var datatables_net_buttons_js_buttons_html5__WEBPACK_IMPORTED_MODULE_4__ = __webpack_require__(/*! datatables.net-buttons/js/buttons.html5 */ \"./node_modules/datatables.net-buttons/js/buttons.html5.js\");\n/* harmony import */ var datatables_net_buttons_js_buttons_html5__WEBPACK_IMPORTED_MODULE_4___default = /*#__PURE__*/__webpack_require__.n(datatables_net_buttons_js_buttons_html5__WEBPACK_IMPORTED_MODULE_4__);\n/* harmony import */ var datatables_contextual_actions__WEBPACK_IMPORTED_MODULE_5__ = __webpack_require__(/*! datatables-contextual-actions */ \"./node_modules/datatables-contextual-actions/dist/dataTables.contextualActions.min.js\");\n/* harmony import */ var datatables_contextual_actions__WEBPACK_IMPORTED_MODULE_5___default = /*#__PURE__*/__webpack_require__.n(datatables_contextual_actions__WEBPACK_IMPORTED_MODULE_5__);\n\n\n\n\n\n\n\n//# sourceURL=webpack://iris-web/./app/static/assets/js/bundles/datatables.main.js?");
 
 /***/ }),
 
@@ -199,7 +199,7 @@ eval("__webpack_require__.r(__webpack_exports__);\n/* harmony export */ __webpac
 /******/ 	// startup
 /******/ 	// Load entry module and return exports
 /******/ 	// This entry module can't be inlined because the eval devtool is used.
-/******/ 	var __webpack_exports__ = __webpack_require__("./app/static/assets/js/datatables.main.js");
+/******/ 	var __webpack_exports__ = __webpack_require__("./app/static/assets/js/bundles/datatables.main.js");
 /******/ 	
 /******/ })()
 ;

@@ -1,4 +1,4 @@
-import $ from 'jquery';
+/* global $ */
 
 import { 
   get_request_api, 

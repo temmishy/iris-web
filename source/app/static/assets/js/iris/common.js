@@ -1,5 +1,4 @@
-import $ from 'jquery';
-global.$ = global.jQuery = $;
+/* global $ */
 
 import 'jquery-ui';
 import showdown from 'showdown';
@@ -8,6 +7,8 @@ import { filterXSS } from 'xss';
 import swal from 'sweetalert';
 import html2canvas from 'html2canvas';
 import ace from 'ace-builds';
+
+import { endpoints } from './api.map';
 
 
 /**
@@ -736,7 +737,7 @@ export function check_update(url) {
                 } 
                 // If the status is 403, redirect the user to the case page.
                 else if (data.status == 403) {
-                    window.location.replace("/case" + case_param());
+                    window.location.replace(endpoints.case + case_param());
                 } 
                 // If the status is 400, log a standard error message.
                 else if (data.status == 400) {
@@ -845,7 +846,7 @@ export function upload_interactive_data(data_blob, filename, completion_callback
     data_sent["file_original_name"] = filename;
 
     // Send a POST request to the server to add the file
-    post_request_api('/datastore/file/add-interactive', JSON.stringify(data_sent), true)
+    post_request_api(endpoints.ds_add_file_interactive, JSON.stringify(data_sent), true)
     .done(function (data){
         if(notify_auto_api(data)) {
             // If the request is successful, call the completion callback function
@@ -950,7 +951,7 @@ export function copy_object_link_md(data_type, node_id){
  * Loads the case activity list from the server and displays it on the page.
  */
 function load_case_activity(){
-    get_request_api('/case/activities/list')
+    get_request_api(endpoints.case.activities_list)
     .done((data) => {
         let js_data = data.data;
         let api_flag = '';
@@ -980,7 +981,7 @@ function load_case_activity(){
  * Loads the first 100 DIM tasks from the server and displays them on the page.
  */
 function load_dim_limited_tasks(){
-    get_request_api('/dim/tasks/list/100')
+    get_request_api(endpoints.dim.list_tasks + "/100/")
     .done((data) => {
         let js_data = data.data;
         let api_flag = '';
@@ -1012,7 +1013,7 @@ function load_dim_limited_tasks(){
  * @param {string} id - The ID of the DIM task to display the status of.
  */
 export function dim_task_status(id) {
-    const url = '/dim/tasks/status/'+id + case_param();
+    const url = endpoints.dim.tasks_status + '/' + id + case_param();
     $('#info_dim_task_modal_body').load(url, function (response, status, xhr) {
         if (status !== "success") {
              ajax_notify_error(xhr, url);
@@ -1100,7 +1101,7 @@ export function init_module_processing(rows, hook_name, hook_ui_name, module_nam
  * @param {Object} anchor - The anchor object to append the dropdown menu to.
  */
 export function load_menu_mod_options_modal(element_id, data_type, anchor) {
-    get_request_api('/dim/hooks/options/'+ data_type +'/list')
+    get_request_api(endpoints.dim.hooks_options + data_type +'/list')
     .done(function (data){
         if(notify_auto_api(data, true)) {
             if (data.data != null) {
@@ -1508,7 +1509,7 @@ export function load_menu_mod_options(data_type, table, deletion_fn) {
     }
 
     // Send a request to get the menu options for the given data type
-    get_request_api("/dim/hooks/options/"+ data_type +"/list")
+    get_request_api(endpoints.dim.hooks_options + data_type +"/list")
     .done((data) => {
         // If the request is successful, add the menu options to the action options
         if(notify_auto_api(data, true)) {
@@ -1769,7 +1770,7 @@ function load_context_switcher() {
     // Set the options for the select picker
     var options = {
         ajax: {
-            url: '/context/search-cases'+ case_param(),
+            url: endpoints.context.search_cases + case_param(),
             type: 'GET',
             dataType: 'json'
         },
@@ -1784,7 +1785,7 @@ function load_context_switcher() {
     };
 
     // Make an AJAX request to retrieve the data and populate the select picker
-    get_request_api('/context/get-cases/100')
+    get_request_api( endpoints.context.get_cases + '100')
     .done((data) => {
         context_data_parser(data);
         $('#user_context').ajaxSelectPicker(options);
@@ -1971,7 +1972,7 @@ let userWhoami = JSON.parse(sessionStorage.getItem('userWhoami'));
 export function userWhoamiRequest(force = false) {
   if (!userWhoami || force) {
     // Make an AJAX request to retrieve the user's information
-    get_request_api('/user/whoami')
+    get_request_api(endpoints.user.whoami)
       .done((data) => {
         // If the request is successful, store the user's information in sessionStorage
         if (notify_auto_api(data, true)) {
@@ -1989,14 +1990,14 @@ $('.toggle-sidebar').on('click', function() {
     if ($('.wrapper').hasClass('sidebar_minimize')) {
         // If the sidebar is minimized, expand it and send a request to the server to update the user's preference
         $('.wrapper').removeClass('sidebar_minimize');
-        get_request_api('/user/mini-sidebar/set/false')
+        get_request_api(endpoints.user.unset_mini_siderbar)
             .then((data) => {
                 notify_auto_api(data, true);
             });
     } else {
         // If the sidebar is expanded, minimize it and send a request to the server to update the user's preference
         $('.wrapper').addClass('sidebar_minimize');
-        get_request_api('/user/mini-sidebar/set/true')
+        get_request_api(endpoints.user.set_mini_siderbar)
             .then((data) => {
                 notify_auto_api(data, true);
             });
@@ -2106,7 +2107,7 @@ $(function(){
         var data_sent = new Object();
         data_sent.ctx = $('#user_context').val();
         data_sent.ctx_h = $("#user_context option:selected").text();
-        post_request_api('/context/set?cid=' + data_sent.ctx, data_sent)
+        post_request_api(endpoints.context.set + '?cid=' + data_sent.ctx, data_sent)
         .done((data) => {
             if(notify_auto_api(data, true)) {
                 $('#modal_switch_context').modal('hide');
@@ -2149,7 +2150,7 @@ $(function(){
         var data = $('form#form_add_tasklog').serializeObject();
         data['csrf_token'] = $('#csrf_token').val();
 
-        post_request_api('/case/tasklog/add', JSON.stringify(data), true)
+        post_request_api(endpoints.case.add_task_log, JSON.stringify(data), true)
         .done(function (data){
             if(notify_auto_api(data)){
                 $('#modal_add_tasklog').modal('hide');

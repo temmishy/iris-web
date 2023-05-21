@@ -1,5 +1,8 @@
-import $ from 'jquery';
-import ace from 'ace-builds';
+/* global ace */
+/* global $ */
+
+import '../ace.combined.js';
+
 import { 
     load_menu_mod_options_modal, 
     get_caseid, 
@@ -11,18 +14,61 @@ import {
     get_request_api, 
     ajax_notify_error, 
     get_showdown_convert,
-    do_md_filter_xss
+    do_md_filter_xss, 
+    setOnClickEventFromMap
 } from './common';
 
 import { crc32 } from './crc32.utils';
 import { edit_case_info } from './manage.cases.common';
 import swal from 'sweetalert';
 import io from 'socket.io-client';
+import m from 'ace-builds/src-noconflict/ext-language_tools';
 
 let collaborator = null;
 let last_applied_change = null;
 let just_cleared_buffer = false;
 let from_sync = false;
+
+/**
+ * Namespace for summary events.
+ */
+const summaryEventNamespace = "summaryEventNamespace";
+
+/**
+ * Namespace for summary click events.
+ */
+const summaryClickEventNamespace = `click.${summaryEventNamespace}`;
+
+/**
+ * Map of summary events and their corresponding functions.
+ */
+const summaryEventsMap = {
+    ".summary-case-details-btn": function() {wrapCaseDetails(true);}, 
+    "#summaryEditBtn": function() {edit_case_summary();}, 
+    "#summarySyncEditor": function() {sync_editor();}
+}
+
+/**
+ * Displays the details of a case in a modal dialog.
+ * 
+ * @param {number} case_id - The ID of the case to display details for.
+ * @param {boolean} edit_mode - Whether to display the case details in edit mode.
+ */
+function wrapCaseDetails(edit_mode = false) {
+    // Check if the element has an edit attribute and set edit_mode accordingly
+    let has_edit = $(this).data('edit');
+    if (has_edit !== undefined) {
+        edit_mode = $(this).data('edit');
+        console.log("edit_mode: " + edit_mode);
+    }
+
+    // Display the case details in a modal dialog
+    if ($(this).data('case-id') !== undefined) {
+        case_detail($(this).data('case-id'), edit_mode);
+    } else {
+        case_detail(get_caseid(), edit_mode);
+    }
+}
 
 /**
  * Initializes a Collaborator object with a given session ID and sets up a socket connection to the server.
@@ -219,13 +265,13 @@ function edit_case_summary() {
     if ($('#container_editor_summary').is(':visible')) {
         $('#ctrd_casesum').removeClass('col-md-12').addClass('col-md-6');
         $('#summary_edition_btn').show(100);
-        $("#sum_refresh_btn").html('Save');
-        $("#sum_edit_btn").html('Cancel');
+        $("#summarySyncEditor").html('Save');
+        $("#summaryEditBtn").html('Cancel');
     } else {
         $('#ctrd_casesum').removeClass('col-md-6').addClass('col-md-12');
         $('#summary_edition_btn').hide();
-        $("#sum_refresh_btn").html('Refresh');
-        $("#sum_edit_btn").html('Edit');
+        $("#summarySyncEditor").html('Refresh');
+        $("#summaryEditBtn").html('Edit');
     }
 }
 
@@ -518,6 +564,10 @@ $(function() {
     setInterval(auto_remove_typing, 2000);
     $('#modal_select_report').selectpicker();
     load_menu_mod_options_modal([], 'case', $("#case_modal_quick_actions"));
+
+    // Register all events 
+    setOnClickEventFromMap(summaryEventsMap, summaryClickEventNamespace);
+
 });
 
 
