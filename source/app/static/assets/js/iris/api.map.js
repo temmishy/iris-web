@@ -1,8 +1,10 @@
 const roots = {
     case: "/case",
     context: "/context",
+    dashboard: "/dashboard",
     datastore: "/datastore",
     dim: "/dim",
+    global_tasks: "/global/tasks",
     manage: "/manage",
     user: "/user",
 }
@@ -27,6 +29,9 @@ const endpoints = {
             get: roots.case + "/summary/fetch",
             set: roots.case + "/summary/update",
         },
+        tasks: {
+            root: roots.case + "/tasks",
+        }
     },
 
     // Context
@@ -36,6 +41,12 @@ const endpoints = {
         search_cases: roots.context + "/search-cases",
         set: roots.context + "/set",
     },
+
+    // Dashboard 
+    dashboard: {
+        root: roots.dashboard,
+        case_charts: roots.dashboard + "/case_charts",
+    }, 
 
     // Datastore
     ds: {
@@ -49,6 +60,16 @@ const endpoints = {
         tasks_status: "/dim/tasks/status", // + ID of the task
         list_tasks: "/dim/tasks/list", // + number of results
         hooks_options: "/dim/hooks/options/", // + hook type
+    },
+
+    // Global tasks
+    global_tasks: {
+        root: roots.global_tasks,
+        add_modal: roots.global_tasks + "/add/modal",
+        add: roots.global_tasks + "/add",
+        list: roots.global_tasks + "/list",
+        update: roots.global_tasks + "/update/", // + task id
+        delete: roots.global_tasks + "/delete/" // + task id
     },
 
     // Manage
@@ -65,6 +86,8 @@ const endpoints = {
         whoami: roots.user + "/whoami",
         set_mini_siderbar: roots.user + "/mini-sidebar/set/true",
         unset_mini_siderbar: roots.user + "/mini-sidebar/set/false",
+        list_tasks: roots.user + "/tasks/list",
+        update_task_status: roots.user + "/tasks/status/update",
     }
 };
 

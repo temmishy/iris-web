@@ -15,6 +15,7 @@ import {
 
 import Chart from 'chartjs';
 
+import endpoints from './api.map.js';
 
 // $.fn.selectpicker.Constructor.BootstrapVersion = '4';
 
@@ -59,7 +60,7 @@ let UserTaskTable = $("#utasks_table").DataTable({
           } else {
               data = sanitizeHTML(data);
           }
-          data = '<a href="case/tasks?cid='+ row['case_id'] + '&shared=' + row['task_id'] + '">' + data +'</a>';
+          data = `<a href="${endpoints.case.tasks.root}?cid=${row['case_id']}&shared=${row['task_id']}">${data}</a>`;
         }
         return data;
       }
@@ -262,7 +263,7 @@ function check_page_update(){
 * @param id: The ID of the task to get the status for.
 * @return None
 */
-export function task_status(id) {
+function task_status(id) {
   let url = 'tasks/status/human/'+id + case_param();
   $('#info_task_modal_body').load(url, function (response, status, xhr) {
     if (status !== "success") {
@@ -284,7 +285,7 @@ function update_utasks_list() {
     // Clear the user tasks list
     $('#utasks_list').empty();
     // Make an API request to get the user tasks list
-    get_request_api("/user/tasks/list")
+    get_request_api(endpoints.user.list_tasks)
     .done((data) => {
         // If the API request is successful, update the user tasks list and redraw the table
         if (notify_auto_api(data, true)) {
@@ -354,7 +355,7 @@ function update_utasks_list() {
 function callBackEditUserTaskStatus(updatedCell, updatedRow) {
   let data_send = updatedRow.data()
   data_send['csrf_token'] = $('#csrf_token').val();
-  post_request_api("user/tasks/status/update", JSON.stringify(data_send))
+  post_request_api(endpoints.user.update_task_status, JSON.stringify(data_send))
   .done((data) => {
     if (notify_auto_api(data)) {
        update_utasks_list();
@@ -372,7 +373,7 @@ function callBackEditUserTaskStatus(updatedCell, updatedRow) {
  * If the request is successful, it updates the global tasks list and hides the modal.
  */
 function add_gtask() {
-  const url = '/global/tasks/add/modal' + case_param();
+  const url = endpoints.global_tasks.add_modal + case_param();
   $('#modal_add_gtask_content').load(url, function (response, status, xhr) {
     if (status !== "success") {
        ajax_notify_error(xhr, url);
@@ -386,7 +387,7 @@ function add_gtask() {
       data_sent['task_status_id'] = $('#task_status_id').val();
       data_sent['csrf_token'] = $('#csrf_token').val();
 
-      post_request_api('/global/tasks/add', JSON.stringify(data_sent), true)
+      post_request_api(endpoints.global_tasks.add, JSON.stringify(data_sent), true)
       .done((data) => {
         if(notify_auto_api(data)) {
           update_gtasks_list();
@@ -428,7 +429,7 @@ function update_gtask(id) {
   data_sent['task_status_id'] = $('#task_status_id').val();
   data_sent['csrf_token'] = $('#csrf_token').val();
 
-  post_request_api('/global/tasks/update/' + id, JSON.stringify(data_sent), true)
+  post_request_api(endpoints.global_tasks.update +id, JSON.stringify(data_sent), true)
   .done((data) => {
     if(notify_auto_api(data)) {
       update_gtasks_list();
@@ -444,7 +445,7 @@ function update_gtask(id) {
  * @param {number} id - The ID of the task to be deleted.
  */
 function delete_gtask(id) {
-  post_request_api("/global/tasks/delete/" + id)
+  post_request_api(endpoints.global_tasks.delete + id)
   .done((data) => {
     if(notify_auto_api(data)) {
       update_gtasks_list();
@@ -463,7 +464,7 @@ function delete_gtask(id) {
  * @param {number} id - The ID of the task to be edited.
  */
 function edit_gtask(id) {
-  const url = '/global/tasks/update/'+ id + "/modal" + case_param();
+  const url = endpoints.global_tasks.update + id + "/modal" + case_param();
   $('#modal_add_gtask_content').load(url, function (response, status, xhr) {
         if (status !== "success") {
              ajax_notify_error(xhr, url);
@@ -510,7 +511,7 @@ const htmlLegendsChart = document.getElementById('htmlLegendsChart').getContext(
  * Loads the data for the case charts.
  */
 $.ajax({
-    url: '/dashboard/case_charts' + case_param(),
+    url: endpoints.dashboard.case_charts + case_param(),
     type: "GET",
     dataType: "JSON",
     success: function (data) {
@@ -620,7 +621,7 @@ $.ajax({
 function update_gtasks_list() {
   $('#gtasks_list').empty();
 
-  get_request_api("/global/tasks/list")
+  get_request_api(endpoints.global_tasks.list)
   .done((data) => {
     if(notify_auto_api(data, true)) {
       GTaskTable.MakeCellsEditable("destroy");
