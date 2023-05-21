@@ -37,7 +37,7 @@ const dsStoreEventsMap = {
     "#dsValidateDsFileMove": function() {validate_ds_file_move();},
     "#dsValidateDSFolderMove": function() {validate_ds_folder_move();},
     "#dsFilterDSFile": function() {filter_ds_files();},
-    "#reset_ds_files_filter": function() {reset_ds_files_filter();},
+    "#dsResetSearchFilter": function() {reset_ds_files_filter();},
     "#dsFilterHelpWindow": function() {show_ds_filter_help();},
     ".ds-add-subfolder": function() {add_ds_folder(getParentDataNode($(this), 'node-id'));},
     ".ds-add-file": function() {add_ds_file(getParentDataNode($(this), 'node-id'));},
