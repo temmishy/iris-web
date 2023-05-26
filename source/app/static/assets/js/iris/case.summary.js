@@ -57,7 +57,9 @@ const summaryEventsMap = {
     "#summaryEditorInsertSnipL": function() {editor.insertSnippet('[New link](${1:$SELECTION})');editor.focus();},
     "#summaryEditorInsertSnipT": function() {editor.insertSnippet('|\t|\t|\t|\n|--|--|--|\n|\t|\t|\t|\n|\t|\t|\t|');editor.focus();},
     "#summaryEditorInsertSnipList": function() {editor.insertSnippet('\n- \n- \n- ');editor.focus();},
-    "#summaryEditorInsertSnipListN": function() {editor.insertSnippet('\n1. \n2. \n3. ');editor.focus();}
+    "#summaryEditorInsertSnipListN": function() {editor.insertSnippet('\n1. \n2. \n3. ');editor.focus();}, 
+    "#summaryInvestReportModalBtn": function() {report_template_selector();},
+    "#summaryActivityReportModalBtn": function() {act_report_template_selector();},
 }
 
 /**
