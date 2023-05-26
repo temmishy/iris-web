@@ -6,7 +6,8 @@ import {
     ajax_notify_error, 
     post_request_api,
     notify_auto_api, 
-    sanitizeHTML
+    sanitizeHTML, 
+    get_custom_attributes_fields
 } from './common';
 
 import { 

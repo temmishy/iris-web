@@ -514,6 +514,11 @@ function case_detail(case_id, edit_mode=false) {
             remove_case(case_id);
         });
 
+        $("#caseInfoEditCaseInfoBtn").off(summaryClickEventNamespace).on(summaryClickEventNamespace, function(e) {
+            e.preventDefault();
+            edit_case_info();
+        });
+
         // Show the case info modal and enter edit mode if specified
         $('#modal_case_detail').modal({ show: true });
         if (edit_mode) {
