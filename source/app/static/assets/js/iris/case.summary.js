@@ -54,6 +54,7 @@ const summaryClickEventNamespace = `click.${summaryEventNamespace}`;
  */
 const summaryEventsMap = {
     ".summary-case-details-btn": function() {wrapCaseDetails(true);}, 
+    ".summary-case-details-noedit-btn": function() {wrapCaseDetails(false);}, 
     "#summaryEditBtn": function() {edit_case_summary();}, 
     "#summarySyncEditor": function() {sync_editor();}, 
     "#summaryEditorInsertSnipB": function() {editor.insertSnippet('**${1:$SELECTION}**');editor.focus();},
@@ -486,7 +487,7 @@ function case_detail(case_id, edit_mode=false) {
             style: "btn-light"
         });
 
-        access_case_info_reload(case_id, $('#case_quick_owner').data('owner-id')); // Add owner ID
+        access_case_info_reload(case_id, $('#case_quick_owner').data('owner-id'));
 
         // Register event listeners for the case details modal
         $('#caseInfoEditSaveBtn').off(summaryClickEventNamespace).on(summaryClickEventNamespace, function(e) {
