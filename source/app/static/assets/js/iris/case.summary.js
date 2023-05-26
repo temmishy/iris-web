@@ -60,6 +60,10 @@ const summaryEventsMap = {
     "#summaryEditorInsertSnipListN": function() {editor.insertSnippet('\n1. \n2. \n3. ');editor.focus();}, 
     "#summaryInvestReportModalBtn": function() {report_template_selector();},
     "#summaryActivityReportModalBtn": function() {act_report_template_selector();},
+    "#summaryGenActivityReportSafeBtn": function() {gen_act_report(true);},
+    "#summaryGenActivityReportBtn": function() {gen_act_report(false);},
+    "#summaryGenInvestReportSafeBtn": function() {gen_report(true);},
+    "#summaryGenInvestReportBtn": function() {gen_report(false);},
 }
 
 /**
