@@ -46,7 +46,18 @@ const summaryClickEventNamespace = `click.${summaryEventNamespace}`;
 const summaryEventsMap = {
     ".summary-case-details-btn": function() {wrapCaseDetails(true);}, 
     "#summaryEditBtn": function() {edit_case_summary();}, 
-    "#summarySyncEditor": function() {sync_editor();}
+    "#summarySyncEditor": function() {sync_editor();}, 
+    "#summaryEditorInsertSnipB": function() {editor.insertSnippet('**${1:$SELECTION}**');editor.focus();},
+    "#summaryEditorInsertSnipI": function() {editor.insertSnippet('*${1:$SELECTION}*');editor.focus();},
+    "#summaryEditorInsertSnipS1": function() {editor.insertSnippet('# ${1:$SELECTION}');editor.focus();},
+    "#summaryEditorInsertSnipS2": function() {editor.insertSnippet('## ${1:$SELECTION}');editor.focus();},
+    "#summaryEditorInsertSnipS3": function() {editor.insertSnippet('### ${1:$SELECTION}');editor.focus();},
+    "#summaryEditorInsertSnipS4": function() {editor.insertSnippet('#### ${1:$SELECTION}');editor.focus();},
+    "#summaryEditorInsertSnipC": function() {editor.insertSnippet('```${1:$SELECTION}```');editor.focus();},
+    "#summaryEditorInsertSnipL": function() {editor.insertSnippet('[New link](${1:$SELECTION})');editor.focus();},
+    "#summaryEditorInsertSnipT": function() {editor.insertSnippet('|\t|\t|\t|\n|--|--|--|\n|\t|\t|\t|\n|\t|\t|\t|');editor.focus();},
+    "#summaryEditorInsertSnipList": function() {editor.insertSnippet('\n- \n- \n- ');editor.focus();},
+    "#summaryEditorInsertSnipListN": function() {editor.insertSnippet('\n1. \n2. \n3. ');editor.focus();}
 }
 
 /**
