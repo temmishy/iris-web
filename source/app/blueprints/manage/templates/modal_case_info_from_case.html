@@ -164,7 +164,7 @@
                                                 <span class="input-group-text">Owner</span>
                                             </div>
                                             <select class="selectpicker form-control"
-                                                  id="case_quick_owner" name="owner_id">
+                                                  id="case_quick_owner" name="owner_id" data-owner-id="{{ data.owner_id }}">
                                            </select>
                                         </div>
                                     </div>
@@ -345,29 +345,3 @@
     <button type="button" class="btn btn-outline-dark mr-2" style="display:none;" id="cancel_case_info"  onclick="cancel_case_edit();">Cancel</button>
     <button type="button" class="btn btn-outline-success mr-2" style="display:none;" id="save_case_info" onclick="save_case_edit({{ data.case_id }});">Save</button>
 </div>
-
-<script>
-    $('[data-toggle="popover"]').popover();
-    $('#case_quick_classification').selectpicker({
-        liveSearch: true,
-        title: "Classification",
-        style: "btn-outline-white"
-    });
-    $('#case_quick_owner').selectpicker({
-        liveSearch: true,
-        title: "Owner",
-        style: "btn-outline-white"
-    });
-    $('#case_state').selectpicker({
-        liveSearch: true,
-        title: "Case state",
-        style: "btn-outline-white"
-    });
-    $('#case_quick_status').selectpicker({
-        liveSearch: true,
-        title: "Outcome",
-        style: "btn-outline-white"
-    });
-
-    access_case_info_reload('{{ data.case_id }}', '{{ data.owner_id }}');
-</script>

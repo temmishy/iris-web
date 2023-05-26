@@ -19,7 +19,11 @@ import {
 } from './common';
 
 import { crc32 } from './crc32.utils';
-import { edit_case_info } from './manage.cases.common';
+import { 
+    edit_case_info, 
+    access_case_info_reload 
+} from './manage.cases.common';
+
 import swal from 'sweetalert';
 import io from 'socket.io-client';
 
@@ -77,7 +81,6 @@ function wrapCaseDetails(edit_mode = false) {
     let has_edit = $(this).data('edit');
     if (has_edit !== undefined) {
         edit_mode = $(this).data('edit');
-        console.log("edit_mode: " + edit_mode);
     }
 
     // Display the case details in a modal dialog
@@ -455,6 +458,30 @@ function case_detail(case_id, edit_mode=false) {
              ajax_notify_error(xhr, url);
              return false;
         }
+
+        $('[data-toggle="popover"]').popover();
+        $('#case_quick_classification').selectpicker({
+            liveSearch: true,
+            title: "Classification",
+            style: "btn-light"
+        });
+        $('#case_quick_owner').selectpicker({
+            liveSearch: true,
+            title: "Owner",
+            style: "btn-light"
+        });
+        $('#case_state').selectpicker({
+            liveSearch: true,
+            title: "Case state",
+            style: "btn-light"
+        });
+        $('#case_quick_status').selectpicker({
+            liveSearch: true,
+            title: "Outcome",
+            style: "btn-light"
+        });
+
+        access_case_info_reload(case_id, $('#case_quick_owner').data('owner-id')); // Add owner ID
 
         // Show the case info modal and enter edit mode if specified
         $('#modal_case_detail').modal({ show: true });

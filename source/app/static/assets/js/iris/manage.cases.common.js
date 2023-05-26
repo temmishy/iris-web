@@ -385,7 +385,7 @@ function set_case_access_via_group(case_id) {
  * @param {number} case_id - The ID of the case to reload access information for.
  * @param {number} owner_id - The ID of the owner of the case.
  */
-function access_case_info_reload(case_id, owner_id) {
+export function access_case_info_reload(case_id, owner_id) {
     var req_users = [];
 
     // Send a request to the server to get a list of users with access to the case
