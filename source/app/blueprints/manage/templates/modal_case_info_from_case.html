@@ -332,16 +332,16 @@
 </datalist>
 
 <div class="modal-footer">
-    <button type="button" class="btn btn-outline-danger mr-auto" onclick="remove_case('{{ data.case_id }}');"
+    <button type="button" class="btn btn-outline-danger mr-auto" id="caseInfoEditRemoveCaseBtn"
             id="delete_case_info">Delete case</button>
 
     {% if not data.close_date %}
-        <button type="button" class="btn btn-outline-warning" onclick="close_case('{{ data.case_id }}');"
-                id="close_case_info">Close case</button>
+        <button type="button" class="btn btn-outline-warning"
+        id="caseInfoEditCloseCaseBtn">Close case</button>
     {% else %}
-        <button type="button" class="btn btn-success" onclick="reopen_case('{{ data.case_id }}');"
-                id="reopen_case_info">Reopen case</button>
+        <button type="button" class="btn btn-success"
+        id="caseInfoEditReopenCaseBtn">Reopen case</button>
     {% endif %}
-    <button type="button" class="btn btn-outline-dark mr-2" style="display:none;" id="cancel_case_info"  onclick="cancel_case_edit();">Cancel</button>
-    <button type="button" class="btn btn-outline-success mr-2" style="display:none;" id="save_case_info" onclick="save_case_edit({{ data.case_id }});">Save</button>
+    <button type="button" class="btn btn-outline-dark mr-2" style="display:none;" id="caseInfoEditCancelBtn">Cancel</button>
+    <button type="button" class="btn btn-outline-success mr-2" style="display:none;" id="caseInfoEditSaveBtn">Save</button>
 </div>

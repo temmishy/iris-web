@@ -71,7 +71,7 @@ function case_detail(id) {
  * 
  * @param {number} id - The ID of the case to delete.
  */
-function remove_case(id) {
+export function remove_case(id) {
     // Display a confirmation dialog to the user
     swal({
         title: "Are you sure?",
@@ -119,10 +119,10 @@ function remove_case(id) {
  * 
  * @param {number} id - The ID of the case to reopen.
  */
-function reopen_case(id) {
+export function reopen_case(id) {
     // Send a request to the server to reopen the case
     post_request_api(endpoints.manage.cases.reopen + id)
-    .done((data) => {
+    .done(() => {
         // If the reopening is successful, refresh the cases table and hide the case info modal
         if (!refresh_case_table()) {
             window.location.reload();
@@ -136,7 +136,7 @@ function reopen_case(id) {
  * 
  * @param {number} id - The ID of the case to close.
  */
-function close_case(id) {
+export function close_case(id) {
     swal({
         title: "Are you sure?",
         text: "Case ID " + id + " will be closed and will not appear in contexts anymore",
@@ -164,20 +164,20 @@ function close_case(id) {
 export function edit_case_info() {
     $('#case_gen_info_content').hide();
     $('#case_gen_info_edit').show();
-    $('#cancel_case_info').show();
-    $('#save_case_info').show();
+    $('#caseInfoEditCancelBtn').show();
+    $('#caseInfoEditSaveBtn').show();
     $('#case_info').hide();
 }
 
 /**
  * Cancels the edit mode for the case general information in the case info modal.
  */
-function cancel_case_edit() {
+export function cancel_case_edit() {
     $('#case_gen_info_content').show();
     $('#case_gen_info_edit').hide();
-    $('#cancel_case_info').hide();
+    $('#caseInfoEditCancelBtn').hide();
     $('#case_info').show();
-    $('#save_case_info').hide();
+    $('#caseInfoEditSaveBtn').hide();
 }
 
 /**
@@ -185,7 +185,7 @@ function cancel_case_edit() {
  * 
  * @param {number} case_id - The ID of the case to update.
  */
-function save_case_edit(case_id) {
+export function save_case_edit(case_id) {
     // Serialize the case edit form data
     var data_sent = $('form#form_update_case').serializeObject();
     var map_protagonists = Object();
@@ -249,7 +249,7 @@ function save_case_edit(case_id) {
  * @param {number} case_id - The ID of the case to remove access to.
  * @param {function} on_finish - A callback function to execute after the access is removed.
  */
-function remove_case_access_from_user(user_id, case_id, on_finish) {
+export function remove_case_access_from_user(user_id, case_id, on_finish) {
     // Display a confirmation dialog to the user
     swal({
       title: "Are you sure?",

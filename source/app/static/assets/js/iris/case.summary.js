@@ -21,7 +21,12 @@ import {
 import { crc32 } from './crc32.utils';
 import { 
     edit_case_info, 
-    access_case_info_reload 
+    access_case_info_reload, 
+    save_case_edit, 
+    cancel_case_edit, 
+    close_case,
+    remove_case,
+    reopen_case
 } from './manage.cases.common';
 
 import swal from 'sweetalert';
@@ -482,6 +487,32 @@ function case_detail(case_id, edit_mode=false) {
         });
 
         access_case_info_reload(case_id, $('#case_quick_owner').data('owner-id')); // Add owner ID
+
+        // Register event listeners for the case details modal
+        $('#caseInfoEditSaveBtn').off(summaryClickEventNamespace).on(summaryClickEventNamespace, function(e) {
+            e.preventDefault();
+            save_case_edit(case_id);
+        });
+
+        $('#caseInfoEditCancelBtn').off(summaryClickEventNamespace).on(summaryClickEventNamespace, function(e) {
+            e.preventDefault();
+            cancel_case_edit();
+        });
+
+        $('#caseInfoEditCloseCaseBtn').off(summaryClickEventNamespace).on(summaryClickEventNamespace, function(e) {
+            e.preventDefault();
+            close_case(case_id);
+        });
+
+        $('#caseInfoEditReopenCaseBtn').off(summaryClickEventNamespace).on(summaryClickEventNamespace, function(e) {
+            e.preventDefault();
+            reopen_case(case_id);
+        });
+
+        $('#caseInfoEditRemoveCaseBtn').off(summaryClickEventNamespace).on(summaryClickEventNamespace, function(e) {
+            e.preventDefault();
+            remove_case(case_id);
+        });
 
         // Show the case info modal and enter edit mode if specified
         $('#modal_case_detail').modal({ show: true });
