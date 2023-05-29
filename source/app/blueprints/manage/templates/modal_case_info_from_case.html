@@ -242,7 +242,7 @@
                                     {% endif %}
                                     <div id="protagonist_list_edit">
                                     </div>
-                                    <button type="button" class="btn btn-sm btn-outline-dark mt-2 mr-2" id="add_protagonist_btn"  onclick="add_protagonist();">Add protagonist</button>
+                                    <button type="button" class="btn btn-sm btn-outline-dark mt-2 mr-2" id="caseInfoAddProtagonistBtn">Add protagonist</button>
                                 </div>
                             </div>
                         </form>
@@ -311,7 +311,7 @@
                     </div>
                     <input type="text" aria-describedby="ingp___PROTAGONIST_ID__" class="form-control" name="protagonist_contact___PROTAGONIST_ID__" value="" list="emails-list" placeholder="Contact">
                 </div>
-                <button type="button" class="btn btn-sm  btn-outline-dark mr-2 mt-1" onclick="remove_protagonist('__PROTAGONIST_ID__');">
+                <button type="button" class="btn btn-sm  btn-outline-dark mr-2 mt-1" id="caseInfoDeleteProtagonistBtn" data-protagonist-id="__PROTAGONIST_ID__">
                     Remove
                 </button>
                 <hr/>

@@ -26,7 +26,9 @@ import {
     cancel_case_edit, 
     close_case,
     remove_case,
-    reopen_case
+    reopen_case,
+    add_protagonist,
+    remove_protagonist
 } from './manage.cases.common';
 
 import swal from 'sweetalert';
@@ -518,6 +520,16 @@ function case_detail(case_id, edit_mode=false) {
         $("#caseInfoEditCaseInfoBtn").off(summaryClickEventNamespace).on(summaryClickEventNamespace, function(e) {
             e.preventDefault();
             edit_case_info();
+        });
+
+        $('#caseInfoAddProtagonistBtn').off(summaryClickEventNamespace).on(summaryClickEventNamespace, function(e) {
+            e.preventDefault();
+            add_protagonist();
+        });
+
+        $('#caseInfoDeleteProtagonistBtn').off(summaryClickEventNamespace).on(summaryClickEventNamespace, function(e) {
+            e.preventDefault();
+            remove_protagonist();
         });
 
         // Show the case info modal and enter edit mode if specified

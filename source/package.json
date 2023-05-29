@@ -3,6 +3,7 @@
   "version": "2.1.0",
   "description": "IRIS Web Application",
   "main": "main.js",
+  "sideEffects": false,
   "directories": {
     "test": "__tests__"
   },

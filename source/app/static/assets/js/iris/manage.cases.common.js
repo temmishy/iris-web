@@ -24,10 +24,22 @@ var modal_user_cac_table = undefined;
 /**
  * Adds a new protagonist to the protagonist list in the case edit form.
  */
-function add_protagonist() {
+export function add_protagonist() {
     let prota_html = $('#protagonist_list_edit_template').html();
     $('#protagonist_list_edit').append(prota_html);
 }
+
+
+/**
+ * Removes a protagonist from the protagonist list in the case edit form.
+ * 
+ * @param {number} id - The ID of the protagonist to remove.
+ */
+export function remove_protagonist() {
+    let id = $(this).data('protagonist-id');
+    $('#protagonist_' + id).remove();
+}
+
 
 /**
  * Reloads the cases table with the latest data from the server.

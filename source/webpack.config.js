@@ -19,6 +19,9 @@ module.exports = {
       new TerserPlugin(),
       new CssMinimizerPlugin(),
     ],
+    splitChunks: {
+      chunks: 'all',
+    }
   },
   output: {
     path: path.resolve(__dirname, 'app/static/assets/dist'),
