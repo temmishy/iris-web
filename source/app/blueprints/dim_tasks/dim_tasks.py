@@ -45,6 +45,7 @@ from app.models import IrisHook
 from app.models import IrisModule
 from app.models import IrisModuleHook
 from app.models import Notes
+from app.models.alerts import Alert
 from app.models.authorization import CaseAccessLevel
 from app.models.authorization import Permissions
 from app.util import ac_api_case_requires
@@ -102,8 +103,6 @@ def dim_hooks_call(caseid):
     logs = []
     js_data = request.json
 
-    print(js_data)
-
     if not js_data:
         return response_error('Invalid data')
 
@@ -126,7 +125,15 @@ def dim_hooks_call(caseid):
     index = 0
     obj_targets = []
     for target in js_data.get('targets'):
-        obj = None
+        if type(target) == str:
+            try:
+                obj_targets.append(int(target))
+            except ValueError:
+                return response_error('Invalid target')
+
+        elif type(target) != int:
+            return response_error('Invalid target')
+
         if data_type == 'ioc':
             obj = Ioc.query.filter(Ioc.ioc_id == target).first()
 
@@ -166,6 +173,11 @@ def dim_hooks_call(caseid):
         elif data_type == "global_task":
             obj = GlobalTasks.query.filter(
                 GlobalTasks.id == target
+            ).first()
+
+        elif data_type == 'alert':
+            obj = Alert.query.filter(
+                Alert.alert_id == target
             ).first()
 
         else:

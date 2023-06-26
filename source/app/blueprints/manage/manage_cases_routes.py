@@ -40,6 +40,7 @@ from app.datamgmt.alerts.alerts_db import get_alert_status_by_name
 from app.datamgmt.case.case_db import get_case
 from app.datamgmt.case.case_db import register_case_protagonists
 from app.datamgmt.case.case_db import save_case_tags
+from app.datamgmt.client.client_db import get_client_list
 from app.datamgmt.iris_engine.modules_db import get_pipelines_args_from_name
 from app.datamgmt.iris_engine.modules_db import iris_module_exists
 from app.datamgmt.manage.manage_attribute_db import get_default_custom_attributes
@@ -128,11 +129,13 @@ def details_case(cur_id: int, caseid: int, url_redir: bool) -> Union[Response, s
     res = get_case_details_rt(cur_id)
     case_classifications = get_case_classifications_list()
     case_states = get_case_states_list()
+    customers = get_client_list()
+
     form = FlaskForm()
 
     if res:
         return render_template("modal_case_info_from_case.html", data=res, form=form, protagnists=None,
-                               case_classifications=case_classifications, case_states=case_states)
+                               case_classifications=case_classifications, case_states=case_states, customers=customers)
 
     else:
         return response_error("Unknown case")
@@ -160,14 +163,14 @@ def details_case_from_case_modal(cur_id: int, caseid: int, url_redir: bool) -> U
     res = get_case_details_rt(cur_id)
     case_classifications = get_case_classifications_list()
     case_states = get_case_states_list()
-
+    customers = get_client_list()
     protagonists = get_case_protagonists(cur_id)
 
     form = FlaskForm()
 
     if res:
         return render_template("modal_case_info_from_case.html", data=res, form=form, protagonists=protagonists,
-                               case_classifications=case_classifications, case_states=case_states)
+                               case_classifications=case_classifications, case_states=case_states, customers=customers)
 
     else:
         return response_error("Unknown case")
@@ -242,18 +245,18 @@ def api_reopen_case(cur_id, caseid):
         for alert in case.alerts:
             if alert.alert_status_id != merged_status.status_id:
                 alert.alert_status_id = merged_status.status_id
-                track_activity(f"alert ID {alert.alert_id} status updated to merged due to case #{caseid} being reopened",
+                track_activity(f"alert ID {alert.alert_id} status updated to merged due to case #{caseid} being reopen",
                                caseid=caseid, ctx_less=False)
 
                 db.session.add(alert)
     
-    case = call_modules_hook('on_postload_case_info_update', data=case, caseid=caseid)
+    case = call_modules_hook('on_postload_case_update', data=case, caseid=caseid)
 
-    add_obj_history_entry(case, 'case reopened')
-    track_activity("reopened case ID {}".format(cur_id), caseid=caseid)
+    add_obj_history_entry(case, 'case reopen')
+    track_activity("reopen case ID {}".format(cur_id), caseid=caseid)
     case_schema = CaseSchema()
 
-    return response_success("Case reopened successfully", data=case_schema.dump(res))
+    return response_success("Case reopen successfully", data=case_schema.dump(res))
 
 
 @manage_cases_blueprint.route('/manage/cases/close/<int:cur_id>', methods=['POST'])
@@ -284,7 +287,7 @@ def api_case_close(cur_id, caseid):
 
                 db.session.add(alert)
     
-    case = call_modules_hook('on_postload_case_info_update', data=case, caseid=caseid)
+    case = call_modules_hook('on_postload_case_update', data=case, caseid=caseid)
 
     add_obj_history_entry(case, 'case closed')
     track_activity("closed case ID {}".format(cur_id), caseid=caseid, ctx_less=False)
@@ -367,8 +370,8 @@ def update_case_info(cur_id, caseid):
 
         request_data = request.get_json()
 
-        request_data['case_name'] = f"#{case_i.case_id} - {request_data.get('case_name')}"
-        request_data['case_customer'] = case_i.client_id
+        request_data['case_name'] = f"#{case_i.case_id} - {request_data.get('case_name').replace(f'#{case_i.case_id} - ', '')}"
+        request_data['case_customer'] = case_i.client_id if request_data.get('case_customer') is None else request_data.get('case_customer')
 
         case = case_schema.load(request_data, instance=case_i, partial=True)
 
@@ -377,7 +380,7 @@ def update_case_info(cur_id, caseid):
         register_case_protagonists(case.case_id, request_data.get('protagonists'))
         save_case_tags(request_data.get('case_tags'), case_i)
 
-        case = call_modules_hook('on_postload_case_info_update', data=case, caseid=caseid)
+        case = call_modules_hook('on_postload_case_update', data=case, caseid=caseid)
 
         add_obj_history_entry(case_i, 'case info updated')
         track_activity("case updated {case_name}".format(case_name=case.name), caseid=cur_id)

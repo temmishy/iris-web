@@ -1317,7 +1317,7 @@ export function do_md_filter_xss(html) {
                 code: [], pre: [], em: [], strong: [],
                 blockquote: [], del: [],
                 input: ['type', 'checked', 'disabled', 'class'],
-                table: ['class'], thead: [], tbody: [], tr: [], th: [], td: []
+                table: ['class'], thead: [], tbody: [], tr: [], th: [], td: [], br: []
             },
         onTagAttr: function (tag, name, value) {
             if (tag === "i" && name === "class") {
@@ -1802,8 +1802,7 @@ function context_data_parser(data) {
     if(notify_auto_api(data, true)) {
         $('#user_context').empty();
 
-        // Create optgroups for opened and closed cases
-        $('#user_context').append('<optgroup label="Opened" id="switch_case_opened_opt"></optgroup>');
+        $('#user_context').append('<optgroup label="Open" id="switch_case_opened_opt"></optgroup>');
         $('#user_context').append('<optgroup label="Closed" id="switch_case_closed_opt"></optgroup>');
 
         // Iterate through the context data and add options to the appropriate optgroup
@@ -2050,10 +2049,33 @@ export function do_deletion_prompt(message, force_prompt=false) {
 }
 
 /**
- * Initializes various features of the page on load.
+ * Converts a string to a base64-encoded binary string.
+ * @param {string} string - The string to convert.
+ * @returns {string} The base64-encoded binary string.
  */
+export function toBinary64(string) {
+  const codeUnits = new Uint16Array(string.length);
+  for (let i = 0; i < codeUnits.length; i++) {
+    codeUnits[i] = string.charCodeAt(i);
+  }
+  return btoa(String.fromCharCode(...new Uint8Array(codeUnits.buffer)));
+}
+
+/**
+ * Converts a base64-encoded binary string to a string.
+ * @param {string} encoded - The base64-encoded binary string to convert.
+ * @returns {string} The decoded string.
+ */
+export function fromBinary64(encoded) {
+  const binary = atob(encoded);
+  const bytes = new Uint8Array(binary.length);
+  for (let i = 0; i < bytes.length; i++) {
+    bytes[i] = binary.charCodeAt(i);
+  }
+  return String.fromCharCode(...new Uint16Array(bytes.buffer));
+}
+
 $(function(){
-    // Redirects the user to the appropriate page if necessary
     notify_redirect();
 
     // Updates the time on the page every 30 seconds

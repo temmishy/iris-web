@@ -70,12 +70,12 @@ function appendLabels(list, items, itemType) {
         const input = $('<input>').attr({
             type: 'checkbox',
             name: itemType,
-            value: item[itemType + '_name'] || item[itemType + '_value'],
+            value: filterXSS(item[itemType + '_name'] || item[itemType + '_value']),
             id: item[itemType + '_uuid'],
             checked: true,
         });
         label.append(input);
-        label.append(` ${item[itemType + '_name'] || item[itemType + '_value']}`);
+        label.append(`${filterXSS(item[itemType + '_name'] || item[itemType + '_value'])}`);
         list.append(label);
     });
 }
@@ -397,7 +397,7 @@ function mergeAlertCasesSelectOption(data) {
     if(notify_auto_api(data, true)) {
         $('#mergeAlertCaseSelect').empty();
 
-        $('#mergeAlertCaseSelect').append('<optgroup label="Opened" id="switchMergeAlertCasesOpen"></optgroup>');
+        $('#mergeAlertCaseSelect').append('<optgroup label="Open" id="switchMergeAlertCasesOpen"></optgroup>');
         $('#mergeAlertCaseSelect').append('<optgroup label="Closed" id="switchMergeAlertCasesClose"></optgroup>');
         ocs = data.data;
         ret_data = [];
@@ -420,10 +420,10 @@ function mergeAlertCasesSelectOption(data) {
 }
 
 function fetchSmartRelations(alert_id) {
-    $('input[value="open_alerts"]').prop('checked', true);
-    $('input[value="closed_alerts"]').prop('checked', false);
-    $('input[value="open_cases"]').prop('checked', false);
-    $('input[value="closed_cases"]').prop('checked', false);
+    $(`input[name="open_alerts_${alert_id}"]`).prop('checked', true);
+    $(`input[name="closed_alerts_${alert_id}"]`).prop('checked', false);
+    $(`input[name="open_cases_${alert_id}"]`).prop('checked', false);
+    $(`input[name="closed_cases_${alert_id}"]`).prop('checked', false);
 
     fetchSimilarAlerts(alert_id, false, true, false,
         false, false);
@@ -431,7 +431,7 @@ function fetchSmartRelations(alert_id) {
 
 function buildAlertLink(alert_id){
     const current_path = location.protocol + '//' + location.host
-    return current_path + '/alerts' + case_param() + '&alert_id=' + alert_id;
+    return current_path + '/alerts' + case_param() + '&alert_ids=' + alert_id;
 }
 
 function copyAlertLink(alert_id) {
@@ -465,7 +465,7 @@ function getAlertOffset(element) {
 function createNetwork(alert_id, relatedAlerts, nb_nodes, containerId, containerConfigureId) {
   const { nodes, edges } = relatedAlerts;
 
-  if (nodes.length === 0) {
+  if (nodes.length === 0 || nodes.length === undefined) {
       $(`#similarAlertsNotify-${alert_id}`).text(`No relationships found for this alert`);
      return;
   }
@@ -546,7 +546,7 @@ function createNetwork(alert_id, relatedAlerts, nb_nodes, containerId, container
           node_type = selectedNodeId.split('_')[0];
           node_id = selectedNodeId.split('_')[1];
 
-          if (node_type === 'alert' || node_type === 'case') {
+          if (node_type === 'alert' || node_type === 'case' || node_type === 'asset' || node_type === 'ioc') {
               // Get the offset of the container element.
               const containerOffset = getAlertOffset(container);
 
@@ -562,7 +562,11 @@ function createNetwork(alert_id, relatedAlerts, nb_nodes, containerId, container
 
               $('#view-alert').data('node-id', node_id);
               $('#view-alert').data('node-type', node_type);
-              $('#view-alert-text').text(`View ${node_type} #${node_id}`);
+              if (node_type === 'alert' || node_type === 'case') {
+                  $('#view-alert-text').text(`View on ${node_type} #${node_id}`);
+              } else {
+                    $('#view-alert-text').text(`Pivot on ${node_type} ${node_id}`);
+              }
               contextMenu.show();
           }
       }
@@ -588,7 +592,11 @@ function viewAlertGraph() {
     if (node_type === 'alert') {
         window.open(`/alerts?alert_ids=${node_id}&cid=${get_caseid()}`);
     } else if (node_type === 'case') {
-        window.open(`/case?cid=${node_id}`);
+        window.open(`/case?cid=${node_id}`);Ï
+    } else if (node_type === 'asset') {
+        window.open(`/alerts?alert_assets=${node_id}&cid=${get_caseid()}`);
+    } else if (node_type === 'ioc') {
+        window.open(`/alerts?alert_iocs=${node_id}&cid=${get_caseid()}`);
     }
 }
 
@@ -744,9 +752,32 @@ function getFiltersFromUrl() {
     return Object.fromEntries(formData.entries());
 }
 
-function renderAlert(alert, expanded=false) {
+function renderAlert(alert, expanded=false, modulesOptionsAlertReq,
+                     modulesOptionsIocReq) {
   const colorSeverity = alert_severity_to_color(alert.severity.severity_name);
   const alert_color = alertStatusToColor(alert.status.status_name);
+
+  if (alert.owner !== null) {
+      alert.owner.user_name = filterXSS(alert.owner.user_name);
+  }
+  alert.alert_title = alert.alert_title ? filterXSS(alert.alert_title) : 'No title provided';
+  alert.alert_description = alert.alert_description ? filterXSS(alert.alert_description) : 'No description provided';
+  alert.alert_source = alert.alert_description ? filterXSS(alert.alert_source) : 'No source provided';
+  alert.alert_source_link = filterXSS(alert.alert_source_link);
+  alert.alert_source_ref = filterXSS(alert.alert_source_ref);
+  alert.alert_note = filterXSS(alert.alert_note);
+
+  let menuOptionsHtmlAlert = '';
+  const menuOptions = modulesOptionsAlertReq;
+  if (menuOptions.length !== 0) {
+
+      menuOptionsHtmlAlert = '<div class="dropdown-divider"></div>';
+      for (let index in menuOptions) {
+        let opt = menuOptions[index];
+        menuOptionsHtmlAlert += `<a class="dropdown-item" href="javascript:void(0);" onclick='init_module_processing_alert(${alert.alert_id}, "${opt.hook_name}",`+
+                    `"${opt.manual_hook_ui_name}","${opt.module_name}");return false;'><i class="fa fa-arrow-alt-circle-right mr-2"></i> ${opt.manual_hook_ui_name}</a>`
+      }
+  }
 
   return `
 <div class="card alert-card full-height alert-card-selectable ${alert_color}" id="alertCard-${alert.alert_id}">
@@ -806,6 +837,7 @@ function renderAlert(alert, expanded=false) {
                                 <div class="dropdown-menu" role="menu">
                                   <a href="javascript:void(0)" class="dropdown-item" onclick="copyAlertLink(${alert.alert_id});return false;"><small class="fa fa-share mr-2"></small>Share</a>
                                   <a href="javascript:void(0)" class="dropdown-item" onclick="copyMDAlertLink(${alert.alert_id});return false;"><small class="fa-brands fa-markdown mr-2"></small>Markdown Link</a>
+                                  ${menuOptionsHtmlAlert}
                                   <div class="dropdown-divider"></div>
                                   <a href="javascript:void(0)" class="dropdown-item text-danger" onclick="delete_alert(${alert.alert_id});"><small class="fa fa-trash mr-2"></small>Delete alert</a>
                                 </div>
@@ -856,13 +888,16 @@ function renderAlert(alert, expanded=false) {
                 <div class="card-no-pd mt-2">
                     <div class="card-body">
                     <h3 class="title mb-3"><strong>General info</strong></h3>  
-                      <div class="row">
-                        ${alert.alert_source ? `<div class="col-md-3"><b>Source:</b></div>
+                        ${alert.alert_source ? `<div class="row"><div class="col-md-3"><b>Source:</b></div>
                         <div class="col-md-9">${alert.alert_source}</div>
                       </div>` : ''}
                       ${alert.alert_source_link ? `<div class="row mt-2">
                         <div class="col-md-3"><b>Source Link:</b></div>
-                        <div class="col-md-9"><a href="${alert.alert_source_link}">${alert.alert_source_link}</a></div>
+                        <div class="col-md-9">${
+                            alert.alert_source_link && alert.alert_source_link.startsWith('http') 
+                            ? `<a href="${alert.alert_source_link}">${alert.alert_source_link}</a>` 
+                            : 'No valid link provided'
+                          }</div>
                       </div>` : ''}
                       ${alert.alert_source_ref ? `<div class="row mt-2">
                         <div class="col-md-3"><b>Source Reference:</b></div>
@@ -889,8 +924,8 @@ function renderAlert(alert, expanded=false) {
                                              ${Object.entries(alert.alert_context)
                                   .map(
                                       ([key, value]) =>
-                                          `<dt class="col-sm-3">${key}</dt>
-                                                    <dd class="col-sm-9">${value}</dd>`
+                                          `<dt class="col-sm-3">${filterXSS(key)}</dt>
+                                                    <dd class="col-sm-9">${filterXSS(value)}</dd>`
                                   )
                                   .join('')}
                                            </dl>`
@@ -907,19 +942,19 @@ function renderAlert(alert, expanded=false) {
                         <div class="row ml-1">
                             <div class="selectgroup selectgroup-pills mt-4">
                                 <label class="selectgroup-item">
-                                    <input type="checkbox" name="value" value="open_alerts" class="selectgroup-input filter-graph-alert-checkbox" onclick="refreshAlertRelationships(${alert.alert_id});">
+                                    <input type="checkbox" name="open_alerts_${alert.alert_id}" class="selectgroup-input filter-graph-alert-checkbox" onclick="refreshAlertRelationships(${alert.alert_id});">
                                     <span class="selectgroup-button">Show open alerts</span>
                                 </label>
                                 <label class="selectgroup-item">
-                                    <input type="checkbox" name="value" value="closed_alerts" class="selectgroup-input filter-graph-alert-checkbox" onclick="refreshAlertRelationships(${alert.alert_id})">
+                                    <input type="checkbox" name="closed_alerts_${alert.alert_id}" class="selectgroup-input filter-graph-alert-checkbox" onclick="refreshAlertRelationships(${alert.alert_id})">
                                     <span class="selectgroup-button">Show closed alerts</span>
                                 </label>
                                 <label class="selectgroup-item">
-                                    <input type="checkbox" name="value" value="open_cases" class="selectgroup-input filter-graph-alert-checkbox" onclick="refreshAlertRelationships(${alert.alert_id})">
+                                    <input type="checkbox" name="open_cases_${alert.alert_id}" class="selectgroup-input filter-graph-alert-checkbox" onclick="refreshAlertRelationships(${alert.alert_id})">
                                     <span class="selectgroup-button">Show open cases</span>
                                 </label>
                                 <label class="selectgroup-item">
-                                    <input type="checkbox" name="value" value="closed_cases" class="selectgroup-input filter-graph-alert-checkbox" onclick="refreshAlertRelationships(${alert.alert_id})">
+                                    <input type="checkbox" name="closed_cases_${alert.alert_id}" class="selectgroup-input filter-graph-alert-checkbox" onclick="refreshAlertRelationships(${alert.alert_id})">
                                     <span class="selectgroup-button">Show closed cases</span>
                                 </label>
                             </div>
@@ -962,6 +997,7 @@ function renderAlert(alert, expanded=false) {
                                                <th>TLP</th>
                                                <th>Tags</th>
                                                <th>Enrichment</th>
+                                               <th></th>
                                              </tr>
                                            </thead>
                                            <tbody>
@@ -969,14 +1005,26 @@ function renderAlert(alert, expanded=false) {
                               .map(
                                   (ioc) => `
                                                  <tr>
-                                                   <td>${ioc.ioc_value}</td>
-                                                   <td>${ioc.ioc_description}</td>
-                                                   <td>${ioc.ioc_type ? ioc.ioc_type.type_name : '-'}</td>
-                                                   <td>${ioc.ioc_tlp ? ioc.ioc_tlp : '-'}</td>
-                                                   <td>${ioc.ioc_tags ? ioc.ioc_tags.split(',').map((tag) => `<span class="badge badge-pill badge-light ml-1"><i class="fa fa-tag mr-1"></i>${tag}</span>`).join('') : ''}</td>
+                                                   <td>${filterXSS(ioc.ioc_value)}</td>
+                                                   <td>${filterXSS(ioc.ioc_description)}</td>
+                                                   <td>${ioc.ioc_type ? filterXSS(ioc.ioc_type.type_name) : '-'}</td>
+                                                   <td>${filterXSS(ioc.ioc_tlp) ? ioc.ioc_tlp : '-'}</td>
+                                                   <td>${ioc.ioc_tags ? ioc.ioc_tags.split(',').map((tag) => `<span class="badge badge-pill badge-light ml-1"><i class="fa fa-tag mr-1"></i>${filterXSS(tag)}</span>`).join('') : ''}</td>
                                                    <td>${ioc.ioc_enrichment ? `<button type="button" class="btn btn-sm btn-outline-dark" data-toggle="modal" data-target="#enrichmentModal" onclick="showEnrichment(${JSON.stringify(ioc.ioc_enrichment).replace(/"/g, '&quot;')})">
                                                       View Enrichment
                                                     </button>` : ''}
+                                                    </td>
+                                                    <td>
+                                                       <button class="btn bg-transparent" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+                                                          <span aria-hidden="true"><i class="fas fa-ellipsis-v"></i></span>
+                                                        </button>
+                                                        <div class="dropdown-menu" role="menu">
+                                                        ${ modulesOptionsIocReq.length === 0 ? `<a class="dropdown-item" href="javascript:void(0);"><i class="fas fa-rocket mr-2"></i> No module available</a>` :
+                                                          modulesOptionsIocReq.map((opt) => `
+                                                                <a class="dropdown-item" href="javascript:void(0);" onclick='init_module_processing([${ioc.ioc_id}], "${opt.hook_name}","${opt.manual_hook_ui_name}","${opt.module_name}", "ioc");return false;'><i class="fas fa-rocket mr-2"></i> ${opt.manual_hook_ui_name}</a>`
+                                                            ).join('')
+                                                        }
+                                                        </div>
                                                     </td>
                                                  </tr>`
                               )
@@ -1009,12 +1057,12 @@ function renderAlert(alert, expanded=false) {
                   .map(
                       (asset) => `
                                      <tr>
-                                       <td>${asset.asset_name ? asset.asset_name : '-'}</td>
-                                       <td>${asset.asset_description ? asset.asset_description : '-'}</td>
-                                       <td>${asset.asset_type ? asset.asset_type.asset_name : '-'}</td>
-                                       <td>${asset.asset_domain ? asset.asset_domain : '-'}</td>
-                                       <td>${asset.asset_ip ? asset.asset_ip : '-'}</td>
-                                       <td>${asset.asset_tags ? asset.asset_tags.split(',').map((tag) => `<span class="badge badge-pill badge-light ml-1"><i class="fa fa-tag mr-1"></i>${tag}</span>`).join('') : ''}</td>
+                                       <td>${asset.asset_name ? filterXSS(asset.asset_name) : '-'}</td>
+                                       <td>${asset.asset_description ? filterXSS(asset.asset_description) : '-'}</td>
+                                       <td>${asset.asset_type ? filterXSS(asset.asset_type.asset_name) : '-'}</td>
+                                       <td>${asset.asset_domain ? filterXSS(asset.asset_domain) : '-'}</td>
+                                       <td>${asset.asset_ip ? filterXSS(asset.asset_ip) : '-'}</td>
+                                       <td>${asset.asset_tags ? asset.asset_tags.split(',').map((tag) => `<span class="badge badge-pill badge-light ml-1"><i class="fa fa-tag mr-1"></i>${filterXSS(tag)}</span>`).join('') : ''}</td>
                                        <td>${asset.asset_enrichment ? `<button type="button" class="btn btn-sm btn-outline-dark" data-toggle="modal" data-target="#enrichmentModal" onclick="showEnrichment(${JSON.stringify(asset.asset_enrichment).replace(/"/g, '&quot;')})">
                                           View Enrichment
                                         </button>` : ''}
@@ -1034,7 +1082,7 @@ function renderAlert(alert, expanded=false) {
                            <button class="btn btn-sm btn-outline-dark" type="button" data-toggle="collapse" data-target="#rawAlert-${alert.alert_id}" 
                            aria-expanded="false" aria-controls="rawAlert-${alert.alert_id}">Toggle Raw Alert</button>
                            <div class="collapse mt-3" id="rawAlert-${alert.alert_id}">
-                             <pre class="pre-scrollable">${JSON.stringify(alert.alert_source_content, null, 2)}</pre>
+                             <pre class="pre-scrollable">${filterXSS(JSON.stringify(alert.alert_source_content, null, 2))}</pre>
                            </div>`
               : ""
       }
@@ -1062,11 +1110,11 @@ function renderAlert(alert, expanded=false) {
                 <span title="Alert severity"><b class="ml-3"><i class="fa-solid fa-bolt"></i></b>
                   <small class="text-muted ml-1" id="alertSeverity-${alert.alert_id}" data-severity-id="${alert.severity.severity_id}">${alert.severity.severity_name}</small></span>
                 <span title="Alert source"><b class="ml-3"><i class="fa-solid fa-cloud-arrow-down"></i></b>
-                  <small class="text-muted ml-1">${alert.alert_source || 'Unspecified'}</small></span>
+                  <small class="text-muted ml-1">${filterXSS(alert.alert_source) || 'Unspecified'}</small></span>
                 <span title="Alert client"><b class="ml-3"><i class="fa-regular fa-circle-user"></i></b>
-                  <small class="text-muted ml-1 mr-2">${alert.customer.customer_name || 'Unspecified'}</small></span>
-                ${alert.classification && alert.classification.name_expanded ? `<span class="badge badge-pill badge-light" title="Classification" id="alertClassification-${alert.alert_id}" data-classification-id="${alert.classification.id}"><i class="fa-solid fa-shield-virus mr-1"></i>${alert.classification.name_expanded}</span>`: ''}
-                ${alert.alert_tags ? alert.alert_tags.split(',').map((tag) => `<span class="badge badge-pill badge-light ml-1"><i class="fa fa-tag mr-1"></i>${tag}</span>`).join('') + `<div style="display:none;" id="alertTags-${alert.alert_id}">${alert.alert_tags}</div>` : ''}
+                  <small class="text-muted ml-1 mr-2">${filterXSS(alert.customer.customer_name) || 'Unspecified'}</small></span>
+                ${alert.classification && alert.classification.name_expanded ? `<span class="badge badge-pill badge-light" title="Classification" id="alertClassification-${alert.alert_id}" data-classification-id="${alert.classification.id}"><i class="fa-solid fa-shield-virus mr-1"></i>${filterXSS(alert.classification.name_expanded)}</span>`: ''}
+                ${alert.alert_tags ? alert.alert_tags.split(',').map((tag) => `<span class="badge badge-pill badge-light ml-1"><i class="fa fa-tag mr-1"></i>${filterXSS(tag)}</span>`).join('') + `<div style="display:none;" id="alertTags-${alert.alert_id}">${filterXSS(alert.alert_tags)}</div>` : ''}
                 
               </div>
 
@@ -1084,6 +1132,24 @@ function renderAlert(alert, expanded=false) {
 
 }
 
+function init_module_processing_alert(alert_id, hook_name, hook_ui_name, module_name, data_type) {
+    let data = Object();
+    data['hook_name'] = hook_name;
+    data['module_name'] = module_name;
+    data['hook_ui_name'] = hook_ui_name;
+    data['csrf_token'] = $('#csrf_token').val();
+    data['type'] = 'alert';
+    data['targets'] = [alert_id];
+
+    post_request_api("/dim/hooks/call", JSON.stringify(data), true)
+    .done(function (data){
+        notify_auto_api(data)
+    });
+}
+
+let modulesOptionsAlertReq = null;
+let modulesOptionsIocReq = null;
+
 async function refreshAlert(alertId, alertData, expanded=false) {
     if (alertData === undefined) {
         const alertDataReq = await fetchAlert(alertId);
@@ -1093,10 +1159,42 @@ async function refreshAlert(alertId, alertData, expanded=false) {
         alertData = alertDataReq.data;
     }
 
+      if (modulesOptionsAlertReq === null) {
+    modulesOptionsAlertReq = await fetchModulesOptionsAlert();
+    if (!notify_auto_api(modulesOptionsAlertReq, true)) {
+        return;
+    }
+  }
+  if (modulesOptionsIocReq === null) {
+    modulesOptionsIocReq = await fetchModulesOptionsIoc();
+    if (!notify_auto_api(modulesOptionsIocReq, true)) {
+        return;
+    }
+  }
+
     const alertElement = $(`#alertCard-${alertId}`);
-    const alertHtml = renderAlert(alertData, expanded);
+    const alertHtml = renderAlert(alertData, expanded, modulesOptionsAlertReq.data, modulesOptionsIocReq.data);
     alertElement.replaceWith(alertHtml);
 }
+
+async function fetchModulesOptionsAlert() {
+    const response = get_request_api('/dim/hooks/options/alert/list');
+
+    return await response;
+}
+
+async function fetchModulesOptionsIoc() {
+    const response = get_request_api('/dim/hooks/options/ioc/list');
+
+    return await response;
+}
+
+async function fetchModulesOptionsAsset() {
+    const response = get_request_api('/dim/hooks/options/asset/list');
+
+    return await response;
+}
+
 
 async function updateAlerts(page, per_page, filters = {}, paging=false){
   if (sortOrder === undefined) { sortOrder = 'desc'; }
@@ -1115,6 +1213,19 @@ async function updateAlerts(page, per_page, filters = {}, paging=false){
     return;
   }
   const alerts = data.data.alerts;
+
+  if (modulesOptionsAlertReq === null) {
+    modulesOptionsAlertReq = await fetchModulesOptionsAlert();
+    if (!notify_auto_api(modulesOptionsAlertReq, true)) {
+        return;
+    }
+  }
+  if (modulesOptionsIocReq === null) {
+    modulesOptionsIocReq = await fetchModulesOptionsIoc();
+    if (!notify_auto_api(modulesOptionsIocReq, true)) {
+        return;
+    }
+  }
 
   // Check if the selection mode is active
    const selectionModeActive = $('body').hasClass('selection-mode');
@@ -1138,7 +1249,8 @@ async function updateAlerts(page, per_page, filters = {}, paging=false){
       alerts.forEach((alert) => {
           const alertElement = $('<div></div>');
 
-          const alertHtml = renderAlert(alert, isExpanded);
+          const alertHtml = renderAlert(alert, isExpanded, modulesOptionsAlertReq.data,
+                                               modulesOptionsIocReq.data);
           alertElement.html(alertHtml);
           alertsContainer.append(alertElement);
       });
@@ -1356,7 +1468,7 @@ async function editAlert(alert_id, close=false) {
         confirmAlertEdition.text('Save')
     }
 
-    fetchSelectOptions('editAlertClassification', selectsConfig['alertClassificationFilter']).then(() => {
+    fetchSelectOptions('editAlertClassification', selectsConfig['alert_classification_id']).then(() => {
       $('#editAlertClassification').val($(`#alertClassification-${alert_id}`).data('classification-id'));
     }).catch(error => {
       console.error(error);
@@ -1687,7 +1799,7 @@ function fetchSelectOptions(selectElementId, configItem) {
         });
         resolve();
       });
-  });
+  });Ï
 }
 
 function getBatchAlerts() {
@@ -1789,12 +1901,10 @@ function updateAlertBadge() {
 
 function refreshAlertRelationships(alertId) {
     // Get the checked status of each checkbox
-    let fetch_open_alerts = $('input[value="open_alerts"]').prop('checked');
-    let fetch_closed_alerts = $('input[value="closed_alerts"]').prop('checked');
-    let fetch_open_cases = $('input[value="open_cases"]').prop('checked');
-    let fetch_closed_cases = $('input[value="closed_cases"]').prop('checked');
-
-    console.log("fetch_open_alerts: " + fetch_open_alerts)
+    let fetch_open_alerts = $(`input[name="open_alerts_${alertId}"]`).prop('checked');
+    let fetch_closed_alerts = $(`input[name="closed_alerts_${alertId}"]`).prop('checked');
+    let fetch_open_cases = $(`input[name="open_cases_${alertId}"]`).prop('checked');
+    let fetch_closed_cases = $(`input[name="closed_cases_${alertId}"]`).prop('checked');
 
     fetchSimilarAlerts(alertId, true, fetch_open_alerts, fetch_closed_alerts,
         fetch_open_cases, fetch_closed_cases);

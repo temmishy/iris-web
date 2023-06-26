@@ -160,18 +160,17 @@ function build_ds_tree(data, tree_node) {
             if (!data[node].is_root) {
                 can_delete = `<div class="dropdown-divider"></div><a href="javascript:void(0);" class="dropdown-item text-danger ds-delete-folder"><small class="fa fa-trash mr-2"></small>Delete</a>`;
             }
-            // Build the directory node
-            let jnode = `<li  data-node-id="${node}">
-                    <span id='${node}' title='Folder ID ${node}' data-node-id="${node}"><i class="fa-regular fa-folder"></i> ${data[node].name}</span> 
+            let jnode = `<li>
+                    <span id='${node}' title='Folder ID ${node}' data-node-id="${node}"><i class="fa-regular fa-folder"></i> ${sanitizeHTML(data[node].name)}</span> 
                     <i class="fas fa-plus ds-folder-menu" role="menu" style="cursor:pointer;" data-toggle="dropdown" aria-expanded="false"></i>
-                    <div class="dropdown-menu" role="menu">
-                            <a href="javascript:void(0);" class="dropdown-item ds-add-subfolder"><small class="fa-solid fa-folder mr-2"></small>Add subfolder</a>
-                            <a href="javascript:void(0);" class="dropdown-item ds-add-file"><small class="fa-solid fa-file mr-2"></small>Add file</a>
-                            <div class="dropdown-divider"></div>
-                            <a href="javascript:void(0);" class="dropdown-item ds-move-folder"><small class="fa fa-arrow-right-arrow-left mr-2"></small>Move</a>
-                            <a href="javascript:void(0);" class="dropdown-item ds-rename-folder" data-folder-name="${data[node].name}"><small class="fa-solid fa-pencil mr-2"></small>Rename</a>
-                            ${can_delete}
-                    </div>
+                        <div class="dropdown-menu" role="menu">
+                                <a href="javascript:void(0);" class="dropdown-item ds-add-subfolder"><small class="fa-solid fa-folder mr-2"></small>Add subfolder</a>
+                                <a href="javascript:void(0);" class="dropdown-item ds-add-file"><small class="fa-solid fa-file mr-2"></small>Add file</a>
+                                <div class="dropdown-divider"></div>
+                                <<a href="javascript:void(0);" class="dropdown-item ds-move-folder"><small class="fa fa-arrow-right-arrow-left mr-2"></small>Move</a>
+                                <a href="javascript:void(0);" class="dropdown-item ds-rename-folder" data-folder-name="${data[node].name}"><small class="fa-solid fa-pencil mr-2"></small>Rename</a>
+                                ${can_delete}
+                        </div>
                     <ul id='tree-${node}'></ul>
                 </li>`;
             // Append the directory node to the tree
@@ -212,12 +211,12 @@ function build_ds_tree(data, tree_node) {
             // Build the file node
             let jnode = `<li data-file-id="${node}">
                 <span id='${node}' data-file-id="${node}" title="ID : ${data[node].file_id}\nUUID : ${data[node].file_uuid}" class='tree-leaf'>
-                      <span role="menu" style="cursor:pointer;" data-toggle="dropdown" aria-expanded="false">${icon}${icon_lock} ${data[node].file_original_name}</span>
+                      <span role="menu" style="cursor:pointer;" data-toggle="dropdown" aria-expanded="false">${icon}${icon_lock} ${sanitizeHTML(data[node].file_original_name)}</span>
                       <i class="fa-regular fa-circle ds-file-selector" style="cursor:pointer;display:none;"></i>
                         <div class="dropdown-menu" role="menu">
                                 <a href="#" class="dropdown-item ds-get-link-file-btn"><small class="fa fa-link mr-2"></small>Link</a>
-                                <a href="#" class="dropdown-item ds-get-md-link-file-btn" data-file-name'${data[node].file_original_name}' data-file-icon='${icn_content}' data-has-password='${has_password}'><small class="fa-brands fa-markdown mr-2"></small>Markdown link</a>
-                                <a href="#" class="dropdown-item ds-download-file-btn" data-file-name="${data[node].file_original_name}"><small class="fa-solid fa-download mr-2"></small>Download</a>
+                                <a href="#" class="dropdown-item" ds-get-md-link-file-btn" data-file-name='${toBinary64(data[node].file_original_name)}' data-file-icon='${icn_content}' data-has-password='${has_password}'><small class="fa-brands fa-markdown mr-2"></small>Markdown link</a>
+                                <a href="#" class="dropdown-item ds-download-file-btn" data-file-name="${sanitizeHTML(data[node].file_original_name)}"><small class="fa-solid fa-download mr-2"></small>Download</a>
                                 <div class="dropdown-divider"></div>
                                 <a href="#" class="dropdown-item ds-info-file-btn"><small class="fa fa-eye mr-2"></small>Info</a>
                                 <a href="#" class="dropdown-item ds-edit-file-btn"><small class="fa fa-pencil mr-2"></small>Edit</a>
@@ -884,6 +883,8 @@ function get_mk_link_ds_file(file_id, filename, file_icon, has_password) {
 
    // Decode the file icon
    file_icon = atob(file_icon);
+
+   filename = sanitizeHTML(fromBinary64(filename));
 
    // Build the markdown link
    let mk_link = `[${file_icon} [DS] ${filename}](${link})`;
