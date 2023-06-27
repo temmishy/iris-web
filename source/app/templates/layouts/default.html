@@ -10,7 +10,8 @@
 		<script defer data-domain="{{demo_domain}}" src="https://analytics.dfir-iris.org/js/plausible.js"></script>
 	{% endif %}
 
-	<link rel="stylesheet" href="/static/assets/dist/main.iris.css">
+	<link rel="stylesheet" href="/static/assets/dist/atlantis.iris.css">
+	<link rel="stylesheet" href="/static/assets/dist/theme.iris.css">
 
     {% block stylesheets %}{% endblock stylesheets %}
 	{% if current_user.in_dark_mode %}
@@ -49,6 +50,9 @@
 	</div>
 
     {% block javascripts %}{% endblock javascripts %}
-	
+	<script src="/static/assets/dist/main.iris.js"></script>
+	<script src="/static/assets/dist/dashboard.iris.js"></script>
+	<script src="/static/assets/dist/theme.iris.js"></script>
+
 </body>
 </html>

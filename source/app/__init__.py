@@ -54,7 +54,8 @@ class AlertsNamespace(Namespace):
 
 
 APP_PATH = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-TEMPLATE_PATH = os.path.join(APP_PATH, 'templates/')
+TEMPLATE_PATH = os.path.join(APP_PATH, 'app/templates/')
+print(TEMPLATE_PATH)
 
 # Grabs the folder where the script runs.
 basedir = os.path.abspath(os.path.dirname(__file__))
